@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>theme-cli</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #fbfaf7;
+    --panel: #ffffff;
+    --fg: #1f2328;
+    --muted: #5b6470;
+    --line: #d9d6cc;
+    --accent: #b45f06;
+    --accent-bg: #fdf0dc;
+    --link: #1f5fbf;
+    --ok: #1a7f37;
+    --ok-bg: #e6f4ea;
+    --warn-bg: #fff4d6;
+    --code-bg: #f1efe8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #17181a;
+      --panel: #1f2124;
+      --fg: #e6e4de;
+      --muted: #a2a7ae;
+      --line: #3a3d42;
+      --accent: #f0a042;
+      --accent-bg: #3a2c14;
+      --link: #7fb0ff;
+      --ok: #5fcf80;
+      --ok-bg: #16301e;
+      --warn-bg: #3a3214;
+      --code-bg: #26282b;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #17181a;
+    --panel: #1f2124;
+    --fg: #e6e4de;
+    --muted: #a2a7ae;
+    --line: #3a3d42;
+    --accent: #f0a042;
+    --accent-bg: #3a2c14;
+    --link: #7fb0ff;
+    --ok: #5fcf80;
+    --ok-bg: #16301e;
+    --warn-bg: #3a3214;
+    --code-bg: #26282b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 60rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
+  h1 { font-size: 2rem; margin: 0 0 .25rem; }
+  h2 { font-size: 1.45rem; margin: 2.75rem 0 .75rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+  h3 { font-size: 1.1rem; margin: 1.75rem 0 .5rem; }
+  p, ul, ol { margin: .6rem 0; }
+  li { margin: .25rem 0; }
+  a { color: var(--link); }
+  code { font: .88em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code-bg); padding: .1em .35em; border-radius: 4px; }
+  pre { background: var(--code-bg); padding: .8rem 1rem; border-radius: 8px; overflow-x: auto; margin: .8rem 0; }
+  pre code { background: none; padding: 0; font-size: .85rem; }
+  .lede { color: var(--muted); margin: 0 0 1.25rem; }
+  .table-wrap { overflow-x: auto; margin: .8rem 0; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); font-size: .92rem; }
+  th, td { border: 1px solid var(--line); padding: .45rem .65rem; text-align: left; vertical-align: top; }
+  th { background: var(--code-bg); font-weight: 600; }
+  nav.toc { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: .75rem 1.1rem; margin: 1rem 0 0; }
+  nav.toc ol { columns: 2 14rem; margin: 0; padding-left: 1.2rem; }
+  .callout { border-left: 4px solid var(--accent); background: var(--accent-bg); padding: .6rem .9rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+  .expected { border-left: 4px solid var(--ok); background: var(--ok-bg); padding: .6rem .9rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+  .warn { border-left: 4px solid var(--accent); background: var(--warn-bg); padding: .6rem .9rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+  figure { margin: 1.25rem 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: .75rem; }
+  figure svg { display: block; width: 100%; max-width: 100%; height: auto; color: var(--fg); }
+  figcaption { color: var(--muted); font-size: .9rem; margin-top: .5rem; }
+  .band { font: .85rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: .7rem .9rem; overflow-x: auto; white-space: pre; }
+  .band .w { color: var(--accent); font-weight: 700; }
+  .band .d { color: var(--muted); }
+  .band .s { color: var(--link); }
+  /* SVG parts, styled here so the drawings follow the theme */
+  .node { fill: var(--panel); stroke: currentColor; stroke-width: 1.5; }
+  .node-hot { fill: var(--accent-bg); stroke: var(--accent); stroke-width: 2; }
+  .edge { stroke: currentColor; stroke-width: 1.5; fill: none; }
+  .edge-hot { stroke: var(--accent); stroke-width: 2; fill: none; }
+  .edge-dash { stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 5 4; fill: none; }
+  .lbl { fill: currentColor; font: 12px -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .lbl-b { fill: currentColor; font: 600 13px -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .lbl-m { fill: var(--muted); font: 12px -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .lbl-hot { fill: var(--accent); font: 600 12px -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .arrow-fill { fill: currentColor; }
+  .arrow-hot { fill: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+
+<h1>theme-cli</h1>
+<p class="lede">A Claude Code mod. Pixel characters from your own images run along a strip above the prompt while Claude works.</p>
+<p>A Markdown version of this document is in <code>README.md</code>. It has the same content and the same diagrams.</p>
+<p>To install the mod, go to <a href="#install">section 5</a>. To prove that it works, go to <a href="#validate">section 6</a>.</p>
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#purpose">Purpose</a></li>
+    <li><a href="#code">Where to find the code</a></li>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#settings">Settings</a></li>
+    <li><a href="#install">Install</a></li>
+    <li><a href="#validate">Validate</a></li>
+    <li><a href="#limits">Known limits</a></li>
+    <li><a href="#glossary">Glossary</a></li>
+  </ol>
+</nav>
+
+<h2 id="purpose">1. Purpose</h2>
+<p>While Claude works, the prompt area shows only text. This mod adds a strip of pixel art above the prompt. The strip shows that a turn is in progress, and how many subagents run.</p>
+<p>The strip does the following:</p>
+<ol>
+  <li>It shows a lead character that runs along the ground while a turn is in progress.</li>
+  <li>It adds one companion for each running subagent. Each companion has its own color.</li>
+  <li>It plays a finale when Claude answers. The lead runs to a flagpole, slides down it, and walks into a goal.</li>
+</ol>
+<p>The characters come from a theme. A theme is a folder of your own images and one file, <code>theme.json</code>. Themes live in <code>~/.claude/theme-cli/themes</code>, outside every project. Switch themes with <code>/theme-use</code>.</p>
+<p>Without a theme, the mod draws built-in placeholder shapes. The strip works before you set anything up.</p>
+<p>The mod scales each theme one time, when the theme loads. It stores the scaled sprites in a cache. Drawing a frame never scales an image.</p>
+<p>The strip uses half-block characters, so each terminal row shows 2 pixels. This sketch shows the layout. It is not real output.</p>
+<pre><code> lead      companion 1   companion 2                       pole   goal
+  ▀█▄          ▀█▄           ▀█▄                            │     ▐█▌
+▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄</code></pre>
+
+<h2 id="code">2. Where to find the code</h2>
+<p>The logic is in four files in <code>hooks/</code> and one script in <code>scripts/</code>. Search for the name if a line number is different.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Item</th><th>File</th><th>Line</th></tr></thead>
+  <tbody>
+    <tr><td>Constants (frame time, finale time, strip width limits)</td><td><code>hooks/register.tsx</code></td><td>10–14</td></tr>
+    <tr><td>Stored values</td><td><code>hooks/register.tsx</code></td><td>16–29</td></tr>
+    <tr><td>Module variables (<code>scene</code>, <code>timer</code>, <code>isTicking</code>, <code>stats</code>)</td><td><code>hooks/register.tsx</code></td><td>33–36</td></tr>
+    <tr><td><code>isActive()</code> – decides if the strip shows</td><td><code>hooks/register.tsx</code></td><td>42</td></tr>
+    <tr><td><code>readView()</code> – reads the values that a frame needs</td><td><code>hooks/register.tsx</code></td><td>48</td></tr>
+    <tr><td><code>useTheme()</code> – loads a theme and tells the band to redraw</td><td><code>hooks/register.tsx</code></td><td>65</td></tr>
+    <tr><td><code>tick()</code> – draws one frame and sends it with <code>blit</code></td><td><code>hooks/register.tsx</code></td><td>75</td></tr>
+    <tr><td><code>startTimer()</code> and <code>stopTimer()</code></td><td><code>hooks/register.tsx</code></td><td>113, 119</td></tr>
+    <tr><td><code>addAgent()</code> and <code>freeSlot()</code> – give a companion its color slot</td><td><code>hooks/register.tsx</code></td><td>125, 131</td></tr>
+    <tr><td><code>reconcile()</code> – drops agents that the engine no longer lists. It keeps the crew when the list cannot be read.</td><td><code>hooks/register.tsx</code></td><td>139</td></tr>
+    <tr><td><code>register()</code> – adds all hooks</td><td><code>hooks/register.tsx</code></td><td>156</td></tr>
+    <tr><td>Hook <code>session.start</code> (registers 9 commands, loads the theme)</td><td><code>hooks/register.tsx</code></td><td>157</td></tr>
+    <tr><td>Commands <code>theme-hide</code>, <code>theme-show</code></td><td><code>hooks/register.tsx</code></td><td>179, 185</td></tr>
+    <tr><td>Commands <code>theme-mute</code>, <code>theme-unmute</code></td><td><code>hooks/register.tsx</code></td><td>search for the name</td></tr>
+    <tr><td>Commands <code>theme-list</code>, <code>theme-use</code>, <code>theme-build</code>, <code>theme-new</code></td><td><code>hooks/register.tsx</code></td><td>191, 205, 216, 223</td></tr>
+    <tr><td>Command <code>theme-dump</code></td><td><code>hooks/register.tsx</code></td><td>237</td></tr>
+    <tr><td>Hooks <code>turn.start</code>, <code>turn.complete</code></td><td><code>hooks/register.tsx</code></td><td>269, 283</td></tr>
+    <tr><td>Hooks <code>classic.SubagentStart</code>, <code>classic.SubagentStop</code></td><td><code>hooks/register.tsx</code></td><td>305, 324</td></tr>
+    <tr><td>Hooks <code>tool.call</code>, <code>turn.step</code>, <code>session.measure</code></td><td><code>hooks/register.tsx</code></td><td>345, 360, 377</td></tr>
+    <tr><td>Hook <code>session.end</code></td><td><code>hooks/register.tsx</code></td><td>383</td></tr>
+    <tr><td>Hook <code>ui.render</code> (the strip)</td><td><code>hooks/register.tsx</code></td><td>391</td></tr>
+    <tr><td>Types <code>Frame</code>, <code>Pix</code>, <code>ThemeSpec</code>, <code>Scene</code></td><td><code>hooks/theme.ts</code></td><td>5, 7, 10, 27</td></tr>
+    <tr><td><code>BUILT_IN</code> – the theme with no files</td><td><code>hooks/theme.ts</code></td><td>49</td></tr>
+    <tr><td><code>heightOf()</code> – rounds and limits the sprite height</td><td><code>hooks/theme.ts</code></td><td>61</td></tr>
+    <tr><td><code>decode()</code> and <code>recolor()</code></td><td><code>hooks/theme.ts</code></td><td>120, 156</td></tr>
+    <tr><td><code>resolvePath()</code> and <code>sourcesOf()</code></td><td><code>hooks/theme.ts</code></td><td>173, 180</td></tr>
+    <tr><td><code>parseSpec()</code> – checks <code>theme.json</code></td><td><code>hooks/theme.ts</code></td><td>194</td></tr>
+    <tr><td><code>resolveScene()</code> – turns frames into a scene</td><td><code>hooks/theme.ts</code></td><td>216</td></tr>
+    <tr><td><code>rowsOf()</code> – terminal rows for a scene</td><td><code>hooks/draw.ts</code></td><td>16</td></tr>
+    <tr><td><code>drawGround()</code>, <code>drawCrew()</code>, <code>drawFinale()</code></td><td><code>hooks/draw.ts</code></td><td>58, 68, 81</td></tr>
+    <tr><td><code>draw()</code> – the whole scene as pixels</td><td><code>hooks/draw.ts</code></td><td>108</td></tr>
+    <tr><td><code>cellsOf()</code>, <code>pack()</code>, <code>asText()</code></td><td><code>hooks/draw.ts</code></td><td>137, 150, 161</td></tr>
+    <tr><td><code>BUILD</code>, <code>DEFAULT_THEME</code></td><td><code>hooks/library.ts</code></td><td>17, 18</td></tr>
+    <tr><td><code>listThemes()</code>, <code>readChoice()</code>, <code>writeChoice()</code></td><td><code>hooks/library.ts</code></td><td>38, 56, 69</td></tr>
+    <tr><td><code>mark()</code> and <code>stampOf()</code> – build the stamp</td><td><code>hooks/library.ts</code></td><td>77, 90</td></tr>
+    <tr><td><code>loadTheme()</code> – check, build, read</td><td><code>hooks/library.ts</code></td><td>109</td></tr>
+    <tr><td><code>templateFor()</code> – the file that <code>/theme-new</code> writes</td><td><code>hooks/library.ts</code></td><td>148</td></tr>
+    <tr><td><code>read_png()</code> and <code>read_image()</code></td><td><code>scripts/build-theme.py</code></td><td>72, 125</td></tr>
+    <tr><td><code>crop()</code> and <code>to_pixels()</code></td><td><code>scripts/build-theme.py</code></td><td>139, 152</td></tr>
+    <tr><td><code>shrink()</code> – scales a frame</td><td><code>scripts/build-theme.py</code></td><td>170</td></tr>
+    <tr><td><code>pack()</code> – writes a frame as glyph rows</td><td><code>scripts/build-theme.py</code></td><td>204</td></tr>
+    <tr><td><code>source_of()</code> and <code>main()</code></td><td><code>scripts/build-theme.py</code></td><td>218, 239</td></tr>
+    <tr><td>Type of the stored values</td><td><code>types/index.d.ts</code></td><td>26–43</td></tr>
+    <tr><td>Tests for the strip</td><td><code>hooks/register.test.tsx</code></td><td>77–271</td></tr>
+    <tr><td>Tests for themes</td><td><code>hooks/theme.test.tsx</code></td><td>74–162</td></tr>
+  </tbody>
+</table></div>
+<p>Other files: <code>hooks/hooks.json</code> names the module. <code>.claude-plugin/plugin.json</code> is the manifest. <code>tsconfig.json</code> is for the type-check.</p>
+
+<h2 id="how">3. How it works</h2>
+<h3 id="3-1-beats">3.1 Beats</h3>
+<p>The mod keeps one beat for the main turn of the chat. The beat has five values.</p>
+<figure>
+  <svg viewBox="0 0 700 260" role="img" aria-label="State diagram. The strip has five beats: idle, working, complete, aborted and error. A turn start moves idle to working. When the turn is answered and no agent runs, working moves to complete, which is the finale. A turn that ends with reason aborted moves working to aborted. Any other reason moves working to error. Complete returns to idle 4200 milliseconds after the answer.">
+    <defs>
+      <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-fill"/></marker>
+      <marker id="a1h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-hot"/></marker>
+    </defs>
+    <!-- nodes -->
+    <rect class="node" x="30" y="110" width="120" height="50" rx="8"/>
+    <text class="lbl-b" x="90" y="140" text-anchor="middle">idle</text>
+    <rect class="node" x="230" y="110" width="120" height="50" rx="8"/>
+    <text class="lbl-b" x="290" y="140" text-anchor="middle">working</text>
+    <rect class="node-hot" x="470" y="34" width="150" height="50" rx="8"/>
+    <text class="lbl-b" x="545" y="64" text-anchor="middle">complete</text>
+    <rect class="node" x="470" y="110" width="150" height="50" rx="8"/>
+    <text class="lbl-b" x="545" y="140" text-anchor="middle">aborted</text>
+    <rect class="node" x="470" y="190" width="150" height="50" rx="8"/>
+    <text class="lbl-b" x="545" y="220" text-anchor="middle">error</text>
+    <!-- edges -->
+    <line class="edge" x1="150" y1="135" x2="228" y2="135" marker-end="url(#a1)"/>
+    <text class="lbl" x="189" y="127" text-anchor="middle">turn.start</text>
+    <line class="edge-hot" x1="320" y1="108" x2="468" y2="70" marker-end="url(#a1h)"/>
+    <text class="lbl-hot" x="290" y="84" text-anchor="middle">answer, no agent running</text>
+    <line class="edge" x1="350" y1="135" x2="468" y2="135" marker-end="url(#a1)"/>
+    <text class="lbl" x="409" y="127" text-anchor="middle">reason aborted</text>
+    <line class="edge" x1="320" y1="160" x2="468" y2="205" marker-end="url(#a1)"/>
+    <text class="lbl" x="290" y="196" text-anchor="middle">any other reason</text>
+    <path class="edge" d="M545 34 L545 18 L90 18 L90 108" marker-end="url(#a1)"/>
+    <text class="lbl" x="318" y="12" text-anchor="middle">4200 ms after the answer</text>
+  </svg>
+  <figcaption>Figure 1. The five beats. A <code>turn.start</code> from any beat returns to working. The path to the finale is highlighted.</figcaption>
+</figure>
+<div class="table-wrap"><table>
+  <thead><tr><th>Beat</th><th>Meaning</th><th>Strip</th></tr></thead>
+  <tbody>
+    <tr><td><code>idle</code></td><td>No turn is in progress.</td><td>Hidden, unless a subagent runs.</td></tr>
+    <tr><td><code>working</code></td><td>A turn is in progress, or a subagent still runs.</td><td>Lead, partner and companions run.</td></tr>
+    <tr><td><code>complete</code></td><td>The turn was answered and no subagent runs.</td><td>The finale plays for 4200 ms.</td></tr>
+    <tr><td><code>aborted</code></td><td>The turn ended with the reason <code>aborted</code>.</td><td>Hidden, unless a subagent runs.</td></tr>
+    <tr><td><code>error</code></td><td>The turn ended with any other reason except <code>answer</code>.</td><td>Hidden, unless a subagent runs.</td></tr>
+  </tbody>
+</table></div>
+<p>The strip shows when <code>isActive()</code> is true. That is when the beat is <code>working</code>, when the finale is still playing, or when at least 1 companion exists.</p>
+<p>The main turn can end before its subagents end. In that case the beat stays <code>working</code>. The last <code>classic.SubagentStop</code> then sets the beat to <code>complete</code>.</p>
+<h3 id="3-2-what-each-hook-does">3.2 What each hook does</h3>
+<div class="table-wrap"><table>
+  <thead><tr><th>Event</th><th>Condition</th><th>Action</th></tr></thead>
+  <tbody>
+    <tr><td><code>session.start</code></td><td>Always</td><td>Register 9 commands. Load the chosen theme. Drop stale agents. Start the timer if the strip is active.</td></tr>
+    <tr><td><code>turn.start</code></td><td>Main loop only</td><td>Store the start time. Set the beat to <code>working</code>. Start the timer.</td></tr>
+    <tr><td><code>turn.complete</code></td><td>Main loop only, a subagent runs</td><td>Keep the beat at <code>working</code>.</td></tr>
+    <tr><td><code>turn.complete</code></td><td>Main loop only, reason <code>answer</code></td><td>Store the finale start. Set the beat to <code>complete</code>.</td></tr>
+    <tr><td><code>turn.complete</code></td><td>Main loop only, other reason</td><td>Set the beat to <code>aborted</code> or <code>error</code>.</td></tr>
+    <tr><td><code>classic.SubagentStart</code></td><td>Always</td><td>Add the agent. Give it a color slot. Start the timer.</td></tr>
+    <tr><td><code>classic.SubagentStop</code></td><td>The agent is known</td><td>Mark the agent done. Remove its companion. Start the finale if it was the last agent and the main turn ended.</td></tr>
+    <tr><td><code>tool.call</code></td><td>Subagent only</td><td>Record the tool name. Keep the last 2 names.</td></tr>
+    <tr><td><code>turn.step</code></td><td>Subagent only</td><td>Add 1 to the step count. Store the token count.</td></tr>
+    <tr><td><code>session.measure</code></td><td>Cost present</td><td>Store the session cost for <code>/theme-dump</code>.</td></tr>
+    <tr><td><code>session.end</code></td><td>Always</td><td>Stop the timer. Drop stale agents. If the engine cannot list agents, keep the crew as it is.</td></tr>
+    <tr><td><code>ui.render</code> (<code>AbovePrompt</code>)</td><td>Terminal, no survey, strip not hidden, strip active</td><td>Draw the strip as one <code>Raster</code>.</td></tr>
+  </tbody>
+</table></div>
+<p>Subagent turns do not change the beat. The <code>turn.start</code> and <code>turn.complete</code> hooks check <code>e.agentId</code>.</p>
+<h3 id="3-3-the-finale">3.3 The finale</h3>
+<p>The finale starts when the beat becomes <code>complete</code>. Times are milliseconds after the finale start. The code is <code>drawFinale()</code> in <code>hooks/draw.ts</code>.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Time (ms)</th><th>What the strip shows</th></tr></thead>
+  <tbody>
+    <tr><td>0 to 1500</td><td>The lead runs from the left edge to the flagpole.</td></tr>
+    <tr><td>1500 to 2600</td><td>The flag slides down the pole. The lead holds the jump frame and slides with it.</td></tr>
+    <tr><td>2600 to 3700</td><td>The lead walks to the goal.</td></tr>
+    <tr><td>3700 to 4200</td><td>The pole, the flag and the goal stay. The lead is not drawn.</td></tr>
+    <tr><td>4200</td><td>The next tick sets the beat to <code>idle</code>. The timer stops.</td></tr>
+  </tbody>
+</table></div>
+<h3 id="3-4-companions">3.4 Companions</h3>
+<p>Each running subagent adds 1 companion. The companion slides in over 600 ms. It trails the lead.</p>
+<p>A companion has a color slot. The slot is the lowest number that no running companion holds. A stop frees the slot for the next agent.</p>
+<p>The scene holds 1 sprite for each slot. A companion draws the sprite at its slot number. If there are more agents than sprites, the slot number wraps around and colors repeat.</p>
+<p>A theme makes the sprites in one of three ways:</p>
+<ul>
+  <li><code>cast.companion.frames</code> lists 1 frame for each slot.</li>
+  <li><code>cast.companion.frame</code> names 1 base frame. The mod recolors it to each hue in <code>recolor.to</code>.</li>
+  <li>Neither is set. The mod recolors a built-in blue block to the default hues.</li>
+</ul>
+<p>The default hues are green, red, yellow, blue, pink and cyan. A recolor changes a pixel only under two conditions. Its saturation must be 0.3 or more. Its hue must be within <code>range</code> degrees of <code>recolor.hue</code>.</p>
+<h3 id="3-5-how-a-frame-is-drawn">3.5 How a frame is drawn</h3>
+<p>A timer starts a tick every 100 ms. A tick reads the state, draws the scene as pixels, and sends the cells to the screen.</p>
+<figure>
+  <svg viewBox="0 0 830 260" role="img" aria-label="Flow of one frame. A frame timer starts tick every 100 milliseconds. Tick calls readView, then draw, which makes pixels. Then cellsOf puts 2 pixels in each cell, and pack encodes the cells as base64. The packed cells go to ui.blit, which swaps the cells of the Raster above the prompt.">
+    <defs>
+      <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-fill"/></marker>
+      <marker id="a2h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-hot"/></marker>
+    </defs>
+    <rect class="node" x="20" y="30" width="160" height="56" rx="8"/>
+    <text class="lbl-b" x="100" y="54" text-anchor="middle">Frame timer</text>
+    <text class="lbl-m" x="100" y="72" text-anchor="middle">every 100 ms</text>
+    <rect class="node" x="230" y="30" width="160" height="56" rx="8"/>
+    <text class="lbl-b" x="310" y="54" text-anchor="middle">tick()</text>
+    <text class="lbl-m" x="310" y="72" text-anchor="middle">skips if one runs</text>
+    <rect class="node" x="440" y="30" width="160" height="56" rx="8"/>
+    <text class="lbl-b" x="520" y="54" text-anchor="middle">readView()</text>
+    <text class="lbl-m" x="520" y="72" text-anchor="middle">beat, crew, clock</text>
+    <rect class="node" x="650" y="30" width="160" height="56" rx="8"/>
+    <text class="lbl-b" x="730" y="54" text-anchor="middle">draw()</text>
+    <text class="lbl-m" x="730" y="72" text-anchor="middle">pixels 0xRRGGBB</text>
+    <rect class="node" x="20" y="170" width="160" height="56" rx="8"/>
+    <text class="lbl-b" x="100" y="194" text-anchor="middle">cellsOf()</text>
+    <text class="lbl-m" x="100" y="212" text-anchor="middle">2 pixels per cell</text>
+    <rect class="node" x="230" y="170" width="160" height="56" rx="8"/>
+    <text class="lbl-b" x="310" y="194" text-anchor="middle">pack()</text>
+    <text class="lbl-m" x="310" y="212" text-anchor="middle">base64 of u32 values</text>
+    <rect class="node-hot" x="440" y="170" width="160" height="56" rx="8"/>
+    <text class="lbl-b" x="520" y="194" text-anchor="middle">ui.blit</text>
+    <text class="lbl-m" x="520" y="212" text-anchor="middle">swaps the cells</text>
+    <rect class="node-hot" x="650" y="170" width="160" height="56" rx="8"/>
+    <text class="lbl-b" x="730" y="194" text-anchor="middle">Raster</text>
+    <text class="lbl-m" x="730" y="212" text-anchor="middle">above the prompt</text>
+    <line class="edge" x1="180" y1="58" x2="228" y2="58" marker-end="url(#a2)"/>
+    <line class="edge" x1="390" y1="58" x2="438" y2="58" marker-end="url(#a2)"/>
+    <line class="edge" x1="600" y1="58" x2="648" y2="58" marker-end="url(#a2)"/>
+    <path class="edge" d="M730 86 L730 128 L100 128 L100 168" marker-end="url(#a2)"/>
+    <line class="edge" x1="180" y1="198" x2="228" y2="198" marker-end="url(#a2)"/>
+    <line class="edge-hot" x1="390" y1="198" x2="438" y2="198" marker-end="url(#a2h)"/>
+    <line class="edge-hot" x1="600" y1="198" x2="648" y2="198" marker-end="url(#a2h)"/>
+  </svg>
+  <figcaption>Figure 2. One frame. <code>ui.blit</code> replaces the cells of the mounted <code>Raster</code>. The highlighted edges are the step that reaches the screen.</figcaption>
+</figure>
+<p>The first frame comes from the <code>ui.render</code> hook. It returns a <code>Raster</code>. The hook also records the <code>requestId</code> and the size of the band. A render must not write state, so the hook records them through <code>$.clock.after(0, …)</code>.</p>
+<p>Later frames use <code>$.ui.blit</code>. A blit swaps the cells and does not restart the <code>Raster</code>. A tick does nothing until the band is known.</p>
+<p>The width is the width of the prompt body, limited to 32 to 240 columns. The height is <code>ceil((sprite height + 2) / 2)</code> rows. The 2 extra pixels are the ground. An 8-pixel sprite needs 5 rows.</p>
+<p>A cell holds 2 pixels. The top pixel is the foreground of <code>▀</code>. The bottom pixel is the background.</p>
+<h3 id="3-6-how-a-theme-loads">3.6 How a theme loads</h3>
+<p>A theme loads at <code>session.start</code>, and when you run <code>/theme-use</code> or <code>/theme-build</code>. The load checks first and scales only when needed.</p>
+<figure>
+  <svg viewBox="0 0 910 280" role="img" aria-label="Flow of a theme load. The load reads theme.json. If the name is default, or theme.json is missing or invalid, the mod uses the built-in placeholders. Otherwise it compares the stamp with the cache. If the stamp differs, or the user runs theme-build, the mod runs build-theme.py, which writes the cache. If the stamp is the same, the mod reads the cache. Then resolveScene builds the scene.">
+    <defs>
+      <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-fill"/></marker>
+      <marker id="a3h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-hot"/></marker>
+    </defs>
+    <rect class="node" x="20" y="30" width="150" height="56" rx="8"/>
+    <text class="lbl-b" x="95" y="63" text-anchor="middle">loadTheme(name)</text>
+    <rect class="node" x="240" y="30" width="150" height="56" rx="8"/>
+    <text class="lbl-b" x="315" y="63" text-anchor="middle">Read theme.json</text>
+    <rect class="node" x="480" y="30" width="150" height="56" rx="8"/>
+    <text class="lbl-b" x="555" y="54" text-anchor="middle">Compare stamp</text>
+    <text class="lbl-m" x="555" y="72" text-anchor="middle">with the cache</text>
+    <rect class="node-hot" x="740" y="30" width="150" height="56" rx="8"/>
+    <text class="lbl-b" x="815" y="63" text-anchor="middle">Run build-theme.py</text>
+    <rect class="node" x="20" y="190" width="150" height="56" rx="8"/>
+    <text class="lbl-b" x="95" y="214" text-anchor="middle">Placeholders</text>
+    <text class="lbl-m" x="95" y="232" text-anchor="middle">built-in shapes</text>
+    <rect class="node-hot" x="240" y="190" width="150" height="56" rx="8"/>
+    <text class="lbl-b" x="315" y="214" text-anchor="middle">resolveScene()</text>
+    <text class="lbl-m" x="315" y="232" text-anchor="middle">builds the Scene</text>
+    <rect class="node-hot" x="480" y="190" width="150" height="56" rx="8"/>
+    <text class="lbl-b" x="555" y="223" text-anchor="middle">Read cache</text>
+    <line class="edge" x1="170" y1="58" x2="238" y2="58" marker-end="url(#a3)"/>
+    <line class="edge" x1="390" y1="58" x2="478" y2="58" marker-end="url(#a3)"/>
+    <line class="edge-hot" x1="630" y1="58" x2="738" y2="58" marker-end="url(#a3h)"/>
+    <text class="lbl-hot" x="684" y="34" text-anchor="middle">stamp differs,</text>
+    <text class="lbl-hot" x="684" y="48" text-anchor="middle">or /theme-build</text>
+    <line class="edge-dash" x1="70" y1="86" x2="70" y2="188" marker-end="url(#a3)"/>
+    <text class="lbl-m" x="78" y="126">name is default</text>
+    <path class="edge" d="M300 86 L300 150 L120 150 L120 188" marker-end="url(#a3)"/>
+    <text class="lbl" x="210" y="166" text-anchor="middle">missing or invalid</text>
+    <line class="edge" x1="555" y1="86" x2="555" y2="188" marker-end="url(#a3)"/>
+    <text class="lbl" x="563" y="140">stamp same</text>
+    <path class="edge-hot" d="M815 86 L815 218 L632 218" marker-end="url(#a3h)"/>
+    <text class="lbl-hot" x="807" y="150" text-anchor="end">writes the cache</text>
+    <line class="edge-hot" x1="480" y1="218" x2="392" y2="218" marker-end="url(#a3h)"/>
+    <line class="edge" x1="170" y1="218" x2="238" y2="218" marker-end="url(#a3)"/>
+  </svg>
+  <figcaption>Figure 3. The theme load. The highlighted path is the build. It runs only when the stamp differs or when you force it.</figcaption>
+</figure>
+<p>The stamp is one line of text. It joins these parts with <code>|</code>:</p>
+<ul>
+  <li><code>build</code> and the number <code>BUILD</code> (now 1).</li>
+  <li><code>h</code> and the sprite height.</li>
+  <li>The size and the modification time of <code>theme.json</code>.</li>
+  <li>The same data for each image file, or for each file in an image folder.</li>
+</ul>
+<p>The cache is <code>themes/&lt;name&gt;/.cache/frames.json</code>. It stores the stamp and the scaled frames. If the stored stamp equals the new stamp, the mod reads the cache and does no image work.</p>
+<p>If the stamp differs, the mod runs <code>python3 -I scripts/build-theme.py</code>. The run has a limit of 120,000 ms. The script crops each frame, makes the background clear, scales the frame, and writes the cache.</p>
+<p>The scale uses a vote. Each output pixel counts the source pixels it covers. Dark pixels count 1.3 times. An output pixel is clear when more than 55 percent of its area is clear.</p>
+<p>After the load, <code>resolveScene()</code> decodes the frames. A frame that the cast needs but the cache lacks becomes a placeholder. The scene lists these names in <code>missing</code>.</p>
+<h3 id="3-7-the-theme-library">3.7 The theme library</h3>
+<p>The library is one folder in your home folder.</p>
+<pre><code>~/.claude/theme-cli/
+  config.json                  {"theme": "&lt;name&gt;"}
+  themes/
+    &lt;name&gt;/
+      theme.json               what the theme draws, and where its images are
+      assets/                  your images (any folder name works)
+      .cache/frames.json       the scaled sprites, written by the mod</code></pre>
+<p>A theme name has 1 to 40 letters, digits, <code>-</code> or <code>_</code>. It must start with a letter or a digit. The name <code>default</code> is the built-in theme.</p>
+<p>A path in <code>theme.json</code> is resolved in this order:</p>
+<ul>
+  <li>A path that starts with <code>~/</code> is relative to your home folder.</li>
+  <li>A path that starts with <code>/</code> is used as given.</li>
+  <li>Any other path is relative to the theme folder.</li>
+</ul>
+<p>A sheet is an image file or a folder of image files. A frame names a sheet and a box <code>[x, y, w, h]</code> on it. For a folder sheet, a frame names the sheet and a file in the folder.</p>
+<p>If <code>theme.json</code> is missing or invalid, the mod uses the built-in theme. The reason shows in the status of the command and in <code>/theme-dump</code>.</p>
+<h3 id="3-8-commands">3.8 Commands</h3>
+<div class="table-wrap"><table>
+  <thead><tr><th>Command</th><th>Action</th><th>Reply</th></tr></thead>
+  <tbody>
+    <tr><td><code>/theme-list</code></td><td>List the built-in theme and the themes with a <code>theme.json</code>.</td><td>One name on each line. <code>*</code> marks the theme on show.</td></tr>
+    <tr><td><code>/theme-use &lt;name&gt;</code></td><td>Load the theme. Write the name to <code>config.json</code>.</td><td><code>Theme: &lt;name&gt; (&lt;status&gt;). It stays your choice in new sessions.</code></td></tr>
+    <tr><td><code>/theme-build</code></td><td>Rebuild the chosen theme even when the stamp matches.</td><td><code>Theme &lt;name&gt;: &lt;status&gt;</code>. For the built-in theme: <code>The built-in theme has no images to build.</code></td></tr>
+    <tr><td><code>/theme-new &lt;name&gt;</code></td><td>Write a template <code>theme.json</code> in a new theme folder.</td><td>The path of the new file.</td></tr>
+    <tr><td><code>/theme-hide</code></td><td>Hide the strip.</td><td><code>Strip hidden. /theme-show shows it again.</code></td></tr>
+    <tr><td><code>/theme-show</code></td><td>Show the strip.</td><td><code>Strip shown.</code></td></tr>
+    <tr><td><code>/theme-mute</code></td><td>Silence every sound and stop the <code>working</code> loop.</td><td><code>Sounds muted. /theme-unmute plays them again.</code></td></tr>
+    <tr><td><code>/theme-unmute</code></td><td>Play the sounds again. A turn in progress gets its loop back.</td><td><code>Sounds on.</code></td></tr>
+    <tr><td><code>/theme-dump</code></td><td>Write <code>theme-cli-log.txt</code> in the current folder.</td><td><code>Wrote &lt;n&gt; log lines and the strip to theme-cli-log.txt.</code></td></tr>
+  </tbody>
+</table></div>
+<p>The dump file has these parts:</p>
+<ul>
+  <li>The log lines.</li>
+  <li>The theme, its sprite height and its missing frames.</li>
+  <li>The session cost.</li>
+  <li>The theme sounds, the mute state and the loop state.</li>
+  <li>The beat, the crew and the timer state.</li>
+  <li>The band <code>requestId</code> and size.</li>
+  <li>The tick, blit and denied counts, and the time for each tick.</li>
+  <li>One line for each agent.</li>
+  <li>The strip as text.</li>
+</ul>
+<h3 id="3-9-stored-values">3.9 Stored values</h3>
+<div class="table-wrap"><table>
+  <thead><tr><th>Name</th><th>Type</th><th>Meaning</th><th>Written by</th></tr></thead>
+  <tbody>
+    <tr><td><code>agents</code></td><td>map</td><td>One record for each subagent: type, status, steps, tokens, model, last tools.</td><td><code>SubagentStart</code>, <code>SubagentStop</code>, <code>tool.call</code>, <code>turn.step</code></td></tr>
+    <tr><td><code>crew</code></td><td>list</td><td>One entry for each running companion: id, start time, color slot.</td><td><code>SubagentStart</code>, <code>SubagentStop</code>, <code>reconcile()</code></td></tr>
+    <tr><td><code>beat</code></td><td>text</td><td>The beat of the main turn.</td><td><code>turn.start</code>, <code>turn.complete</code>, <code>SubagentStop</code>, <code>tick()</code></td></tr>
+    <tr><td><code>isWorking</code></td><td>boolean</td><td>The main turn is in progress.</td><td><code>turn.start</code>, <code>turn.complete</code></td></tr>
+    <tr><td><code>turnStart</code></td><td>number</td><td>Time of the last <code>turn.start</code>. The lead position depends on it.</td><td><code>turn.start</code></td></tr>
+    <tr><td><code>turnEnd</code></td><td>number</td><td>Time of the last <code>turn.complete</code>. No code reads it.</td><td><code>turn.complete</code></td></tr>
+    <tr><td><code>finaleStart</code></td><td>number</td><td>Time that the finale started.</td><td><code>turn.complete</code>, <code>SubagentStop</code></td></tr>
+    <tr><td><code>cost</code></td><td>number</td><td>Session cost in US dollars. Only <code>/theme-dump</code> shows it.</td><td><code>session.measure</code></td></tr>
+    <tr><td><code>isHidden</code></td><td>boolean</td><td>The strip is hidden.</td><td><code>/theme-hide</code>, <code>/theme-show</code></td></tr>
+    <tr><td><code>isMuted</code></td><td>boolean</td><td>The sounds are muted. It stays through a reload.</td><td><code>/theme-mute</code>, <code>/theme-unmute</code></td></tr>
+    <tr><td><code>band</code></td><td>object</td><td>The <code>requestId</code> and size of the mounted band.</td><td><code>ui.render</code> (after the draw)</td></tr>
+    <tr><td><code>themeName</code></td><td>text</td><td>The theme on show. A change redraws the band.</td><td><code>useTheme()</code></td></tr>
+    <tr><td><code>log</code></td><td>list</td><td>The last 300 log lines.</td><td><code>note()</code></td></tr>
+  </tbody>
+</table></div>
+<p>The engine keeps these values for the session. They stay through a reload. The variables <code>scene</code>, <code>sounds</code>, <code>loop</code>, <code>timer</code>, <code>isTicking</code> and <code>stats</code> are plain variables. A reload resets them, and <code>session.start</code> loads the theme and starts the timer again.</p>
+
+<h3 id="3-10-sounds">3.10 Sounds</h3>
+<p>A theme can play a sound at four moments. The sounds are optional. A theme with no <code>sounds</code> block is silent. <code>/theme-mute</code> silences all four cues without editing the theme. It stays in force in new sessions until <code>/theme-unmute</code>.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Cue</th><th>When it plays</th><th>Play mode</th></tr></thead>
+  <tbody>
+    <tr><td><code>start</code></td><td><code>turn.start</code>, main loop only.</td><td>Once.</td></tr>
+    <tr><td><code>working</code></td><td>After the <code>start</code> clip ends, while the beat is <code>working</code>.</td><td>Looped. It stops when the beat leaves <code>working</code>, at <code>session.end</code>, or when a theme switch replaces it.</td></tr>
+    <tr><td><code>success</code></td><td>The beat becomes <code>complete</code>.</td><td>Once, with the finale.</td></tr>
+    <tr><td><code>error</code></td><td><code>turn.complete</code> with a reason other than <code>answer</code> or <code>aborted</code>.</td><td>Once.</td></tr>
+  </tbody>
+</table></div>
+<p>An aborted turn stops the <code>working</code> loop and plays no other clip.</p>
+<p>The mod reads each audio file as bytes when the theme loads (<code>loadSounds()</code> in <code>hooks/library.ts</code>) and plays it with <code>$.audio.play</code>. The engine plays a file from the plugin folder by name, but a theme lives outside the plugin, so the mod passes the bytes instead. A file that is missing, or whose extension is not <code>wav</code>, <code>mp3</code>, <code>m4a</code>, <code>aac</code>, <code>aiff</code>, <code>aif</code> or <code>ogg</code>, is left out. The load status names it (<code>missing sounds: working</code>), and the other cues still play. A clip that cannot play is written to the log, and never thrown. On macOS the engine plays through <code>afplay</code>. A terminal without a player plays nothing.</p>
+<p>The <code>mario</code> theme uses four clips from <code>scripts/make-mario-sounds.py</code>. The script builds each clip from square-wave notes in the style of the games: a coin for <code>start</code>, an overworld bounce for <code>working</code>, a flagpole run for <code>success</code> and a falling line for <code>error</code>. It uses no sample from any game. To write the clips into a theme:</p>
+<pre><code>python3 -I mods/theme-cli/scripts/make-mario-sounds.py --out ~/.claude/theme-cli/themes/mario/assets/sounds</code></pre>
+<p>Then add the <code>sounds</code> block from section 4.1 to the theme's <code>theme.json</code>, and run <code>/theme-use mario</code>. Do not commit audio that you do not own.</p>
+
+<h2 id="settings">4. Settings</h2>
+<p>The mod has no <code>userConfig</code>. It has nothing to change in <code>/config</code>. You change the look in <code>theme.json</code>, and you choose the theme in <code>config.json</code> or with <code>/theme-use</code>.</p>
+<h3 id="4-1-theme-file-fields">4.1 Theme file fields</h3>
+<p>All fields in <code>theme.json</code> are optional. A field that you leave out draws a placeholder.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Field</th><th>Value</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr><td><code>height</code></td><td>number</td><td>Sprite height in pixels. The mod rounds it up to an even number and limits it to 4 to 32. Default 8.</td></tr>
+    <tr><td><code>sheets.&lt;id&gt;.file</code></td><td>path</td><td>An image file, or a folder of image files.</td></tr>
+    <tr><td><code>sheets.&lt;id&gt;.key</code></td><td><code>[r, g, b]</code></td><td>A background color that the build makes clear.</td></tr>
+    <tr><td><code>frames.&lt;id&gt;.sheet</code></td><td>sheet id</td><td>The sheet to crop from.</td></tr>
+    <tr><td><code>frames.&lt;id&gt;.box</code></td><td><code>[x, y, w, h]</code></td><td>The area to crop. Leave it out to use the whole image.</td></tr>
+    <tr><td><code>frames.&lt;id&gt;.file</code></td><td>path</td><td>A file in the folder sheet, or an image file when no sheet is named.</td></tr>
+    <tr><td><code>frames.&lt;id&gt;.key</code></td><td><code>[r, g, b]</code></td><td>A background color for this frame. It overrides the sheet.</td></tr>
+    <tr><td><code>frames.&lt;id&gt;.height</code></td><td>number</td><td>Pixels tall for this frame. Default: the theme <code>height</code>.</td></tr>
+    <tr><td><code>cast.lead.run</code></td><td>frame ids</td><td>The run cycle of the lead. The cycle changes frame every 110 ms.</td></tr>
+    <tr><td><code>cast.lead.jump</code></td><td>frame id</td><td>The lead frame for the slide down the pole.</td></tr>
+    <tr><td><code>cast.partner.run</code></td><td>frame ids</td><td>A second character that trails the lead. Leave it out for none.</td></tr>
+    <tr><td><code>cast.companion.frame</code></td><td>frame id</td><td>The base frame of every companion.</td></tr>
+    <tr><td><code>cast.companion.frames</code></td><td>frame ids</td><td>One frame for each color slot. It overrides <code>frame</code>.</td></tr>
+    <tr><td><code>cast.companion.recolor</code></td><td><code>{hue, to[], range?}</code></td><td>The base hue to replace, the new hues, and the range in degrees (default 20).</td></tr>
+    <tr><td><code>cast.goal.frame</code></td><td>frame id</td><td>The goal at the right edge.</td></tr>
+    <tr><td><code>colors.ground</code></td><td>2 colors <code>#rrggbb</code></td><td>The two colors of the ground bricks.</td></tr>
+    <tr><td><code>colors.dirt</code>, <code>colors.pole</code>, <code>colors.flag</code></td><td>color <code>#rrggbb</code></td><td>The dirt row, the flagpole and the flag.</td></tr>
+    <tr><td><code>sounds.&lt;cue&gt;.file</code></td><td>path</td><td>An audio file for the cue. The cues are <code>start</code>, <code>working</code>, <code>success</code> and <code>error</code> (section 3.10).</td></tr>
+    <tr><td><code>sounds.&lt;cue&gt;.gain</code></td><td>number</td><td>Linear volume, 0 to 4. Default 1.</td></tr>
+  </tbody>
+</table></div>
+<p>The fields <code>name</code> and <code>note</code> have no effect. The theme name is the name of its folder.</p>
+<h3 id="4-2-fixed-constants">4.2 Fixed constants</h3>
+<p>These values are in the code. You change them by editing the file.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Constant</th><th>Value</th><th>File and line</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr><td><code>FRAME_MS</code></td><td>100</td><td><code>hooks/register.tsx</code> 10</td><td>Time between ticks, in ms.</td></tr>
+    <tr><td><code>FINALE_MS</code></td><td>4200</td><td><code>hooks/register.tsx</code> 11</td><td>Length of the finale, in ms.</td></tr>
+    <tr><td><code>MIN_COLS</code>, <code>MAX_COLS</code></td><td>32, 240</td><td><code>hooks/register.tsx</code> 12–13</td><td>Limits of the strip width.</td></tr>
+    <tr><td><code>SPEED</code></td><td>0.03</td><td><code>hooks/draw.ts</code> 8</td><td>Lead speed, in pixels for each ms.</td></tr>
+    <tr><td><code>GROUND</code></td><td>2</td><td><code>hooks/draw.ts</code> 9</td><td>Ground height, in pixels.</td></tr>
+    <tr><td>Frame step</td><td>110</td><td><code>hooks/draw.ts</code> 37</td><td>Time for each frame of a run cycle, in ms.</td></tr>
+    <tr><td>Slide-in time</td><td>600</td><td><code>hooks/draw.ts</code> 73</td><td>Time that a companion takes to enter, in ms.</td></tr>
+    <tr><td><code>HUES</code></td><td>130, 0, 50, 240, 320, 185</td><td><code>hooks/theme.ts</code> 42</td><td>Default companion hues.</td></tr>
+    <tr><td><code>BUILD</code></td><td>1</td><td><code>hooks/library.ts</code> 17</td><td>Raise it to rebuild every cache.</td></tr>
+    <tr><td>Build limit</td><td>120,000</td><td><code>hooks/library.ts</code> 131</td><td>Time that the build can run, in ms.</td></tr>
+    <tr><td><code>GLYPHS</code></td><td>36 symbols</td><td><code>scripts/build-theme.py</code> 23</td><td>The most colors in one frame.</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="install">5. Install</h2>
+<p>You install this mod by telling Claude Code where its folder is. The mod is not in a marketplace yet.</p>
+<h3 id="5-1-before-you-start">5.1 Before you start</h3>
+<p>You need:</p>
+<ul>
+  <li>Claude Code. The version used to write and test this mod is 2.1.310. To see your version, run <code>claude --version</code>.</li>
+  <li><code>python3</code>. The mod runs it to scale your images. The version used for the checks in this document is 3.15.0.</li>
+  <li>A copy of this repository on your computer.</li>
+  <li>A terminal. A terminal is a window where you type commands. On macOS, open the app named Terminal.</li>
+  <li>Images for a theme. Each image must be an 8-bit, non-interlaced PNG, unless Pillow is installed.</li>
+</ul>
+<p>This repository holds no theme images. Use only images that you are allowed to use. Do not commit or publish images that you do not own.</p>
+<p>In this document, the <strong>repository root</strong> is the top folder of the repository (the folder named <code>claude-mods</code>). All commands in this document start from that folder. To go there, type <code>cd</code> and the path to the folder. Example:</p>
+<pre><code>cd ~/Developer/claude-mods</code></pre>
+<h3 id="5-2-choose-a-method">5.2 Choose a method</h3>
+<div class="table-wrap"><table>
+  <thead><tr><th>Method</th><th>Use it when</th><th>Lasts for</th></tr></thead>
+  <tbody>
+    <tr><td>A. Flag <code>--plugin-dir</code></td><td>You want to try the mod.</td><td>One session</td></tr>
+    <tr><td>B. Setting <code>CLAUDE_CODE_PLUGIN_DIRS</code></td><td>You want the mod in every session.</td><td>All sessions, until you remove the setting</td></tr>
+    <tr><td>C. Marketplace</td><td>You want to share the mod with other people.</td><td><strong>Not available yet.</strong> See 5.5.</td></tr>
+  </tbody>
+</table></div>
+<h3 id="5-3-method-a-try-it-for-one-session">5.3 Method A: try it for one session</h3>
+<ol>
+  <li>Open a terminal and go to the repository root (see 5.1).</li>
+  <li>Start Claude Code with the flag:
+<pre><code>claude --plugin-dir mods/theme-cli</code></pre></li>
+  <li>Do the check in 5.6.</li>
+</ol>
+<p>If you edit a file of the mod while the session is open, Claude Code reloads the mod.</p>
+<h3 id="5-4-method-b-load-the-mod-in-every-session">5.4 Method B: load the mod in every session</h3>
+<ol>
+  <li>Open the file <code>~/.claude/settings.json</code> in a text editor.</li>
+  <li>Add an <code>env</code> block that names the full path of the mod folder. If the file already has an <code>env</code> block, add only the line inside it.
+<pre><code>{
+  "env": {
+    "CLAUDE_CODE_PLUGIN_DIRS": "/Users/your-name/Developer/claude-mods/mods/theme-cli"
+  }
+}</code></pre></li>
+  <li>Replace <code>/Users/your-name/Developer/claude-mods</code> with the real path to your repository. To print the path, run <code>pwd</code> in the repository root.</li>
+  <li>Save the file. Start a new Claude Code session.</li>
+  <li>Do the check in 5.6.</li>
+</ol>
+<p>To uninstall, delete the line and start a new session.</p>
+<h3 id="5-5-method-c-marketplace-not-available-yet">5.5 Method C: marketplace (not available yet)</h3>
+<p>A marketplace install needs a marketplace file, <code>.claude-plugin/marketplace.json</code>, at the repository root. This repository does not have that file.</p>
+<p>When the file exists and the repository is on GitHub, other people can install the mod with <code>/plugin install theme-cli --marketplace &lt;owner&gt;/&lt;repo&gt;</code>. Replace <code>&lt;owner&gt;/&lt;repo&gt;</code> with the GitHub name of the repository.</p>
+<h3 id="5-6-check-that-the-install-worked">5.6 Check that the install worked</h3>
+<ol>
+  <li>Start a session with method A or method B.</li>
+  <li>Type <code>/theme-list</code>. <strong>Expected:</strong> the reply lists <code>default</code> and any theme in your library. The <code>*</code> marks the theme on show.</li>
+  <li>Send any prompt, for example <code>hello</code>.</li>
+  <li>Look above the prompt box while Claude works. <strong>Expected:</strong> a strip appears with a lead character that runs.</li>
+</ol>
+<p>With no theme, the lead is a built-in placeholder shape. If the strip does not appear, see the table in 6.6.</p>
+<h3 id="5-7-make-your-first-theme">5.7 Make your first theme</h3>
+<ol>
+  <li>In a session, type <code>/theme-new castle</code>. The mod writes <code>~/.claude/theme-cli/themes/castle/theme.json</code>.</li>
+  <li>Copy your PNG sprite sheet to <code>~/.claude/theme-cli/themes/castle/assets/sheet.png</code>.</li>
+  <li>Open <code>theme.json</code> in a text editor. Set a <code>box</code> <code>[x, y, w, h]</code> for each frame. Set <code>key</code> to the background color of your sheet.</li>
+  <li>Add the frame ids to <code>cast.lead.run</code>. Add a <code>companion</code> and a <code>goal</code> if you want them.</li>
+  <li>Type <code>/theme-use castle</code>. <strong>Expected:</strong> the reply starts with <code>Theme: castle (built:</code> and names the number of frames.</li>
+  <li>Send a prompt. The strip shows your sprites.</li>
+</ol>
+<p>The first load scales the images. Later loads read the cache. After you change an image or <code>theme.json</code>, type <code>/theme-build</code>.</p>
+<h3 id="5-8-change-the-settings">5.8 Change the settings</h3>
+<ul>
+  <li>To switch theme, type <code>/theme-use &lt;name&gt;</code>. The choice stays in new sessions.</li>
+  <li>To change the look, edit <code>theme.json</code> and type <code>/theme-build</code>.</li>
+  <li>To change a constant in section 4.2, edit the file. The session reloads the mod.</li>
+</ul>
+
+<h2 id="validate">6. Validate</h2>
+<p>To validate means to prove that the mod works as this document says. There are four levels. Do level 1 and level 2 each time you change the code. Do level 3 after you change <code>scripts/build-theme.py</code>. Do level 4 once after you install.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Level</th><th>What it proves</th><th>Time</th><th>Needs an API request</th></tr></thead>
+  <tbody>
+    <tr><td>1. Validate</td><td>The files are correct, and the engine can read the mod.</td><td>2 seconds</td><td>No</td></tr>
+    <tr><td>2. Test</td><td>The logic is correct (beats, companions, finale, themes).</td><td>2 seconds</td><td>No</td></tr>
+    <tr><td>3. Build check</td><td>The script scales your images.</td><td>2 seconds</td><td>No</td></tr>
+    <tr><td>4. Live check</td><td>The mod works in a real session.</td><td>5 minutes</td><td>Yes</td></tr>
+  </tbody>
+</table></div>
+<h3 id="6-1-level-1-validate-the-files">6.1 Level 1: validate the files</h3>
+<ol>
+  <li>Go to the repository root (see 5.1).</li>
+  <li>Run:
+<pre><code>claude plugin validate mods/theme-cli</code></pre></li>
+  <li>Read the last line of the output.</li>
+</ol>
+<div class="table-wrap"><table>
+  <thead><tr><th>Last line</th><th>Meaning</th><th>Action</th></tr></thead>
+  <tbody>
+    <tr><td><code>✔ Validation passed</code></td><td>The mod is correct.</td><td>None. This is the expected result.</td></tr>
+    <tr><td><code>✔ Validation passed with warnings</code></td><td>The mod is correct.</td><td>Read the warnings. None of them blocks the mod.</td></tr>
+    <tr><td><code>✘ Validation failed</code></td><td>The engine refuses the mod.</td><td>Read the lines that start with <code>✘</code>. Fix the file they name. Run the command again.</td></tr>
+  </tbody>
+</table></div>
+<p>The expected output contains messages that look like problems. They are not problems:</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Message</th><th>Why you can ignore it</th></tr></thead>
+  <tbody>
+    <tr><td><code>types … declares on $: nothing</code></td><td>Correct. The mod adds nothing to <code>$</code>.</td></tr>
+    <tr><td><code>answers its own command</code></td><td>Correct. Each of the 9 commands answers itself.</td></tr>
+    <tr><td><code>gating hook with .catch</code></td><td>Correct. Three hooks pass the event on when they fail.</td></tr>
+    <tr><td><code>This README has no line that installs "theme-cli" from a marketplace</code></td><td>Advice only. It does not change the result. See 5.5.</td></tr>
+  </tbody>
+</table></div>
+<p>The output also lists what the mod uses. Compare it with this list:</p>
+<ul>
+  <li>Hooks: <code>session.start</code>, 7 <code>command.run</code> hooks, <code>turn.start</code>, <code>turn.complete</code>, <code>classic.SubagentStart</code>, <code>classic.SubagentStop</code>, <code>tool.call</code>, <code>turn.step</code>, <code>session.measure</code>, <code>session.end</code>, <code>ui.render{component=AbovePrompt}</code></li>
+  <li>Stored values: the 13 names in section 3.9</li>
+  <li>Environment reads: <code>HOME</code>. Environment writes: none.</li>
+  <li>Engine calls: <code>$.agent.list</code>, <code>$.clock.after</code>, <code>$.clock.every</code>, <code>$.clock.now</code>, <code>$.command.register</code>, <code>$.env.get</code>, <code>$.fs.exists</code>, <code>$.fs.list</code>, <code>$.fs.read</code>, <code>$.fs.stat</code>, <code>$.fs.write</code>, <code>$.process.run</code>, <code>$.state.get</code>, <code>$.state.set</code>, <code>$.ui.blit</code>, <code>$.ui.resolve</code></li>
+</ul>
+<p>Suppose the output lists a hook or a call that is not in this list. Then the code and this document differ. Tell the owner of the mod.</p>
+<h3 id="6-2-level-2-run-the-tests">6.2 Level 2: run the tests</h3>
+<ol>
+  <li>Go to the repository root.</li>
+  <li>Run:
+<pre><code>claude plugin test mods/theme-cli</code></pre></li>
+  <li><strong>Expected result:</strong> the last lines are <code>21 pass</code> and <code>0 fail</code>.</li>
+</ol>
+<p>The tests use a fake clock, a fake disk and a fake build script. They do not call the API and they cost nothing. No test runs <code>scripts/build-theme.py</code>. Level 3 covers the script. Section 6.5 explains each test.</p>
+<p>If a test fails, the output shows the test name and the reason. Find the test name in the table in 6.5. It shows which rule is broken.</p>
+<h3 id="6-3-level-3-check-the-build-script">6.3 Level 3: check the build script</h3>
+<ol>
+  <li>Make a theme (see 5.7).</li>
+  <li>Run the script on the theme folder. Replace <code>castle</code> with your theme name:
+<pre><code>python3 -I mods/theme-cli/scripts/build-theme.py --theme ~/.claude/theme-cli/themes/castle --out /tmp/theme-check.json --height 8</code></pre></li>
+  <li><strong>Expected result:</strong> the output is <code>built N frames to /tmp/theme-check.json</code>. N is the number of frames in <code>theme.json</code>.</li>
+</ol>
+<p>A line that starts with <code>skipped</code> names a frame that the script could not build, and the reason. The script exits with 1 only when every frame fails.</p>
+<p>While this document was written, the command ran on a generated test sheet with 2 frames. It printed <code>built 2 frames to /tmp/theme-check.json</code> and exited with 0.</p>
+<p>The same command ran on a file that is not a PNG. It printed <code>skipped a: not a PNG</code> and <code>built 0 frames</code>, and exited with 1.</p>
+<h3 id="6-4-level-4-live-check-in-a-session">6.4 Level 4: live check in a session</h3>
+<p>Do this once after you install.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Step</th><th>Action</th><th>Expected result</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>Type <code>/theme-use &lt;name&gt;</code> for a theme in your library.</td><td><code>Theme: &lt;name&gt; (…)</code>. The status says <code>sprites from cache</code> or <code>built:</code>.</td></tr>
+    <tr><td>2</td><td>Send a prompt.</td><td>The strip appears above the prompt. Your lead character runs. The ground moves.</td></tr>
+    <tr><td>3</td><td>Send a prompt that starts a subagent.</td><td>1 companion slides in for each subagent. Each has its own color.</td></tr>
+    <tr><td>4</td><td>Wait for the answer.</td><td>The lead runs to the pole, slides down, and walks into the goal. The strip clears about 4 seconds later.</td></tr>
+    <tr><td>5</td><td>Type <code>/theme-dump</code>. Open <code>theme-cli-log.txt</code>.</td><td>The <code>theme=</code> line names your theme. The line <code>band requestId=</code> does not say <code>unknown</code>.</td></tr>
+    <tr><td>6</td><td>Edit an image. Type <code>/theme-build</code>.</td><td><code>Theme &lt;name&gt;: built: built N frames</code>.</td></tr>
+    <tr><td>7</td><td>Type <code>/theme-hide</code>, then <code>/theme-show</code>.</td><td>The strip hides, then shows again on the next turn.</td></tr>
+  </tbody>
+</table></div>
+<div class="warn">The owner ran steps 2, 3 and 4 in a live session on 2026-10-24 and reported that all three work, including the finale. The owner did not record the steps. On the same day, steps 1, 5, 6 and 7 also ran as commands, in a headless run and in a terminal session. <code>/theme-use</code>, <code>/theme-dump</code> and <code>/theme-build</code> replied as expected. No person has checked the live <code>band requestId</code>, because a headless run mounts no band. No person has seen the strip hide and show in step 7.</div>
+<h3 id="6-5-what-each-test-proves">6.5 What each test proves</h3>
+<div class="table-wrap"><table>
+  <thead><tr><th>Test (in <code>hooks/register.test.tsx</code>)</th><th>Line</th><th>Rule it proves</th></tr></thead>
+  <tbody>
+    <tr><td>the strip stays out of the way until a turn starts</td><td>77</td><td>Before <code>turn.start</code>, the mod draws no <code>Raster</code>. The engine band shows.</td></tr>
+    <tr><td>a turn draws one Raster of the band width and repaints it with blit</td><td>87</td><td>The <code>Raster</code> is 40 columns by 5 rows. In 1,000 ms the mod sends at least 8 blits. The first and last blit differ.</td></tr>
+    <tr><td>the sprites move: a later frame differs from an earlier one</td><td>106</td><td>The cells at 500 ms differ from the cells at 1,000 ms.</td></tr>
+    <tr><td>each running subagent adds one companion and its stop removes it</td><td>119</td><td>Each new agent changes the cells. A stop for an unknown id is ignored.</td></tr>
+    <tr><td>each companion holds its own colour slot, and a stop frees the lowest one</td><td>146</td><td>3 agents get <code>a1:0 a2:1 a3:2</code>. After <code>a2</code> stops, a new agent gets slot 1.</td></tr>
+    <tr><td>a subagent turn does not end the main turn</td><td>167</td><td>A <code>turn.complete</code> with an <code>agentId</code> does not stop the blits.</td></tr>
+    <tr><td>the finale plays once the turn is answered, then the strip clears and the timer stops</td><td>181</td><td>The strip shows at 2,000 ms after the answer. It is gone 3,000 ms later. No blit follows.</td></tr>
+    <tr><td>the finale waits for the last subagent when the main turn ends first</td><td>199</td><td>The strip stays for 6,000 ms while an agent runs. It clears 6,000 ms after the stop.</td></tr>
+    <tr><td>an aborted turn clears the strip with no finale</td><td>215</td><td>200 ms after an aborted turn, the strip is gone.</td></tr>
+    <tr><td>denied blits are counted, not thrown</td><td>226</td><td>A denied blit adds to <code>denied</code>. The dump shows <code>lastDeny=not mounted</code>.</td></tr>
+    <tr><td>/theme-dump writes the log, the blit counts and the strip as text</td><td>240</td><td>The dump holds the log lines, the band size and the text of the strip.</td></tr>
+    <tr><td>the strip is a terminal Raster only: desktop is left to the engine</td><td>259</td><td>On the <code>desktop</code> surface the mod draws no <code>Raster</code>.</td></tr>
+    <tr><td>a session end with no agent list to read does not throw</td><td>271</td><td>With <code>$.agent.list</code> unavailable, <code>session.end</code> still reaches the next hook. The log says <code>agent list unavailable</code>.</td></tr>
+  </tbody>
+</table></div>
+<div class="table-wrap"><table>
+  <thead><tr><th>Test (in <code>hooks/theme.test.tsx</code>)</th><th>Line</th><th>Rule it proves</th></tr></thead>
+  <tbody>
+    <tr><td>the chosen theme is built once at start, then read from the cache</td><td>74</td><td>1 build at the first start, with <code>--height 12</code>. 2 more starts do not build.</td></tr>
+    <tr><td>a changed source image rebuilds the cache</td><td>88</td><td>A new modification time on an image causes a second build.</td></tr>
+    <tr><td>/theme-build rebuilds even when the stamp matches</td><td>100</td><td><code>/theme-build</code> causes a second build. The reply names the theme.</td></tr>
+    <tr><td>/theme-list names the library, marks the one on show, and skips folders with no theme.json</td><td>109</td><td><code>* tall</code> and <code>  default</code> show. A folder without <code>theme.json</code> does not show.</td></tr>
+    <tr><td>/theme-use switches at once and keeps the choice in config.json</td><td>119</td><td><code>config.json</code> holds the new name. An unknown name changes nothing.</td></tr>
+    <tr><td>/theme-new writes a template once and refuses a bad or taken name</td><td>132</td><td><code>../x</code> and an existing name are refused. A new name writes its file.</td></tr>
+    <tr><td>a theme with a broken theme.json falls back to placeholders and says why</td><td>144</td><td>No build runs. The dump says <code>theme tall: theme "tall" not loaded</code> and <code>theme=default</code>.</td></tr>
+    <tr><td>the theme sets the strip height: 12 px sprites need seven rows</td><td>154</td><td>The dump says <code>12px sprites, 7 rows</code> and <code>missing=[castle]</code>.</td></tr>
+  </tbody>
+</table></div>
+<h3 id="6-6-problems-and-solutions">6.6 Problems and solutions</h3>
+<div class="table-wrap"><table>
+  <thead><tr><th>Problem</th><th>Cause</th><th>Solution</th></tr></thead>
+  <tbody>
+    <tr><td><code>claude: command not found</code></td><td>Claude Code is not installed, or the terminal cannot find it.</td><td>Install Claude Code. Open a new terminal.</td></tr>
+    <tr><td><code>claude plugin validate</code> says the path does not exist</td><td>You are not in the repository root.</td><td>Run <code>pwd</code>. Run <code>cd</code> to the repository root. Try again.</td></tr>
+    <tr><td>Validation fails</td><td>A file of the mod has an error.</td><td>Read the lines that start with <code>✘</code>. Fix the file they name.</td></tr>
+    <tr><td>No strip after you send a prompt</td><td>You ran <code>/theme-hide</code>, or the surface is not a terminal.</td><td>Type <code>/theme-show</code>. The strip works in the terminal only.</td></tr>
+    <tr><td>The strip shows plain shapes, not your sprites</td><td>The theme did not load.</td><td>Type <code>/theme-dump</code>. Read the line <code>theme &lt;name&gt;:</code> in <code>theme-cli-log.txt</code>. It names the reason.</td></tr>
+    <tr><td>The status says <code>build could not run</code></td><td><code>python3</code> is not on the path of Claude Code.</td><td>Install <code>python3</code>. Start a new session.</td></tr>
+    <tr><td>The status says <code>needs an 8-bit, non-interlaced PNG</code></td><td>The image has another PNG format.</td><td>Save the image as an 8-bit PNG without interlacing. Or install Pillow.</td></tr>
+    <tr><td>The status says <code>skipped &lt;frame&gt;: box … is outside</code></td><td>The <code>box</code> is larger than the image.</td><td>Correct the <code>box</code> in <code>theme.json</code>. Type <code>/theme-build</code>.</td></tr>
+    <tr><td>The status says <code>missing frames: …</code></td><td>The cast names a frame that the cache lacks.</td><td>Add the frame to <code>frames</code> in <code>theme.json</code>, or correct the id. Type <code>/theme-build</code>.</td></tr>
+    <tr><td>A frame has a colored box around the sprite</td><td>The sheet background is not clear.</td><td>Set <code>key</code> to the background color <code>[r, g, b]</code>. Type <code>/theme-build</code>.</td></tr>
+    <tr><td>All companions have the same color</td><td><code>recolor.hue</code> does not match the base frame.</td><td>Set <code>hue</code> to the body hue of the base frame. Raise <code>range</code>.</td></tr>
+    <tr><td>You edited an image and nothing changed</td><td>The session loaded the theme before the edit.</td><td>Type <code>/theme-build</code>.</td></tr>
+  </tbody>
+</table></div>
+<h3 id="6-7-type-check-optional">6.7 Type-check (optional)</h3>
+<p>A type-check finds mistakes in the code types. It needs <code>tsc</code>, the TypeScript program. Load the mod in a session one time. The engine then writes the folder <code>.claude-plugin/types/</code>. The repository ignores that folder.</p>
+<p>Run <code>npx -y -p typescript@5.6 tsc -p mods/theme-cli</code>. <strong>Expected result:</strong> no output and exit code 0.</p>
+<p>While this document was written, the command printed nothing and exited with 0.</p>
+
+<h2 id="limits">7. Known limits</h2>
+<ul>
+  <li><strong>Terminal only.</strong> The <code>ui.render</code> hook draws the strip on the <code>terminal</code> surface only. Other surfaces show the engine band.</li>
+  <li><strong>Python is needed to build.</strong> The mod cannot read images itself. Without <code>python3</code>, a new or changed theme uses the older cache or placeholders.</li>
+  <li><strong>PNG format.</strong> Without Pillow, the script reads 8-bit, non-interlaced PNG files only. Other formats must be saved again.</li>
+  <li><strong>36 colors for each frame.</strong> A frame with more colors fails to build. The script prints <code>skipped</code> and the reason.</li>
+  <li><strong>Cache size.</strong> The engine rejects a file read over 4 MiB. A cache of that size does not load.</li>
+  <li><strong>No enlarging.</strong> The script scales an image down only. An image that is not taller than the theme <code>height</code> keeps its size.</li>
+  <li><strong>Height.</strong> The mod rounds the height up to an even number and limits it to 4 to 32 pixels. A strip of 8 pixels needs 5 rows.</li>
+  <li><strong>Width.</strong> The strip is 32 to 240 columns wide, whatever the terminal width.</li>
+  <li><strong>Colors repeat.</strong> The scene holds 6 default colors. A theme can list its own count. The companion in slot 6 draws the sprite of slot 0 again.</li>
+  <li><strong>Manual edits.</strong> The mod loads a theme at <code>session.start</code>, <code>/theme-use</code> and <code>/theme-build</code>. An edit while a session runs has no effect until one of these.</li>
+  <li><strong>Failed load becomes the choice.</strong> <code>/theme-use</code> writes the name to <code>config.json</code> even when the theme falls back to placeholders.</li>
+  <li>**<code>/theme-build</code> uses the saved choice.** It rebuilds the theme in <code>config.json</code>. It does not read the theme on show.</li>
+  <li><strong>Reserved name.</strong> <code>/theme-new default</code> is refused. The mod never loads a folder named <code>default</code>, because the name always means the built-in theme.</li>
+  <li><strong>No first frame without a band.</strong> A tick does nothing until <code>ui.render</code> records the band. The first frame comes from the render.</li>
+  <li><strong>No survey.</strong> The strip does not show while the engine shows a survey.</li>
+  <li><strong>No sound.</strong> The mod makes no sound.</li>
+  <li><strong>Build time.</strong> The build stops after 120,000 ms. The mod then uses the older cache or placeholders.</li>
+  <li><strong>Test coverage.</strong> No automated test runs <code>scripts/build-theme.py</code> or reads a real image.</li>
+  <li><strong>Copyright.</strong> The mod does not check who owns an image. Use only images that you are allowed to use.</li>
+</ul>
+
+<h2 id="glossary">8. Glossary</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td>Strip</td><td>The pixel-art scene above the prompt.</td></tr>
+    <tr><td>Band</td><td>The area above the prompt where the mod draws.</td></tr>
+    <tr><td>Raster</td><td>The engine element that shows a grid of colored cells.</td></tr>
+    <tr><td>Cell</td><td>One position of a <code>Raster</code>. It holds 2 pixels: a top pixel and a bottom pixel.</td></tr>
+    <tr><td>Blit</td><td>A call that swaps the cells of a mounted <code>Raster</code> without a redraw.</td></tr>
+    <tr><td>Tick</td><td>One frame of the timer, every 100 ms.</td></tr>
+    <tr><td>Theme</td><td>A folder with a <code>theme.json</code> and your images.</td></tr>
+    <tr><td>Library</td><td>The folder <code>~/.claude/theme-cli</code>. It holds <code>config.json</code> and all themes.</td></tr>
+    <tr><td>Sheet</td><td>An image file, or a folder of image files, that frames come from.</td></tr>
+    <tr><td>Frame</td><td>One sprite image. The theme names it and the build scales it.</td></tr>
+    <tr><td>Cast</td><td>The part of <code>theme.json</code> that gives a role to each frame.</td></tr>
+    <tr><td>Key color</td><td>A background color <code>[r, g, b]</code> that the build makes clear.</td></tr>
+    <tr><td>Cache</td><td>The file <code>.cache/frames.json</code>. It holds the scaled frames and the stamp.</td></tr>
+    <tr><td>Stamp</td><td>A line of text that records the data that a build depends on.</td></tr>
+    <tr><td>Scene</td><td>A theme decoded and ready to draw.</td></tr>
+    <tr><td>Placeholder</td><td>A built-in shape that the mod draws when a frame is missing.</td></tr>
+    <tr><td>Lead</td><td>The main character. It runs while a turn is in progress.</td></tr>
+    <tr><td>Companion</td><td>An extra character. One exists for each running subagent.</td></tr>
+    <tr><td>Crew</td><td>The list of running companions.</td></tr>
+    <tr><td>Slot</td><td>The color number of a companion. It is the lowest number that is free.</td></tr>
+    <tr><td>Beat</td><td>The state of the main turn: <code>idle</code>, <code>working</code>, <code>complete</code>, <code>aborted</code> or <code>error</code>.</td></tr>
+    <tr><td>Finale</td><td>The scene at the end of a turn: pole, flag and goal.</td></tr>
+    <tr><td>Turn</td><td>One model run, from your prompt to the final answer.</td></tr>
+    <tr><td>Subagent</td><td>An agent that the main loop starts to do part of the work.</td></tr>
+  </tbody>
+</table></div>
+
+</main>
+</body>
+</html>

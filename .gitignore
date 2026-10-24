@@ -1,3 +1,7 @@
 # Written by Claude Code at each mod load; regenerated, never edited.
 mods/*/.claude-plugin/types/
 .DS_Store
+
+# Source images and audio you supply yourself are personal use only; never commit them.
+# Mod themes live in ~/.claude/theme-cli/, outside the repo.
+scratch/
