@@ -14,6 +14,7 @@ A centralized framework for customizing, structuring, and deploying tailored beh
 | `agents/` | Subagent definitions |
 | `hooks/` | Hook scripts and settings fragments |
 | `mods/` | Claude Code plugins of function hooks (`<mod>/.claude-plugin/plugin.json` + `hooks/register.ts`); test with `claude plugin test mods/<mod>` |
+| `.claude-plugin/` | `marketplace.json`: lists the mods so `claude plugin install` can find them |
 | `scripts/` | Install, sync, and validate tooling |
 
 ## Install skills
@@ -43,6 +44,65 @@ CLAUDE_SKILLS_DIR=/path/to/skills bash scripts/install-skills.sh
 ```
 
 A skill is a folder in `skills/` that has a `SKILL.md` file.
+
+### Install skills into one project
+
+By default the script installs for you, into `~/.claude/skills/`. To install into one project instead, point `CLAUDE_SKILLS_DIR` at that project's `.claude/skills` folder. Use the full path to the script and to the project:
+
+```bash
+CLAUDE_SKILLS_DIR=/path/to/your-project/.claude/skills bash /path/to/claude-mods/scripts/install-skills.sh ste-docs
+```
+
+For example, to install `ste-docs` into a project at `~/Developer/my-app`:
+
+```bash
+CLAUDE_SKILLS_DIR=~/Developer/my-app/.claude/skills bash ~/Developer/claude-mods/scripts/install-skills.sh ste-docs
+```
+
+Add `--list` to the same command to check, or `--uninstall` to remove. Start a new Claude Code session in the project to see the skill.
+
+The links point to your copy of this repository, so they work on your machine only. Do not commit them to the project. If the project is shared, add `.claude/skills/` to its `.gitignore`.
+
+## Install mods
+
+A mod is a Claude Code plugin in `mods/<name>/`. `.claude-plugin/marketplace.json` lists them, so you install a mod from this repository as from a marketplace. Add the marketplace once:
+
+```bash
+claude plugin marketplace add plaktoz/claude-mods
+```
+
+Then install a mod. The `--scope` option sets where it applies:
+
+| Scope | Where the mod runs |
+|-------|--------------------|
+| `user` (default) | Every project, for you. |
+| `project` | The current project, for everyone who opens it. Saved in `.claude/settings.json`. |
+| `local` | The current project, for you only. Not shared. |
+
+To install `switchboard` into a project, run this in the project's folder:
+
+```bash
+cd /path/to/your-project
+claude plugin install switchboard@claude-mods --scope project
+```
+
+Inside a Claude Code session, the same steps are `/plugin marketplace add plaktoz/claude-mods` and `/plugin install switchboard@claude-mods`.
+
+To use your local copy of this repository (a branch that is not merged yet), add the marketplace from its path:
+
+```bash
+claude plugin marketplace add /path/to/claude-mods
+```
+
+To try one mod for one session without installing it:
+
+```bash
+claude --plugin-dir /path/to/claude-mods/mods/switchboard
+```
+
+| Mod | What it does |
+|-----|--------------|
+| `switchboard` | `/mods` opens a panel of every installed mod, with an on/off switch for each. See `mods/switchboard/README.md`. |
 
 ## Concepts
 

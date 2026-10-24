@@ -1,0 +1,11 @@
+{
+  "name": "claude-mods",
+  "owner": { "name": "plaktoz" },
+  "plugins": [
+    {
+      "name": "switchboard",
+      "source": "./mods/switchboard",
+      "description": "/mods opens a panel that lists every installed mod with an on/off toggle; new installs appear on their own."
+    }
+  ]
+}

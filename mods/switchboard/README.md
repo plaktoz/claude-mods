@@ -2,6 +2,19 @@
 
 A Claude Code mod. It gives you one panel for every plugin and mod you have installed, with an on/off switch for each.
 
+## Install
+
+Add the marketplace once, then install the mod. Run the second command in the project's folder to install it for that project:
+
+```bash
+claude plugin marketplace add plaktoz/claude-mods
+claude plugin install switchboard@claude-mods --scope project
+```
+
+Use `--scope user` (the default) to install it for every project, or `--scope local` for this project and only you. In a session, type `/plugin install switchboard@claude-mods`.
+
+To try it for one session without installing it, run `claude --plugin-dir /path/to/claude-mods/mods/switchboard`.
+
 ## Use
 
 - Type `/mods`. A pane opens with one row per installed plugin: `[x]` is on, `[ ]` is off.
