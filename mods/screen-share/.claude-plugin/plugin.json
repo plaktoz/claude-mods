@@ -1,0 +1,6 @@
+{
+  "name": "screen-share",
+  "version": "0.1.0",
+  "description": "Screen-share mode: names, emails, phone numbers and amounts draw as shaded bars on screen while Claude still reads the real data.",
+  "types": "./types/index.d.ts"
+}
