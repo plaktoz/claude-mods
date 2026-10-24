@@ -122,6 +122,34 @@ To use your local copy of this repository (a branch that is not merged yet), add
 claude plugin marketplace add /path/to/claude-mods
 ```
 
+### Install every mod with a script
+
+The scripts `scripts/install-mods.sh` and `scripts/install-mods.ps1` do the marketplace steps for you. They point the `claude-mods` marketplace at your clone, then install every mod that `.claude-plugin/marketplace.json` lists. They make no symlinks, so they work on Windows without admin rights or Developer Mode. They need the `claude` command on your `PATH`.
+
+Linux, macOS, or Git Bash on Windows:
+
+```bash
+bash scripts/install-mods.sh
+```
+
+Windows PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install-mods.ps1
+```
+
+Then restart Claude Code.
+
+| Bash | PowerShell | Effect |
+|------|------------|--------|
+| `install-mods.sh` | `install-mods.ps1` | Install every mod. A mod that is already installed is updated. |
+| `install-mods.sh screen-share` | `install-mods.ps1 screen-share` | Install only the mods that you name. |
+| `--scope project` | `-Scope project` | Set the scope (`user` is the default). Run it from the project's folder. |
+| `--list` | `-List` | Show which mods are installed. Change nothing. |
+| `--uninstall` | `-Uninstall` | Remove the mods. |
+
+The installed mods load from your clone, so `git pull` brings in changes. Restart Claude Code to load them. If you added `claude-mods` from `plaktoz/claude-mods` before, the script points it at your clone and keeps the mods that you installed. To add a mod, put it in `mods/` and add it to `.claude-plugin/marketplace.json`.
+
 To try one mod for one session without installing it:
 
 ```bash
