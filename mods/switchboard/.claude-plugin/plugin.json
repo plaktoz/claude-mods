@@ -1,0 +1,6 @@
+{
+  "name": "switchboard",
+  "version": "0.1.0",
+  "description": "/mods opens a panel that lists every installed mod with an on/off toggle; new installs appear on their own.",
+  "types": "./types/index.d.ts"
+}
