@@ -35,6 +35,7 @@ declare module 'claude-code' {
       finaleStart: number
       cost: number
       isHidden: boolean
+      isMuted: boolean
       band: Band | null
       // The theme on show; the band redraws when a switch changes it.
       themeName: string

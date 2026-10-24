@@ -47,8 +47,9 @@ The logic is in four files in `hooks/` and one script in `scripts/`. Search for 
 | `addAgent()` and `freeSlot()` – give a companion its color slot | `hooks/register.tsx` | 125, 131 |
 | `reconcile()` – drops agents that the engine no longer lists. It keeps the crew when the list cannot be read. | `hooks/register.tsx` | 139 |
 | `register()` – adds all hooks | `hooks/register.tsx` | 156 |
-| Hook `session.start` (registers 7 commands, loads the theme) | `hooks/register.tsx` | 157 |
+| Hook `session.start` (registers 9 commands, loads the theme) | `hooks/register.tsx` | 157 |
 | Commands `theme-hide`, `theme-show` | `hooks/register.tsx` | 179, 185 |
+| Commands `theme-mute`, `theme-unmute` | `hooks/register.tsx` | search for the name |
 | Commands `theme-list`, `theme-use`, `theme-build`, `theme-new` | `hooks/register.tsx` | 191, 205, 216, 223 |
 | Command `theme-dump` | `hooks/register.tsx` | 237 |
 | Hooks `turn.start`, `turn.complete` | `hooks/register.tsx` | 269, 283 |
@@ -119,7 +120,7 @@ The main turn can end before its subagents end. In that case the beat stays `wor
 
 | Event | Condition | Action |
 |-------|-----------|--------|
-| `session.start` | Always | Register 7 commands. Load the chosen theme. Drop stale agents. Start the timer if the strip is active. |
+| `session.start` | Always | Register 9 commands. Load the chosen theme. Drop stale agents. Start the timer if the strip is active. |
 | `turn.start` | Main loop only | Store the start time. Set the beat to `working`. Start the timer. |
 | `turn.complete` | Main loop only, a subagent runs | Keep the beat at `working`. |
 | `turn.complete` | Main loop only, reason `answer` | Store the finale start. Set the beat to `complete`. |
@@ -263,6 +264,8 @@ If `theme.json` is missing or invalid, the mod uses the built-in theme. The reas
 | `/theme-new <name>` | Write a template `theme.json` in a new theme folder. | The path of the new file. |
 | `/theme-hide` | Hide the strip. | `Strip hidden. /theme-show shows it again.` |
 | `/theme-show` | Show the strip. | `Strip shown.` |
+| `/theme-mute` | Silence every sound and stop the `working` loop. | `Sounds muted. /theme-unmute plays them again.` |
+| `/theme-unmute` | Play the sounds again. A turn in progress gets its loop back. | `Sounds on.` |
 | `/theme-dump` | Write `theme-cli-log.txt` in the current folder. | `Wrote <n> log lines and the strip to theme-cli-log.txt.` |
 
 The dump file has these parts:
@@ -270,6 +273,7 @@ The dump file has these parts:
 - The log lines.
 - The theme, its sprite height and its missing frames.
 - The session cost.
+- The theme sounds, the mute state and the loop state.
 - The beat, the crew and the timer state.
 - The band `requestId` and size.
 - The tick, blit and denied counts, and the time for each tick.
@@ -289,11 +293,35 @@ The dump file has these parts:
 | `finaleStart` | number | Time that the finale started. | `turn.complete`, `SubagentStop` |
 | `cost` | number | Session cost in US dollars. Only `/theme-dump` shows it. | `session.measure` |
 | `isHidden` | boolean | The strip is hidden. | `/theme-hide`, `/theme-show` |
+| `isMuted` | boolean | The sounds are muted. It stays through a reload. | `/theme-mute`, `/theme-unmute` |
 | `band` | object | The `requestId` and size of the mounted band. | `ui.render` (after the draw) |
 | `themeName` | text | The theme on show. A change redraws the band. | `useTheme()` |
 | `log` | list | The last 300 log lines. | `note()` |
 
-The engine keeps these values for the session. They stay through a reload. The variables `scene`, `timer`, `isTicking` and `stats` are plain variables. A reload resets them, and `session.start` loads the theme and starts the timer again.
+The engine keeps these values for the session. They stay through a reload. The variables `scene`, `sounds`, `loop`, `timer`, `isTicking` and `stats` are plain variables. A reload resets them, and `session.start` loads the theme and starts the timer again.
+
+### 3.10 Sounds
+
+A theme can play a sound at four moments. The sounds are optional. A theme with no `sounds` block is silent. `/theme-mute` silences all four cues without editing the theme. It stays in force in new sessions until `/theme-unmute`.
+
+| Cue | When it plays | Play mode |
+|-----|---------------|-----------|
+| `start` | `turn.start`, main loop only. | Once. |
+| `working` | After the `start` clip ends, while the beat is `working`. | Looped. It stops when the beat leaves `working`, at `session.end`, or when a theme switch replaces it. |
+| `success` | The beat becomes `complete`. | Once, with the finale. |
+| `error` | `turn.complete` with a reason other than `answer` or `aborted`. | Once. |
+
+An aborted turn stops the `working` loop and plays no other clip.
+
+The mod reads each audio file as bytes when the theme loads (`loadSounds()` in `hooks/library.ts`) and plays it with `$.audio.play`. The engine plays a file from the plugin folder by name, but a theme lives outside the plugin, so the mod passes the bytes instead. A file that is missing, or whose extension is not `wav`, `mp3`, `m4a`, `aac`, `aiff`, `aif` or `ogg`, is left out. The load status names it (`missing sounds: working`), and the other cues still play. A clip that cannot play is written to the log, and never thrown. On macOS the engine plays through `afplay`. A terminal without a player plays nothing.
+
+The `mario` theme uses four clips from `scripts/make-mario-sounds.py`. The script builds each clip from square-wave notes in the style of the games: a coin for `start`, an overworld bounce for `working`, a flagpole run for `success` and a falling line for `error`. It uses no sample from any game. To write the clips into a theme:
+
+```bash
+python3 -I mods/theme-cli/scripts/make-mario-sounds.py --out ~/.claude/theme-cli/themes/mario/assets/sounds
+```
+
+Then add the `sounds` block from section 4.1 to the theme's `theme.json`, and run `/theme-use mario`. Do not commit audio that you do not own.
 
 ## 4. Settings
 
@@ -322,6 +350,8 @@ All fields in `theme.json` are optional. A field that you leave out draws a plac
 | `cast.goal.frame` | frame id | The goal at the right edge. |
 | `colors.ground` | 2 colors `#rrggbb` | The two colors of the ground bricks. |
 | `colors.dirt`, `colors.pole`, `colors.flag` | color `#rrggbb` | The dirt row, the flagpole and the flag. |
+| `sounds.<cue>.file` | path | An audio file for the cue. The cues are `start`, `working`, `success` and `error` (section 3.10). |
+| `sounds.<cue>.gain` | number | Linear volume, 0 to 4. Default 1. |
 
 The fields `name` and `note` have no effect. The theme name is the name of its folder.
 
@@ -470,14 +500,14 @@ The expected output contains messages that look like problems. They are not prob
 | Message | Why you can ignore it |
 |---------|----------------------|
 | `types … declares on $: nothing` | Correct. The mod adds nothing to `$`. |
-| `answers its own command` | Correct. Each of the 7 commands answers itself. |
+| `answers its own command` | Correct. Each of the 9 commands answers itself. |
 | `gating hook with .catch` | Correct. Three hooks pass the event on when they fail. |
 | `This README has no line that installs "theme-cli" from a marketplace` | Advice only. It does not change the result. See 5.5. |
 
 The output also lists what the mod uses. Compare it with this list:
 
 - Hooks: `session.start`, 7 `command.run` hooks, `turn.start`, `turn.complete`, `classic.SubagentStart`, `classic.SubagentStop`, `tool.call`, `turn.step`, `session.measure`, `session.end`, `ui.render{component=AbovePrompt}`
-- Stored values: the 12 names in section 3.9
+- Stored values: the 13 names in section 3.9
 - Environment reads: `HOME`. Environment writes: none.
 - Engine calls: `$.agent.list`, `$.clock.after`, `$.clock.every`, `$.clock.now`, `$.command.register`, `$.env.get`, `$.fs.exists`, `$.fs.list`, `$.fs.read`, `$.fs.stat`, `$.fs.write`, `$.process.run`, `$.state.get`, `$.state.set`, `$.ui.blit`, `$.ui.resolve`
 

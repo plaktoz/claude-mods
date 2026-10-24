@@ -6,6 +6,7 @@ import { asText, cellsOf, draw, pack, rowsOf } from './draw'
 import type { View } from './draw'
 import { DEFAULT_THEME, isThemeName, listThemes, loadTheme, readChoice, rootOf, templateFor, writeChoice } from './library'
 import { BUILT_IN, resolveScene } from './theme'
+import type { Cue, Sounds } from './theme'
 
 const FRAME_MS = 100
 const FINALE_MS = 4200
@@ -24,6 +25,7 @@ const turnEnd = atom({ plugin: 'theme-cli', key: 'turnEnd' } as const, 0)
 const finaleStart = atom({ plugin: 'theme-cli', key: 'finaleStart' } as const, 0)
 const cost = atom({ plugin: 'theme-cli', key: 'cost' } as const, 0)
 const isHidden = atom({ plugin: 'theme-cli', key: 'isHidden' } as const, false)
+const isMuted = atom({ plugin: 'theme-cli', key: 'isMuted' } as const, false)
 const band = atom({ plugin: 'theme-cli', key: 'band' } as const, null as Band | null)
 const themeName = atom({ plugin: 'theme-cli', key: 'themeName' } as const, DEFAULT_THEME)
 const log = atom({ plugin: 'theme-cli', key: 'log' } as const, [] as string[], { shape: 'log-1' })
@@ -31,6 +33,10 @@ const log = atom({ plugin: 'theme-cli', key: 'log' } as const, [] as string[], {
 // Module variables start over on a reload; session.start and the next render refill them.
 // The theme on show, loaded once; a frame only draws from it.
 let scene = resolveScene(BUILT_IN, {}, DEFAULT_THEME)
+// The theme's sounds, read with the theme; a cue plays from these, never from disk.
+let sounds: Sounds = {}
+// Stops the looped `working` clip. Null when it is not playing.
+let loop: AbortController | null = null
 let timer: Timer | null = null
 let isTicking = false
 const stats = { ticks: 0, blits: 0, denied: 0, lastDeny: '', ms: 0, maxMs: 0 }
@@ -65,10 +71,49 @@ async function note($: EngineInterface, line: string) {
 async function useTheme($: EngineInterface, name: string, force = false) {
   const loaded = await loadTheme($, name, force)
   scene = loaded.scene
+  sounds = loaded.sounds
   await update($, themeName, () => scene.name)
   await note($, `theme ${name}: ${loaded.status}`)
 
+  // A switch mid-turn swaps the loop for the new theme's.
+  stopLoop()
+  if ((await read($, beat)) === 'working') await startLoop($)
+
   return loaded.status
+}
+
+// Plays a cue once. A clip that cannot play (no player, a bad file) is logged, never thrown.
+async function play($: EngineInterface, cue: Cue): Promise<void> {
+  const sound = sounds[cue]
+  if (!sound || (await read($, isMuted))) return
+
+  return $.audio
+    .play({ base64: sound.base64, mime: sound.mime }, { gain: sound.gain })
+    .catch(error => note($, `sound ${cue}: ${String(error)}`))
+}
+
+// Loops the `working` clip until the turn leaves `working`.
+async function startLoop($: EngineInterface) {
+  const sound = sounds.working
+  if (!sound || (await read($, isMuted)) || loop) return
+
+  const stop = new AbortController()
+  loop = stop
+  void $.audio
+    .play({ base64: sound.base64, mime: sound.mime }, { shouldLoop: true, gain: sound.gain, signal: stop.signal })
+    .catch(error => note($, `sound working: ${String(error)}`))
+}
+
+function stopLoop() {
+  loop?.abort()
+  loop = null
+}
+
+// The turn's closing cue: ends the loop, then plays the finish.
+function finish($: EngineInterface, cue: 'success' | 'error') {
+  stopLoop()
+
+  return play($, cue)
 }
 
 // Repaints the strip in place. A draw would restart the Raster; a blit only swaps its cells.
@@ -158,6 +203,8 @@ export const register: Register = on => {
     await $.command.register({ name: 'theme-dump', description: 'Write the theme-cli log to a file' })
     await $.command.register({ name: 'theme-hide', description: 'Hide the strip above the prompt' })
     await $.command.register({ name: 'theme-show', description: 'Show the strip above the prompt' })
+    await $.command.register({ name: 'theme-mute', description: 'Silence the theme sounds' })
+    await $.command.register({ name: 'theme-unmute', description: 'Play the theme sounds again' })
     await $.command.register({ name: 'theme-list', description: 'List the themes in ~/.claude/theme-cli/themes' })
     await $.command.register({
       name: 'theme-use',
@@ -186,6 +233,21 @@ export const register: Register = on => {
     await update($, isHidden, () => false)
 
     return { text: 'Strip shown.' }
+  })
+
+  on('command.run', { command: 'theme-mute' }, async $ => {
+    await update($, isMuted, () => true)
+    stopLoop()
+
+    return { text: 'Sounds muted. /theme-unmute plays them again.' }
+  })
+
+  on('command.run', { command: 'theme-unmute' }, async $ => {
+    await update($, isMuted, () => false)
+    // A turn already under way gets its loop back.
+    if ((await read($, beat)) === 'working') await startLoop($)
+
+    return { text: 'Sounds on.' }
   })
 
   on('command.run', { command: 'theme-list' }, async $ => {
@@ -249,6 +311,7 @@ export const register: Register = on => {
       ...lines,
       '--- state ---',
       `theme=${scene.name} ${scene.height}px sprites, ${rowsOf(scene)} rows, companions=${scene.companions.length}, missing=[${scene.missing.join(' ')}]`,
+      `sounds=${Object.keys(sounds).join(' ') || 'none'} muted=${await read($, isMuted)} loop=${loop ? 'on' : 'off'}`,
       `session cost=$${usd.toFixed(4)} (engine's session.measure, all turns and agents)`,
       `beat=${view.beat} crew=${view.crew.length} [${view.crew.map(c => `${c.id}:${c.slot}`).join(' ')}] isActive=${isActive(view)} timer=${timer ? 'on' : 'off'}`,
       `band requestId=${where?.id ?? 'unknown'} mounted=${where ? `${where.columns}x${where.rows}` : 'none'}`,
@@ -276,6 +339,12 @@ export const register: Register = on => {
     await update($, beat, () => 'working')
     startTimer($)
 
+    // The loop waits for the start clip, so the two do not play over each other.
+    stopLoop()
+    void play($, 'start').then(async () => {
+      if ((await read($, beat)) === 'working') await startLoop($)
+    })
+
     return next(e)
   })
 
@@ -295,8 +364,11 @@ export const register: Register = on => {
     } else if (e.reason === 'answer') {
       await update($, finaleStart, () => ended)
       await update($, beat, () => 'complete')
+      void finish($, 'success')
     } else {
       await update($, beat, () => (e.reason === 'aborted' ? 'aborted' : 'error'))
+      if (e.reason === 'aborted') stopLoop()
+      else void finish($, 'error')
     }
 
     return next(e)
@@ -337,6 +409,7 @@ export const register: Register = on => {
     if (!stillRunning && !(await read($, isWorking)) && (await read($, beat)) === 'working') {
       await update($, finaleStart, () => endedAt)
       await update($, beat, () => 'complete')
+      void finish($, 'success')
     }
 
     return next(e)
@@ -382,6 +455,7 @@ export const register: Register = on => {
 
   on('session.end', async ($, e, next) => {
     stopTimer()
+    stopLoop()
     await reconcile($)
 
     return next(e)

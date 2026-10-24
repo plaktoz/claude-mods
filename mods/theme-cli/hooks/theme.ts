@@ -6,6 +6,14 @@ export type Frame = { w: number; h: number; palette: string[]; rows: string[] }
 // A frame decoded: colours 0xRRGGBB row-major, -1 for clear.
 export type Pix = { w: number; h: number; px: number[] }
 
+// The moments a theme can play a sound for: a turn starting, a turn in progress (looped),
+// a turn answered, and a turn that failed.
+export const CUES = ['start', 'working', 'success', 'error'] as const
+export type Cue = (typeof CUES)[number]
+// A sound ready to play: the file's bytes as base64, its MIME type, and its gain.
+export type Sound = { base64: string; mime: string; gain: number }
+export type Sounds = Partial<Record<Cue, Sound>>
+
 // A theme folder's theme.json. Every field is optional; what is left out is drawn as a placeholder.
 export type ThemeSpec = {
   name?: string
@@ -21,6 +29,8 @@ export type ThemeSpec = {
     goal?: { frame?: string }
   }
   colors?: { ground?: string[]; dirt?: string; pole?: string; flag?: string }
+  // One audio file per cue. `gain` is linear, 0 to 4 (default 1).
+  sounds?: Partial<Record<Cue, { file: string; gain?: number }>>
 }
 
 // A theme ready to draw: every sprite decoded, every companion colour made.
@@ -207,6 +217,17 @@ export function parseSpec(text: string): ThemeSpec {
   const recolorSpec = cast.companion?.recolor
   if (recolorSpec && (typeof recolorSpec.hue !== 'number' || !Array.isArray(recolorSpec.to))) {
     throw new Error('"cast.companion.recolor" needs a "hue" number and a "to" list of hues')
+  }
+
+  for (const cue of CUES) {
+    const sound = spec.sounds?.[cue]
+    if (sound === undefined) continue
+    if (typeof sound !== 'object' || sound === null || typeof sound.file !== 'string') {
+      throw new Error(`"sounds.${cue}" needs a "file" path`)
+    }
+    if (sound.gain !== undefined && (typeof sound.gain !== 'number' || sound.gain < 0 || sound.gain > 4)) {
+      throw new Error(`"sounds.${cue}.gain" is not a number from 0 to 4`)
+    }
   }
 
   return spec

@@ -10,15 +10,17 @@
 
 import type { EngineInterface } from 'claude-code'
 
-import { BUILT_IN, heightOf, parseSpec, resolveScene, resolvePath, sourcesOf } from './theme'
-import type { Scene, ThemeSpec } from './theme'
+import { BUILT_IN, CUES, heightOf, parseSpec, resolveScene, resolvePath, sourcesOf } from './theme'
+import type { Scene, Sounds, ThemeSpec } from './theme'
 
 // Raise when the build script's output changes, so old caches rebuild.
 const BUILD = 1
 export const DEFAULT_THEME = 'default'
 const NAME = /^[a-z0-9][a-z0-9_-]{0,39}$/i
 
-export type Loaded = { scene: Scene; status: string }
+export type Loaded = { scene: Scene; sounds: Sounds; status: string }
+
+const MIME: Record<string, string> = { wav: 'audio/wav', mp3: 'audio/mpeg', m4a: 'audio/mp4', aac: 'audio/aac', aiff: 'audio/aiff', aif: 'audio/aiff', ogg: 'audio/ogg' }
 
 export function isThemeName(name: string) {
   return NAME.test(name)
@@ -104,10 +106,33 @@ async function readCache($: EngineInterface, path: string): Promise<{ stamp?: st
   }
 }
 
+// Reads the audio files a theme names, once per load, so a cue plays without touching the disk.
+// A file that cannot be read is left out and named in `missing`; the other cues still play.
+async function loadSounds($: EngineInterface, spec: ThemeSpec, home: string, dir: string) {
+  const sounds: Sounds = {}
+  const missing: string[] = []
+  for (const cue of CUES) {
+    const entry = spec.sounds?.[cue]
+    if (!entry) continue
+
+    const mime = MIME[entry.file.split('.').pop()?.toLowerCase() ?? '']
+    try {
+      if (!mime) throw new Error('unknown audio type')
+
+      const { base64 } = await $.fs.read(resolvePath(entry.file, home, dir), { as: 'bytes' })
+      sounds[cue] = { base64, mime, gain: entry.gain ?? 1 }
+    } catch {
+      missing.push(cue)
+    }
+  }
+
+  return { sounds, missing }
+}
+
 // Loads a theme by name: the check, the build when the stamp moved, then the scene.
 // A theme that cannot load comes back as the built-in one, with the reason in `status`.
 export async function loadTheme($: EngineInterface, name: string, force = false): Promise<Loaded> {
-  const fallback = (why: string): Loaded => ({ scene: resolveScene(BUILT_IN, {}, DEFAULT_THEME), status: why })
+  const fallback = (why: string): Loaded => ({ scene: resolveScene(BUILT_IN, {}, DEFAULT_THEME), sounds: {}, status: why })
   if (name === DEFAULT_THEME) return fallback('built-in placeholders')
 
   const home = await homeOf($)
@@ -141,7 +166,11 @@ export async function loadTheme($: EngineInterface, name: string, force = false)
   const scene = resolveScene(spec, cache?.frames ?? {}, name)
   if (scene.missing.length) status += `; missing frames: ${scene.missing.join(', ')}`
 
-  return { scene, status }
+  const { sounds, missing } = await loadSounds($, spec, home, dir)
+  if (Object.keys(sounds).length) status += `; sounds: ${Object.keys(sounds).join(', ')}`
+  if (missing.length) status += `; missing sounds: ${missing.join(', ')}`
+
+  return { scene, sounds, status }
 }
 
 // What `/theme-new` writes: a theme folder to fill in. Frames not drawn yet stay placeholders.
@@ -153,6 +182,7 @@ export function templateFor(name: string) {
     sheets: { main: { file: 'assets/sheet.png' } },
     frames: { 'run-1': { sheet: 'main', box: [0, 0, 16, 16] }, 'run-2': { sheet: 'main', box: [16, 0, 16, 16] } },
     cast: { lead: { run: ['run-1', 'run-2'], jump: 'run-1' } },
+    sounds: { start: { file: 'assets/start.wav' }, working: { file: 'assets/working.wav', gain: 0.4 }, success: { file: 'assets/success.wav' }, error: { file: 'assets/error.wav' } },
     colors: { ground: ['#e69c3c', '#c84c0c'], dirt: '#7c2c00', pole: '#cfcfcf', flag: '#2e9d4f' },
   }
 
