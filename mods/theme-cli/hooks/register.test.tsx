@@ -17,12 +17,22 @@ const usage = { input_tokens: 10, output_tokens: 1, cache_read_input_tokens: 0, 
 // Nothing sits beneath the plugin: each hook stands for the engine.
 const world = ($: any, on: any) => {
   const clock = mock.clock(on, { now: 1_000_000 })
-  const seen = { blits: [] as any[], denyBlits: false, written: '' }
+  const seen = { blits: [] as any[], denyBlits: false, noAgentList: false, ended: false, written: '' }
 
   on('session.start', (_: unknown, e: { cwd: string }) => ({ cwd: e.cwd }))
-  on('session.end', () => ({ sessionId: 's' }))
+  // Reached only when the mod's own session.end hook calls next.
+  on('session.end', () => {
+    seen.ended = true
+
+    return { sessionId: 's' }
+  })
   on('command.register', () => ({ value: { command: 'x' } }))
-  on('agent.list', () => ({ value: [] }))
+  on('agent.list', () => {
+    // Under `claude -p` no session is bound, so the engine refuses the call.
+    if (seen.noAgentList) throw new Error('$.agent.list is not available in this mode')
+
+    return { value: [] }
+  })
   // No sprites file: the strip draws its placeholders.
   on('fs.read', () => ({ value: '{}' }))
   on('fs.write', (_: unknown, e: { text: string }) => {
@@ -256,4 +266,19 @@ test('the strip is a terminal Raster only: desktop is left to the engine', async
   expect(await ui.find({ type: 'Raster' })).toBeUndefined()
   expect(await ui.find({ type: 'Text', text: /engine/ })).toBeDefined()
   await ui.unmount()
+})
+
+test('a session end with no agent list to read does not throw', async ($, on) => {
+  const { seen, start, turnStart, agentStart } = world($, on)
+  await start()
+  await turnStart()
+  await agentStart('a1')
+  seen.noAgentList = true
+
+  await $.session.end({ reason: 'prompt_input_exit', resume: { id: 's' }, sessionId: 's' })
+  await $.command.run({ command: 'theme-dump', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+
+  // A hook that throws is skipped, so only the guard leaves this line in the log.
+  expect(seen.ended).toBe(true)
+  expect(seen.written).toContain('agent list unavailable')
 })

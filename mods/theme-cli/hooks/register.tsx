@@ -137,7 +137,11 @@ function freeSlot(list: Crew[]) {
 
 // Drops the ids the engine no longer lists, so the map follows `$.agent.list()`.
 async function reconcile($: EngineInterface) {
-  const live = new Set((await $.agent.list()).map(a => a.id))
+  // Under `claude -p` no session is bound, so the list is not there to read: leave the map as it is.
+  const listed = await $.agent.list().catch(() => undefined)
+  if (!listed) return note($, 'agent list unavailable; crew left as it was')
+
+  const live = new Set(listed.map(a => a.id))
   await update($, crew, list => list.filter(c => live.has(c.id)))
   await update($, agents, map => {
     const kept: Record<string, Agent> = {}

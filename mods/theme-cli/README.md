@@ -45,17 +45,17 @@ The logic is in four files in `hooks/` and one script in `scripts/`. Search for 
 | `tick()` – draws one frame and sends it with `blit` | `hooks/register.tsx` | 75 |
 | `startTimer()` and `stopTimer()` | `hooks/register.tsx` | 113, 119 |
 | `addAgent()` and `freeSlot()` – give a companion its color slot | `hooks/register.tsx` | 125, 131 |
-| `reconcile()` – drops agents that the engine no longer lists | `hooks/register.tsx` | 139 |
-| `register()` – adds all hooks | `hooks/register.tsx` | 152 |
-| Hook `session.start` (registers 7 commands, loads the theme) | `hooks/register.tsx` | 153 |
-| Commands `theme-hide`, `theme-show` | `hooks/register.tsx` | 175, 181 |
-| Commands `theme-list`, `theme-use`, `theme-build`, `theme-new` | `hooks/register.tsx` | 187, 201, 212, 219 |
-| Command `theme-dump` | `hooks/register.tsx` | 233 |
-| Hooks `turn.start`, `turn.complete` | `hooks/register.tsx` | 265, 279 |
-| Hooks `classic.SubagentStart`, `classic.SubagentStop` | `hooks/register.tsx` | 301, 320 |
-| Hooks `tool.call`, `turn.step`, `session.measure` | `hooks/register.tsx` | 341, 356, 373 |
-| Hook `session.end` | `hooks/register.tsx` | 379 |
-| Hook `ui.render` (the strip) | `hooks/register.tsx` | 387 |
+| `reconcile()` – drops agents that the engine no longer lists. It keeps the crew when the list cannot be read. | `hooks/register.tsx` | 139 |
+| `register()` – adds all hooks | `hooks/register.tsx` | 156 |
+| Hook `session.start` (registers 7 commands, loads the theme) | `hooks/register.tsx` | 157 |
+| Commands `theme-hide`, `theme-show` | `hooks/register.tsx` | 179, 185 |
+| Commands `theme-list`, `theme-use`, `theme-build`, `theme-new` | `hooks/register.tsx` | 191, 205, 216, 223 |
+| Command `theme-dump` | `hooks/register.tsx` | 237 |
+| Hooks `turn.start`, `turn.complete` | `hooks/register.tsx` | 269, 283 |
+| Hooks `classic.SubagentStart`, `classic.SubagentStop` | `hooks/register.tsx` | 305, 324 |
+| Hooks `tool.call`, `turn.step`, `session.measure` | `hooks/register.tsx` | 345, 360, 377 |
+| Hook `session.end` | `hooks/register.tsx` | 383 |
+| Hook `ui.render` (the strip) | `hooks/register.tsx` | 391 |
 | Types `Frame`, `Pix`, `ThemeSpec`, `Scene` | `hooks/theme.ts` | 5, 7, 10, 27 |
 | `BUILT_IN` – the theme with no files | `hooks/theme.ts` | 49 |
 | `heightOf()` – rounds and limits the sprite height | `hooks/theme.ts` | 61 |
@@ -78,7 +78,7 @@ The logic is in four files in `hooks/` and one script in `scripts/`. Search for 
 | `pack()` – writes a frame as glyph rows | `scripts/build-theme.py` | 204 |
 | `source_of()` and `main()` | `scripts/build-theme.py` | 218, 239 |
 | Type of the stored values | `types/index.d.ts` | 26–43 |
-| Tests for the strip | `hooks/register.test.tsx` | 67–259 |
+| Tests for the strip | `hooks/register.test.tsx` | 77–271 |
 | Tests for themes | `hooks/theme.test.tsx` | 74–162 |
 
 Other files: `hooks/hooks.json` names the module. `.claude-plugin/plugin.json` is the manifest. `tsconfig.json` is for the type-check.
@@ -129,7 +129,7 @@ The main turn can end before its subagents end. In that case the beat stays `wor
 | `tool.call` | Subagent only | Record the tool name. Keep the last 2 names. |
 | `turn.step` | Subagent only | Add 1 to the step count. Store the token count. |
 | `session.measure` | Cost present | Store the session cost for `/theme-dump`. |
-| `session.end` | Always | Stop the timer. Drop stale agents. |
+| `session.end` | Always | Stop the timer. Drop stale agents. If the engine cannot list agents, keep the crew as it is. |
 | `ui.render` (`AbovePrompt`) | Terminal, no survey, strip not hidden, strip active | Draw the strip as one `Raster`. |
 
 Subagent turns do not change the beat. The `turn.start` and `turn.complete` hooks check `e.agentId`.
@@ -492,7 +492,7 @@ Suppose the output lists a hook or a call that is not in this list. Then the cod
    claude plugin test mods/theme-cli
    ```
 
-3. **Expected result:** the last lines are `20 pass` and `0 fail`.
+3. **Expected result:** the last lines are `21 pass` and `0 fail`.
 
 The tests use a fake clock, a fake disk and a fake build script. They do not call the API and they cost nothing. No test runs `scripts/build-theme.py`. Level 3 covers the script. Section 6.5 explains each test.
 
@@ -529,24 +529,25 @@ Do this once after you install.
 | 6 | Edit an image. Type `/theme-build`. | `Theme <name>: built: built N frames`. |
 | 7 | Type `/theme-hide`, then `/theme-show`. | The strip hides, then shows again on the next turn. |
 
-The owner ran the mod in a live session and reported that it works. The owner did not record the steps. No person has done this check yet.
+The owner ran steps 2, 3 and 4 in a live session on 2026-10-24 and reported that all three work, including the finale. The owner did not record the steps. On the same day, steps 1, 5, 6 and 7 also ran as commands, in a headless run and in a terminal session. `/theme-use`, `/theme-dump` and `/theme-build` replied as expected. No person has checked the live `band requestId`, because a headless run mounts no band. No person has seen the strip hide and show in step 7.
 
 ### 6.5 What each test proves
 
 | Test (in `hooks/register.test.tsx`) | Line | Rule it proves |
 |-------------------------------------|------|----------------|
-| the strip stays out of the way until a turn starts | 67 | Before `turn.start`, the mod draws no `Raster`. The engine band shows. |
-| a turn draws one Raster of the band width and repaints it with blit | 77 | The `Raster` is 40 columns by 5 rows. In 1,000 ms the mod sends at least 8 blits. The first and last blit differ. |
-| the sprites move: a later frame differs from an earlier one | 96 | The cells at 500 ms differ from the cells at 1,000 ms. |
-| each running subagent adds one companion and its stop removes it | 109 | Each new agent changes the cells. A stop for an unknown id is ignored. |
-| each companion holds its own colour slot, and a stop frees the lowest one | 136 | 3 agents get `a1:0 a2:1 a3:2`. After `a2` stops, a new agent gets slot 1. |
-| a subagent turn does not end the main turn | 157 | A `turn.complete` with an `agentId` does not stop the blits. |
-| the finale plays once the turn is answered, then the strip clears and the timer stops | 171 | The strip shows at 2,000 ms after the answer. It is gone 3,000 ms later. No blit follows. |
-| the finale waits for the last subagent when the main turn ends first | 189 | The strip stays for 6,000 ms while an agent runs. It clears 6,000 ms after the stop. |
-| an aborted turn clears the strip with no finale | 205 | 200 ms after an aborted turn, the strip is gone. |
-| denied blits are counted, not thrown | 216 | A denied blit adds to `denied`. The dump shows `lastDeny=not mounted`. |
-| /theme-dump writes the log, the blit counts and the strip as text | 230 | The dump holds the log lines, the band size and the text of the strip. |
-| the strip is a terminal Raster only: desktop is left to the engine | 249 | On the `desktop` surface the mod draws no `Raster`. |
+| the strip stays out of the way until a turn starts | 77 | Before `turn.start`, the mod draws no `Raster`. The engine band shows. |
+| a turn draws one Raster of the band width and repaints it with blit | 87 | The `Raster` is 40 columns by 5 rows. In 1,000 ms the mod sends at least 8 blits. The first and last blit differ. |
+| the sprites move: a later frame differs from an earlier one | 106 | The cells at 500 ms differ from the cells at 1,000 ms. |
+| each running subagent adds one companion and its stop removes it | 119 | Each new agent changes the cells. A stop for an unknown id is ignored. |
+| each companion holds its own colour slot, and a stop frees the lowest one | 146 | 3 agents get `a1:0 a2:1 a3:2`. After `a2` stops, a new agent gets slot 1. |
+| a subagent turn does not end the main turn | 167 | A `turn.complete` with an `agentId` does not stop the blits. |
+| the finale plays once the turn is answered, then the strip clears and the timer stops | 181 | The strip shows at 2,000 ms after the answer. It is gone 3,000 ms later. No blit follows. |
+| the finale waits for the last subagent when the main turn ends first | 199 | The strip stays for 6,000 ms while an agent runs. It clears 6,000 ms after the stop. |
+| an aborted turn clears the strip with no finale | 215 | 200 ms after an aborted turn, the strip is gone. |
+| denied blits are counted, not thrown | 226 | A denied blit adds to `denied`. The dump shows `lastDeny=not mounted`. |
+| /theme-dump writes the log, the blit counts and the strip as text | 240 | The dump holds the log lines, the band size and the text of the strip. |
+| the strip is a terminal Raster only: desktop is left to the engine | 259 | On the `desktop` surface the mod draws no `Raster`. |
+| a session end with no agent list to read does not throw | 271 | With `$.agent.list` unavailable, `session.end` still reaches the next hook. The log says `agent list unavailable`. |
 
 | Test (in `hooks/theme.test.tsx`) | Line | Rule it proves |
 |----------------------------------|------|----------------|
