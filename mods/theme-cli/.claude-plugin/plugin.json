@@ -1,0 +1,11 @@
+{
+  "name": "theme-cli",
+  "version": "0.1.0",
+  "description": "Pixel-art characters run along a strip above the prompt while Claude works, one extra companion per running subagent, and a flagpole finale when the task completes. Themes are folders of your own images in ~/.claude/theme-cli/themes, switched with /theme-use. Terminal only.",
+  "types": "./types/index.d.ts",
+  "author": {
+    "name": "plaktoz"
+  },
+  "license": "MIT",
+  "icon": "./.claude-plugin/icon.png"
+}

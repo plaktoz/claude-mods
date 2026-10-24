@@ -15,6 +15,34 @@ A centralized framework for customizing, structuring, and deploying tailored beh
 | `hooks/` | Hook scripts and settings fragments |
 | `mods/` | Claude Code plugins of function hooks (`<mod>/.claude-plugin/plugin.json` + `hooks/register.ts`); test with `claude plugin test mods/<mod>` |
 | `scripts/` | Install, sync, and validate tooling |
+| `scratch/` | Git-ignored. Source images and audio you supply yourself, never committed |
+
+### theme-cli themes
+
+`mods/theme-cli` draws a pixel-art strip above the prompt. It ships no art. Themes live in your own `~/.claude/theme-cli/`, outside every project, so one library serves all of them:
+
+```
+~/.claude/theme-cli/
+  config.json                         {"theme": "<name>"}: the theme on show
+  themes/<name>/theme.json            what the theme draws, and where its images are
+  themes/<name>/<your images>         or point `sheets` at images anywhere (absolute or ~/ paths)
+  themes/<name>/.cache/frames.json    scaled sprites, built for you
+```
+
+`theme.json` names `sheets` (image files, or folders of images), `frames` (a `box` of `[x, y, w, h]` on a sheet, or a `file` in a folder sheet, with an optional `key` colour to make clear), and a `cast` that gives frames their parts: `lead` run and jump, an optional `partner`, the `companion` (one per subagent, recoloured per slot with `recolor`, or listed as `frames`) and the `goal`. `height` sets sprite height in pixels; the strip is `(height + 2) / 2` terminal rows. Anything left out draws as a placeholder.
+
+Scaling happens once. When the session starts, the mod stamps `theme.json`, its images and the height, and compares that with the stamp in `.cache/frames.json`. If they match it reads the cache; if not it runs `mods/theme-cli/scripts/build-theme.py` (Python 3 standard library, no Pillow for 8-bit PNGs) and caches the result. Drawing never scales anything.
+
+| Command | Effect |
+|---------|--------|
+| `/theme-list` | List the themes; the one on show has `*` |
+| `/theme-use <name>` | Switch now and keep it for later sessions (`default` is the built-in placeholders) |
+| `/theme-new <name>` | Write a `theme.json` template to fill in |
+| `/theme-build` | Rebuild the cache even if nothing changed |
+| `/theme-hide`, `/theme-show` | Turn the strip off and on |
+| `/theme-dump` | Write `theme-cli-log.txt` in the working directory, for debugging |
+
+Images you use may be copyrighted. Keep them in your own folder, never in this repository.
 
 ## Install skills
 
