@@ -1,0 +1,6 @@
+{
+  "name": "theme-desk",
+  "version": "0.1.0",
+  "description": "KIV. Helper Desk pane and sprite strip above the prompt, drawn with Svg so desktop only. Tracks subagents from turn and subagent events.",
+  "types": "./types/index.d.ts"
+}

@@ -1,0 +1,23 @@
+{
+  "name": "cache-warm",
+  "version": "0.1.0",
+  "description": "Keeps the prompt cache warm: a band above the prompt counts down the cache's life and pings it with a tiny forked request just before it lapses, so the next reply reads the context at a fraction of the price.",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "ttl": {
+      "type": "string",
+      "title": "Cache lifetime",
+      "description": "How long the API keeps the prompt cache after a reply: \"5m\" (the API default) or \"1h\" (the extended cache, which subscriptions get). The engine does not report which one a reply set, so say it here.",
+      "required": false,
+      "default": "5m",
+      "options": ["5m", "1h"]
+    },
+    "maxPings": {
+      "type": "number",
+      "title": "Pings per reply",
+      "description": "The most pings sent after one reply before the cache is left to go cold. Each ping reads the whole context from cache, about 5 to 10% of its uncached price.",
+      "required": false,
+      "default": 6
+    }
+  }
+}

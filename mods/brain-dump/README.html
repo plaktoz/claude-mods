@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>brain-dump</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #fbfaf7;
+    --panel: #ffffff;
+    --fg: #1f2328;
+    --muted: #5b6470;
+    --line: #d9d6cc;
+    --accent: #b45f06;
+    --accent-bg: #fdf0dc;
+    --link: #1f5fbf;
+    --ok: #1a7f37;
+    --ok-bg: #e6f4ea;
+    --warn-bg: #fff4d6;
+    --code-bg: #f1efe8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #17181a;
+      --panel: #1f2124;
+      --fg: #e6e4de;
+      --muted: #a2a7ae;
+      --line: #3a3d42;
+      --accent: #f0a042;
+      --accent-bg: #3a2c14;
+      --link: #7fb0ff;
+      --ok: #5fcf80;
+      --ok-bg: #16301e;
+      --warn-bg: #3a3214;
+      --code-bg: #26282b;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #17181a;
+    --panel: #1f2124;
+    --fg: #e6e4de;
+    --muted: #a2a7ae;
+    --line: #3a3d42;
+    --accent: #f0a042;
+    --accent-bg: #3a2c14;
+    --link: #7fb0ff;
+    --ok: #5fcf80;
+    --ok-bg: #16301e;
+    --warn-bg: #3a3214;
+    --code-bg: #26282b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 60rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
+  h1 { font-size: 2rem; margin: 0 0 .25rem; }
+  h2 { font-size: 1.45rem; margin: 2.75rem 0 .75rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+  h3 { font-size: 1.1rem; margin: 1.75rem 0 .5rem; }
+  p, ul, ol { margin: .6rem 0; }
+  li { margin: .25rem 0; }
+  a { color: var(--link); }
+  code { font: .88em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code-bg); padding: .1em .35em; border-radius: 4px; }
+  pre { background: var(--code-bg); padding: .8rem 1rem; border-radius: 8px; overflow-x: auto; margin: .8rem 0; }
+  pre code { background: none; padding: 0; font-size: .85rem; }
+  .lede { color: var(--muted); margin: 0 0 1.25rem; }
+  .table-wrap { overflow-x: auto; margin: .8rem 0; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); font-size: .92rem; }
+  th, td { border: 1px solid var(--line); padding: .45rem .65rem; text-align: left; vertical-align: top; }
+  th { background: var(--code-bg); font-weight: 600; }
+  nav.toc { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: .75rem 1.1rem; margin: 1rem 0 0; }
+  nav.toc ol { columns: 2 14rem; margin: 0; padding-left: 1.2rem; }
+  .callout { border-left: 4px solid var(--accent); background: var(--accent-bg); padding: .6rem .9rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+  .expected { border-left: 4px solid var(--ok); background: var(--ok-bg); padding: .6rem .9rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+  .warn { border-left: 4px solid var(--accent); background: var(--warn-bg); padding: .6rem .9rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+  figure { margin: 1.25rem 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: .75rem; }
+  figure svg { display: block; width: 100%; max-width: 100%; height: auto; color: var(--fg); }
+  figcaption { color: var(--muted); font-size: .9rem; margin-top: .5rem; }
+  .band { font: .85rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: .7rem .9rem; overflow-x: auto; white-space: pre; }
+  .band .w { color: var(--accent); font-weight: 700; }
+  .band .d { color: var(--muted); }
+  .band .s { color: var(--link); }
+  /* SVG parts, styled here so the drawings follow the theme */
+  .node { fill: var(--panel); stroke: currentColor; stroke-width: 1.5; }
+  .node-hot { fill: var(--accent-bg); stroke: var(--accent); stroke-width: 2; }
+  .edge { stroke: currentColor; stroke-width: 1.5; fill: none; }
+  .edge-hot { stroke: var(--accent); stroke-width: 2; fill: none; }
+  .edge-dash { stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 5 4; fill: none; }
+  .lbl { fill: currentColor; font: 12px -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .lbl-b { fill: currentColor; font: 600 13px -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .lbl-m { fill: var(--muted); font: 12px -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .lbl-hot { fill: var(--accent); font: 600 12px -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .arrow-fill { fill: currentColor; }
+  .arrow-hot { fill: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+
+<h1>brain-dump</h1>
+<p class="lede">A Claude Code mod. It turns a long, messy prompt into a clear, structured prompt before Claude reads it.</p>
+<p>A Markdown version of this document is in <code>README.md</code>. It has the same content.</p>
+<p>To install the mod, go to <a href="#install">section 5</a>. To prove that it works, go to <a href="#validate">section 6</a>.</p>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#purpose">Purpose</a></li>
+    <li><a href="#code">Where to find the code</a></li>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#settings">Settings</a></li>
+    <li><a href="#install">Install</a></li>
+    <li><a href="#validate">Validate</a></li>
+    <li><a href="#limits">Known limits</a></li>
+    <li><a href="#glossary">Glossary</a></li>
+  </ol>
+</nav>
+
+<!-- 1 -->
+<h2 id="purpose">1. Purpose</h2>
+<p>Some prompts are long and unclear. They mix many ideas, they leave out the goal, and they do not say when the work is done. Claude must then guess what you want.</p>
+<p>This mod prevents that. It does the following:</p>
+<ol>
+  <li>It catches a long prompt that you type, before Claude gets it.</li>
+  <li>It asks a small model if the prompt is clear or messy.</li>
+  <li>If the prompt is messy, it asks you up to 3 short questions.</li>
+  <li>It rewrites the prompt in 4 sections: Task, Why, Guardrails, and Definition of done.</li>
+  <li>It shows you the new prompt. You choose to send the new prompt or your original prompt.</li>
+</ol>
+<p>The mod uses only facts from your prompt and your answers. It writes <code>Unspecified</code> where a fact is missing. If anything goes wrong, the mod sends your original prompt.</p>
+<p>The mod asks you two kinds of question. Each question shows a header and a short list of options:</p>
+<div class="band" role="img" aria-label="Two dialogs. The first has the header Clarify and asks which part of the login page is slow, with three options. The second has the header Brain Dump and asks: Send the structured prompt? The options are Send it and Send my original."><span class="w">Clarify</span>
+Which part of the login page is slow?
+<span class="d">  - OAuth sign-in
+  - Password reset
+  - Both</span>
+
+<span class="w">Brain Dump</span>
+Send the structured prompt?
+<span class="d">  - Send it
+  - Send my original</span></div>
+
+<!-- 2 -->
+<h2 id="code">2. Where to find the code</h2>
+<p>All logic is in one file: <code>hooks/register.ts</code>. Search for the function name if a line number is different.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Item</th><th>File</th><th>Line</th></tr></thead>
+  <tbody>
+    <tr><td>Constants <code>MIN_CHARS</code> and <code>MAX_QUESTIONS</code></td><td><code>hooks/register.ts</code></td><td>4–5</td></tr>
+    <tr><td>Instruction for the question model (<code>QUESTIONS_SYSTEM</code>)</td><td><code>hooks/register.ts</code></td><td>7–11</td></tr>
+    <tr><td>Instruction for the rewrite model (<code>REFORMULATE_SYSTEM</code>)</td><td><code>hooks/register.ts</code></td><td>13–22</td></tr>
+    <tr><td>Button labels <code>SEND_IT</code> and <code>SEND_ORIGINAL</code></td><td><code>hooks/register.ts</code></td><td>24–25</td></tr>
+    <tr><td>Types <code>Question</code>, <code>Answer</code>, <code>Submission</code>, <code>Engine</code></td><td><code>hooks/register.ts</code></td><td>27–30</td></tr>
+    <tr><td><code>isQuestion()</code> – checks one item of the question list</td><td><code>hooks/register.ts</code></td><td>32</td></tr>
+    <tr><td><code>parseQuestions()</code> – reads the question list from a reply</td><td><code>hooks/register.ts</code></td><td>38</td></tr>
+    <tr><td><code>draftInput()</code> – builds the text for the rewrite request</td><td><code>hooks/register.ts</code></td><td>50</td></tr>
+    <tr><td><code>isRefinable()</code> – decides if a prompt is in scope</td><td><code>hooks/register.ts</code></td><td>60</td></tr>
+    <tr><td><code>draftFrom()</code> – classifies, asks, and rewrites</td><td><code>hooks/register.ts</code></td><td>64</td></tr>
+    <tr><td><code>confirmDraft()</code> – shows the draft and asks for your choice</td><td><code>hooks/register.ts</code></td><td>101</td></tr>
+    <tr><td><code>register()</code> – adds the hook</td><td><code>hooks/register.ts</code></td><td>116</td></tr>
+    <tr><td>Hook <code>prompt.submit</code></td><td><code>hooks/register.ts</code></td><td>117</td></tr>
+    <tr><td>Plugin name and description</td><td><code>.claude-plugin/plugin.json</code></td><td>all</td></tr>
+    <tr><td>Tests</td><td><code>hooks/register.test.ts</code></td><td>12–134</td></tr>
+  </tbody>
+</table></div>
+<p>Other files: <code>hooks/hooks.json</code> names the module. <code>tsconfig.json</code> is for the type-check.</p>
+
+<!-- 3 -->
+<h2 id="how">3. How it works</h2>
+<p>The mod has one hook, <code>prompt.submit</code>. The engine runs this hook each time a prompt is sent. The hook can hold the prompt, change its text, and then let it go.</p>
+
+<h3>3.1 The path of a prompt</h3>
+<p>A prompt takes one of two ways out: it is sent as you typed it, or it is sent as the new draft. Most prompts are sent as typed.</p>
+
+<figure>
+  <svg viewBox="0 0 940 310" role="img" aria-label="Flow of one prompt. The prompt goes through six steps in a row: rules, classify, questions, you answer, rewrite, and confirm. If it passes all of them, the draft is sent. Five of the steps can instead lead to Send as typed: a failed rule, a clear or failed classify, a closed question, a failed rewrite, or the choice Send my original or a closed dialog.">
+    <defs>
+      <marker id="b1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-fill"/></marker>
+      <marker id="b1h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-hot"/></marker>
+      <marker id="b1m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--muted)"/></marker>
+    </defs>
+    <!-- main row -->
+    <rect class="node" x="16" y="40" width="96" height="64" rx="8"/>
+    <text class="lbl-b" x="64" y="68" text-anchor="middle">You send</text>
+    <text class="lbl-b" x="64" y="84" text-anchor="middle">a prompt</text>
+
+    <rect class="node" x="132" y="40" width="96" height="64" rx="8"/>
+    <text class="lbl-b" x="180" y="62" text-anchor="middle">Rules</text>
+    <text class="lbl-m" x="180" y="78" text-anchor="middle">typed by you,</text>
+    <text class="lbl-m" x="180" y="93" text-anchor="middle">400+ characters</text>
+
+    <rect class="node" x="248" y="40" width="96" height="64" rx="8"/>
+    <text class="lbl-b" x="296" y="62" text-anchor="middle">Classify</text>
+    <text class="lbl-m" x="296" y="78" text-anchor="middle">haiku:</text>
+    <text class="lbl-m" x="296" y="93" text-anchor="middle">clear or messy?</text>
+
+    <rect class="node" x="364" y="40" width="96" height="64" rx="8"/>
+    <text class="lbl-b" x="412" y="62" text-anchor="middle">Questions</text>
+    <text class="lbl-m" x="412" y="78" text-anchor="middle">haiku writes</text>
+    <text class="lbl-m" x="412" y="93" text-anchor="middle">up to 3</text>
+
+    <rect class="node" x="480" y="40" width="96" height="64" rx="8"/>
+    <text class="lbl-b" x="528" y="68" text-anchor="middle">You answer</text>
+    <text class="lbl-m" x="528" y="84" text-anchor="middle">each question</text>
+
+    <rect class="node" x="596" y="40" width="96" height="64" rx="8"/>
+    <text class="lbl-b" x="644" y="62" text-anchor="middle">Rewrite</text>
+    <text class="lbl-m" x="644" y="78" text-anchor="middle">sonnet,</text>
+    <text class="lbl-m" x="644" y="93" text-anchor="middle">4 sections</text>
+
+    <rect class="node" x="712" y="40" width="96" height="64" rx="8"/>
+    <text class="lbl-b" x="760" y="62" text-anchor="middle">Confirm</text>
+    <text class="lbl-m" x="760" y="78" text-anchor="middle">Send the</text>
+    <text class="lbl-m" x="760" y="93" text-anchor="middle">structured prompt?</text>
+
+    <rect class="node-hot" x="828" y="40" width="96" height="64" rx="8"/>
+    <text class="lbl-hot" x="876" y="68" text-anchor="middle">Send</text>
+    <text class="lbl-hot" x="876" y="84" text-anchor="middle">the draft</text>
+
+    <!-- main arrows -->
+    <line class="edge" x1="112" y1="72" x2="130" y2="72" marker-end="url(#b1)"/>
+    <line class="edge" x1="228" y1="72" x2="246" y2="72" marker-end="url(#b1)"/>
+    <line class="edge" x1="344" y1="72" x2="362" y2="72" marker-end="url(#b1)"/>
+    <line class="edge" x1="460" y1="72" x2="478" y2="72" marker-end="url(#b1)"/>
+    <line class="edge" x1="576" y1="72" x2="594" y2="72" marker-end="url(#b1)"/>
+    <line class="edge" x1="692" y1="72" x2="710" y2="72" marker-end="url(#b1)"/>
+    <line class="edge-hot" x1="808" y1="72" x2="826" y2="72" marker-end="url(#b1h)"/>
+    <text class="lbl" x="180" y="28" text-anchor="middle">pass</text>
+    <text class="lbl" x="296" y="28" text-anchor="middle">pass</text>
+    <text class="lbl" x="354" y="28" text-anchor="middle">messy</text>
+    <text class="lbl" x="702" y="28" text-anchor="middle">draft</text>
+    <text class="lbl-hot" x="818" y="28" text-anchor="middle">Send it</text>
+
+    <!-- exits -->
+    <line class="edge-dash" x1="180" y1="104" x2="180" y2="175"/>
+    <line class="edge-dash" x1="296" y1="104" x2="296" y2="175"/>
+    <line class="edge-dash" x1="528" y1="104" x2="528" y2="175"/>
+    <line class="edge-dash" x1="644" y1="104" x2="644" y2="175"/>
+    <line class="edge-dash" x1="760" y1="104" x2="760" y2="175"/>
+    <line class="edge-dash" x1="180" y1="175" x2="760" y2="175"/>
+    <text class="lbl-m" x="186" y="126">fails a rule</text>
+    <text class="lbl-m" x="302" y="126">clear,</text>
+    <text class="lbl-m" x="302" y="140">or error</text>
+    <text class="lbl-m" x="534" y="126">a question</text>
+    <text class="lbl-m" x="534" y="140">is closed</text>
+    <text class="lbl-m" x="650" y="126">no reply,</text>
+    <text class="lbl-m" x="650" y="140">or error</text>
+    <text class="lbl-m" x="766" y="126">Send my</text>
+    <text class="lbl-m" x="766" y="140">original,</text>
+    <text class="lbl-m" x="766" y="154">or closed</text>
+    <line class="edge" x1="470" y1="175" x2="470" y2="228" marker-end="url(#b1)"/>
+
+    <rect class="node" x="320" y="230" width="300" height="56" rx="8"/>
+    <text class="lbl-b" x="470" y="254" text-anchor="middle">Send as typed</text>
+    <text class="lbl-m" x="470" y="272" text-anchor="middle">your original prompt, with no change</text>
+  </svg>
+  <figcaption>Figure 1. The path of one prompt. The solid line is the path to the draft (orange at the end). Each dashed line is an exit to your original prompt.</figcaption>
+</figure>
+
+<p>The mod holds the prompt while it works. Claude does not see the prompt until the mod sends one of the two results.</p>
+
+<h3>3.2 One messy prompt, in order</h3>
+<p>This diagram shows who sends what to whom for one messy prompt. Time goes down.</p>
+
+<figure>
+  <svg viewBox="0 0 860 540" role="img" aria-label="Sequence diagram. You send a long prompt to brain-dump. brain-dump asks haiku to classify it, and haiku answers messy. brain-dump asks haiku for up to 3 questions and receives a list. For each question, brain-dump asks you and you answer. brain-dump asks sonnet to rewrite the prompt with the answers and receives a draft in 4 sections. brain-dump shows you the draft and asks Send it. You answer Send it. brain-dump sends the draft to Claude.">
+    <defs>
+      <marker id="b2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-fill"/></marker>
+      <marker id="b2h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-hot"/></marker>
+      <marker id="b2m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--muted)"/></marker>
+    </defs>
+    <!-- lifelines -->
+    <line class="edge-dash" x1="90" y1="48" x2="90" y2="525"/>
+    <line class="edge-dash" x1="270" y1="48" x2="270" y2="525"/>
+    <line class="edge-dash" x1="450" y1="48" x2="450" y2="525"/>
+    <line class="edge-dash" x1="630" y1="48" x2="630" y2="525"/>
+    <line class="edge-dash" x1="780" y1="48" x2="780" y2="525"/>
+    <!-- participants -->
+    <rect class="node" x="30" y="10" width="120" height="38" rx="8"/>
+    <text class="lbl-b" x="90" y="34" text-anchor="middle">You</text>
+    <rect class="node-hot" x="210" y="10" width="120" height="38" rx="8"/>
+    <text class="lbl-b" x="270" y="34" text-anchor="middle">brain-dump</text>
+    <rect class="node" x="390" y="10" width="120" height="38" rx="8"/>
+    <text class="lbl-b" x="450" y="34" text-anchor="middle">haiku</text>
+    <rect class="node" x="570" y="10" width="120" height="38" rx="8"/>
+    <text class="lbl-b" x="630" y="34" text-anchor="middle">sonnet</text>
+    <rect class="node" x="720" y="10" width="120" height="38" rx="8"/>
+    <text class="lbl-b" x="780" y="34" text-anchor="middle">Claude</text>
+
+    <!-- loop frame -->
+    <rect x="52" y="236" width="256" height="92" rx="6" fill="none" stroke="var(--muted)" stroke-width="1.2"/>
+    <text class="lbl-m" x="60" y="251">loop: each question</text>
+
+    <!-- messages -->
+    <line class="edge" x1="90" y1="86" x2="268" y2="86" marker-end="url(#b2)"/>
+    <text class="lbl" x="180" y="78" text-anchor="middle">send a long prompt</text>
+
+    <line class="edge" x1="270" y1="122" x2="448" y2="122" marker-end="url(#b2)"/>
+    <text class="lbl" x="360" y="114" text-anchor="middle">classify: clear or messy?</text>
+    <line class="edge-dash" x1="450" y1="152" x2="272" y2="152" marker-end="url(#b2m)"/>
+    <text class="lbl-m" x="360" y="144" text-anchor="middle">messy</text>
+
+    <line class="edge" x1="270" y1="188" x2="448" y2="188" marker-end="url(#b2)"/>
+    <text class="lbl" x="360" y="180" text-anchor="middle">write up to 3 questions</text>
+    <line class="edge-dash" x1="450" y1="218" x2="272" y2="218" marker-end="url(#b2m)"/>
+    <text class="lbl-m" x="360" y="210" text-anchor="middle">question list (JSON)</text>
+
+    <line class="edge" x1="268" y1="278" x2="92" y2="278" marker-end="url(#b2)"/>
+    <text class="lbl" x="180" y="270" text-anchor="middle">ask the question</text>
+    <line class="edge-dash" x1="90" y1="310" x2="266" y2="310" marker-end="url(#b2m)"/>
+    <text class="lbl-m" x="180" y="302" text-anchor="middle">answer</text>
+
+    <line class="edge" x1="270" y1="362" x2="628" y2="362" marker-end="url(#b2)"/>
+    <text class="lbl" x="450" y="354" text-anchor="middle">rewrite: prompt and answers</text>
+    <line class="edge-dash" x1="630" y1="392" x2="272" y2="392" marker-end="url(#b2m)"/>
+    <text class="lbl-m" x="450" y="384" text-anchor="middle">draft in 4 sections</text>
+
+    <line class="edge" x1="268" y1="432" x2="92" y2="432" marker-end="url(#b2)"/>
+    <text class="lbl" x="180" y="424" text-anchor="middle">show the draft: Send it?</text>
+    <line class="edge-dash" x1="90" y1="462" x2="266" y2="462" marker-end="url(#b2m)"/>
+    <text class="lbl-m" x="180" y="454" text-anchor="middle">Send it</text>
+
+    <line class="edge-hot" x1="270" y1="504" x2="778" y2="504" marker-end="url(#b2h)"/>
+    <text class="lbl-hot" x="524" y="496" text-anchor="middle">send the draft</text>
+  </svg>
+  <figcaption>Figure 2. One messy prompt. Solid lines are requests. Dashed lines are replies. Claude gets the draft and never gets the original text.</figcaption>
+</figure>
+
+<h3>3.3 Which prompts the mod handles</h3>
+<p><code>isRefinable()</code> checks all of these rules. A prompt must pass every rule. If one rule fails, the mod does nothing and makes no model request.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Rule</th><th>Passes when</th><th>Reason</th></tr></thead>
+  <tbody>
+    <tr><td>Source</td><td><code>origin.kind</code> is <code>composer</code> (you typed it in the prompt box)</td><td>Prompts from plugins, peers, and notifications are not yours to rewrite.</td></tr>
+    <tr><td>Not a command</td><td>There is no <code>command</code></td><td>A command, for example <code>/config</code>, must stay as it is.</td></tr>
+    <tr><td>Not a meta message</td><td><code>isMeta</code> is not true</td><td>The engine makes meta messages. They are not your words.</td></tr>
+    <tr><td>Length</td><td>The text has 400 characters or more (<code>MIN_CHARS</code>)</td><td>A short prompt is usually clear.</td></tr>
+  </tbody>
+</table></div>
+
+<h3>3.4 The three model requests</h3>
+<p>For one long prompt, the mod makes up to 3 model requests. All of them use the engine (<code>$.model</code>). None of them use the conversation.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Request</th><th>Call</th><th>Model</th><th>Limits</th><th>Result</th></tr></thead>
+  <tbody>
+    <tr><td>1. Classify</td><td><code>$.model.classify</code></td><td>haiku</td><td>none set</td><td><code>clear</code> or <code>messy</code>. Only <code>messy</code> continues.</td></tr>
+    <tr><td>2. Questions</td><td><code>$.model.complete</code></td><td>haiku</td><td>800 tokens, low effort, 20 seconds</td><td>A JSON list of up to 3 questions, each with 2 to 4 options. <code>[]</code> means no question.</td></tr>
+    <tr><td>3. Rewrite</td><td><code>$.model.complete</code></td><td>sonnet</td><td>1500 tokens, 60 seconds</td><td>The new prompt, as text.</td></tr>
+  </tbody>
+</table></div>
+<p>The mod reads the question list with <code>parseQuestions()</code>. The function finds the first <code>[</code> and the last <code>]</code> in the reply. It keeps only items that have a <code>question</code> text and an <code>options</code> list. It keeps the first 3 items.</p>
+<p>If the question reply has no valid question, the mod does not stop. It goes to the rewrite request with no answers.</p>
+
+<h3>3.5 The new prompt</h3>
+<p>The rewrite request tells the model to use 4 sections, in this order. Each section has its label.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Section</th><th>Content</th></tr></thead>
+  <tbody>
+    <tr><td>Task</td><td>What to do, in one or two sentences.</td></tr>
+    <tr><td>Why</td><td>The goal or context behind the task.</td></tr>
+    <tr><td>Guardrails</td><td>Constraints, things to avoid, and assumptions made.</td></tr>
+    <tr><td>Definition of done</td><td>How to tell that the work is complete.</td></tr>
+  </tbody>
+</table></div>
+<p>The model must use only facts from your prompt and your answers. It writes <code>Unspecified</code> for a missing fact. Example of a draft:</p>
+<pre><code>Task: Find and fix the cause of the slow, unreliable login page.
+Why: The page feels slow and sometimes fails. Unspecified.
+Guardrails: Check OAuth sign-in and password reset. Unspecified.
+Definition of done: Unspecified.</code></pre>
+<p>The mod shows the draft in the transcript (<code>$.ui.log</code>) and then asks for your choice. If you choose <code>Send it</code>, Claude gets the draft and does not get your original text.</p>
+
+<h3>3.6 When the mod sends your original prompt</h3>
+<p>The mod always has a safe result: your original prompt. Each row below ends in that result.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>What happens</th><th>Result</th></tr></thead>
+  <tbody>
+    <tr><td>The prompt fails a rule in 3.3</td><td>Sent as typed. No model request.</td></tr>
+    <tr><td>The classify request says <code>clear</code></td><td>Sent as typed.</td></tr>
+    <tr><td>A classify request or a rewrite request fails or times out</td><td>Sent as typed.</td></tr>
+    <tr><td>The rewrite reply has no answer</td><td>Sent as typed.</td></tr>
+    <tr><td>You close a question without an answer</td><td>Sent as typed. The mod makes no rewrite request.</td></tr>
+    <tr><td>You choose <code>Send my original</code></td><td>Sent as typed.</td></tr>
+    <tr><td>You close the final choice without an answer</td><td>Sent as typed.</td></tr>
+  </tbody>
+</table></div>
+<p>If the question reply has no answer, the mod does not use the rows above. It treats the result as no questions and goes on to the rewrite request.</p>
+
+<h3>3.7 Stored values</h3>
+<p>This mod stores no values. It has no timers and no module variables. Each prompt is handled alone, and the next prompt starts clean.</p>
+
+<!-- 4 -->
+<h2 id="settings">4. Settings</h2>
+<p>This mod has no settings in <code>/config</code>. Two values are fixed in the code:</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Value</th><th>Default</th><th>Line</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr><td><code>MIN_CHARS</code></td><td>400</td><td>4</td><td>The shortest prompt (in characters) that the mod handles.</td></tr>
+    <tr><td><code>MAX_QUESTIONS</code></td><td>3</td><td>5</td><td>The most questions the mod asks.</td></tr>
+  </tbody>
+</table></div>
+<p>To change a value, see section 5.7. The model names (<code>haiku</code>, <code>sonnet</code>) and the time limits are in <code>draftFrom()</code> (line 64).</p>
+
+<!-- 5 -->
+<h2 id="install">5. Install</h2>
+<p>You install this mod by telling Claude Code where its folder is. The mod is not in a marketplace yet.</p>
+
+<h3>5.1 Before you start</h3>
+<p>You need:</p>
+<ul>
+  <li>Claude Code. The version used to write and test this mod is 2.1.310. To see your version, run <code>claude --version</code>.</li>
+  <li>A copy of this repository on your computer.</li>
+  <li>A terminal. A terminal is a window where you type commands. On macOS, open the app named Terminal.</li>
+</ul>
+<p>In this document, the <strong>repository root</strong> is the top folder of the repository (the folder named <code>claude-mods</code>). All commands in this document start from that folder. To go there, type <code>cd</code> and the path to the folder. Example:</p>
+<pre><code>cd ~/Developer/claude-mods</code></pre>
+
+<h3>5.2 Choose a method</h3>
+<div class="table-wrap"><table>
+  <thead><tr><th>Method</th><th>Use it when</th><th>Lasts for</th></tr></thead>
+  <tbody>
+    <tr><td>A. Flag <code>--plugin-dir</code></td><td>You want to try the mod.</td><td>One session</td></tr>
+    <tr><td>B. Setting <code>CLAUDE_CODE_PLUGIN_DIRS</code></td><td>You want the mod in every session.</td><td>All sessions, until you remove the setting</td></tr>
+    <tr><td>C. Marketplace</td><td>You want to share the mod with other people.</td><td><strong>Not available yet.</strong> See 5.5.</td></tr>
+  </tbody>
+</table></div>
+
+<h3>5.3 Method A: try it for one session</h3>
+<ol>
+  <li>Open a terminal and go to the repository root (see 5.1).</li>
+  <li>Start Claude Code with the flag:
+    <pre><code>claude --plugin-dir mods/brain-dump</code></pre>
+  </li>
+  <li>Do the check in 5.6.</li>
+</ol>
+<p>If you edit a file of the mod while the session is open, Claude Code reloads the mod.</p>
+
+<h3>5.4 Method B: load the mod in every session</h3>
+<ol>
+  <li>Open the file <code>~/.claude/settings.json</code> in a text editor.</li>
+  <li>Add an <code>env</code> block that names the full path of the mod folder. If the file already has an <code>env</code> block, add only the line inside it.
+<pre><code>{
+  "env": {
+    "CLAUDE_CODE_PLUGIN_DIRS": "/Users/your-name/Developer/claude-mods/mods/brain-dump"
+  }
+}</code></pre>
+  </li>
+  <li>Replace <code>/Users/your-name/Developer/claude-mods</code> with the real path to your repository. To print the path, run <code>pwd</code> in the repository root.</li>
+  <li>Save the file. Start a new Claude Code session.</li>
+  <li>Do the check in 5.6.</li>
+</ol>
+<p>To uninstall, delete the line and start a new session.</p>
+<p>If the <code>CLAUDE_CODE_PLUGIN_DIRS</code> line already names the <code>cache-warm</code> folder, do not replace it. Put both paths in the same value. See the Claude Code documentation for the separator.</p>
+
+<h3>5.5 Method C: marketplace (not available yet)</h3>
+<p>A marketplace install needs two things that this repository does not have:</p>
+<ul>
+  <li>A marketplace file, <code>.claude-plugin/marketplace.json</code>, at the repository root.</li>
+  <li>At least one commit that you pushed to GitHub.</li>
+</ul>
+<p>When both exist, other people can install the mod with <code>/plugin install brain-dump --marketplace &lt;owner&gt;/&lt;repo&gt;</code>. Replace <code>&lt;owner&gt;/&lt;repo&gt;</code> with the GitHub name of the repository.</p>
+
+<h3>5.6 Check that the install worked</h3>
+<p>This mod shows nothing until you send a long, messy prompt. Use the sample prompt from 6.3.</p>
+<ol>
+  <li>Start a session with method A or method B.</li>
+  <li>Send the sample prompt from 6.3.</li>
+  <li>Wait a few seconds.</li>
+</ol>
+<div class="expected"><strong>Expected:</strong> a question dialog with the header <code>Clarify</code> appears.</div>
+<p>If no dialog appears, see the table in 6.5.</p>
+
+<h3>5.7 Change the fixed values</h3>
+<ol>
+  <li>Open <code>mods/brain-dump/hooks/register.ts</code> in a text editor.</li>
+  <li>Change the number after <code>MIN_CHARS =</code> (line 4) or <code>MAX_QUESTIONS =</code> (line 5).</li>
+  <li>Save the file. Claude Code reloads the mod if you started it with method A. Otherwise, start a new session.</li>
+  <li>Run the tests (see 6.2). The tests use the default values. A changed value can make a test fail.</li>
+</ol>
+<p>See <a href="#settings">section 4</a> for the meaning of each value.</p>
+
+<!-- 6 -->
+<h2 id="validate">6. Validate</h2>
+<p>To validate means to prove that the mod works as this document says. There are three levels. Do level 1 and level 2 each time you change the code. Do level 3 once after you install.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Level</th><th>What it proves</th><th>Time</th><th>Needs an API request</th></tr></thead>
+  <tbody>
+    <tr><td>1. Validate</td><td>The files are correct, and the engine can read the mod.</td><td>2 seconds</td><td>No</td></tr>
+    <tr><td>2. Test</td><td>The logic is correct (rules, questions, choices, fallbacks).</td><td>2 seconds</td><td>No</td></tr>
+    <tr><td>3. Live check</td><td>The mod works in a real session.</td><td>2 minutes</td><td>Yes (2 or 3 small ones)</td></tr>
+  </tbody>
+</table></div>
+
+<h3>6.1 Level 1: validate the files</h3>
+<ol>
+  <li>Go to the repository root (see 5.1).</li>
+  <li>Run:
+    <pre><code>claude plugin validate mods/brain-dump</code></pre>
+  </li>
+  <li>Read the last line of the output.</li>
+</ol>
+<div class="table-wrap"><table>
+  <thead><tr><th>Last line</th><th>Meaning</th><th>Action</th></tr></thead>
+  <tbody>
+    <tr><td><code>✔ Validation passed with warnings</code></td><td>The mod is correct.</td><td>None. This is the expected result.</td></tr>
+    <tr><td><code>✔ Validation passed</code></td><td>The mod is correct.</td><td>None.</td></tr>
+    <tr><td><code>✘ Validation failed</code></td><td>The engine refuses the mod.</td><td>Read the lines that start with <code>✘</code>. Fix the file they name. Run the command again.</td></tr>
+  </tbody>
+</table></div>
+<p>The expected output contains messages that look like problems. They are not problems:</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Message</th><th>Why you can ignore it</th></tr></thead>
+  <tbody>
+    <tr><td><code>author: No author information provided</code></td><td>Only a note. The mod works without an author.</td></tr>
+    <tr><td><code>LICENSE: License missing</code></td><td>This check is for sending a mod to the public plugin directory. It does not change the result.</td></tr>
+    <tr><td><code>ICON_MISSING</code></td><td>Same reason.</td></tr>
+    <tr><td><code>gating hook without .catch: prompt.submit</code></td><td>Only a note. The hook holds the prompt until it finishes. The functions <code>draftFrom()</code> and <code>confirmDraft()</code> catch their own errors and return the original prompt.</td></tr>
+  </tbody>
+</table></div>
+<p>The output also lists what the mod uses. Compare it with this list:</p>
+<ul>
+  <li>Hooks: <code>prompt.submit</code></li>
+  <li>Stored values: none</li>
+  <li>Engine calls: <code>$.model.classify</code>, <code>$.model.complete</code>, <code>$.ui.ask</code>, <code>$.ui.log</code></li>
+</ul>
+<p>If the output lists a hook or a call that is not in this list, the code and this document are different. Tell the owner of the mod.</p>
+
+<h3>6.2 Level 2: run the tests</h3>
+<ol>
+  <li>Go to the repository root.</li>
+  <li>Run:
+    <pre><code>claude plugin test mods/brain-dump</code></pre>
+  </li>
+  <li><strong>Expected result:</strong> the last lines are <code>10 pass</code> and <code>0 fail</code>.</li>
+</ol>
+<p>The tests use a fake model and fake dialogs. They do not call the API and they cost nothing. Section 6.4 explains each test.</p>
+<p>If a test fails, the output shows the test name and the reason. Find the test name in the table in 6.4. It shows which rule is broken.</p>
+
+<h3>6.3 Level 3: live check in a session</h3>
+<p>Do this once after you install. You need a sample prompt that is long (400 characters or more) and unclear. Use this one:</p>
+<pre><code>ok so i have been thinking about the login page and it feels slow and kind of broken sometimes, maybe the oauth part or maybe the password reset, i am not sure, and we also need it to look better on phones, and somebody said something about rate limits but i do not remember what, so can you look at it and fix whatever is wrong and make it better and also maybe add some tests if that makes sense or whatever you think is best</code></pre>
+<div class="table-wrap"><table>
+  <thead><tr><th>Step</th><th>Action</th><th>Expected result</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>Paste the sample prompt. Press Enter.</td><td>After a short wait, a dialog with the header <code>Clarify</code> shows a question and options.</td></tr>
+    <tr><td>2</td><td>Answer each question (up to 3).</td><td>After the last answer, there is a wait. The draft appears in the transcript, with the 4 labels <code>Task</code>, <code>Why</code>, <code>Guardrails</code>, and <code>Definition of done</code>.</td></tr>
+    <tr><td>3</td><td>Read the dialog <code>Send the structured prompt?</code>. Choose <code>Send it</code>.</td><td>Claude answers the draft, not your original text.</td></tr>
+    <tr><td>4</td><td>Send the sample prompt again. Choose <code>Send my original</code> at the end.</td><td>Claude answers your original text.</td></tr>
+    <tr><td>5</td><td>Send the sample prompt again. Close the final dialog with no choice.</td><td>Claude answers your original text.</td></tr>
+    <tr><td>6</td><td>Send the short prompt <code>fix the typo in README</code>.</td><td>The prompt is sent at once. No dialog appears.</td></tr>
+  </tbody>
+</table></div>
+<p>The model decides if a prompt is messy. If step 1 shows no dialog, change the sample prompt to make it less clear, and try again.</p>
+<p>No person has done this check yet.</p>
+
+<h3>6.4 What each test proves</h3>
+<div class="table-wrap"><table>
+  <thead><tr><th>Test (in <code>hooks/register.test.ts</code>)</th><th>Line</th><th>Rule it proves</th></tr></thead>
+  <tbody>
+    <tr><td>only a long prompt the person typed is refined</td><td>12</td><td>A prompt of 400 characters or more from <code>composer</code> passes. A short prompt, no source, a plugin source, a command, and a meta message do not.</td></tr>
+    <tr><td>questions come out of a reply, capped at three, junk dropped</td><td>21</td><td><code>parseQuestions()</code> reads a list inside other text. It returns <code>[]</code> for text that is not JSON and for wrong items. It keeps 3 items at most.</td></tr>
+    <tr><td>a short prompt is sent as typed, with no model call</td><td>81</td><td>A short prompt is sent as it is. The model gets 0 calls.</td></tr>
+    <tr><td>a prompt that is not the person's own is left alone</td><td>88</td><td>A prompt from a peer is sent as it is. The model gets 0 calls.</td></tr>
+    <tr><td>a clear prompt is sent as typed, with no question</td><td>95</td><td>The only call is <code>classify</code>. The prompt is sent as it is.</td></tr>
+    <tr><td>a messy prompt asks its questions, then sends the draft on "Send it"</td><td>102</td><td>The calls are in this order: classify, haiku, question, sonnet, final choice. The draft is sent.</td></tr>
+    <tr><td>"Send my original" sends the prompt as typed</td><td>112</td><td>The original text is sent.</td></tr>
+    <tr><td>dismissing the final choice sends the prompt as typed</td><td>121</td><td>The original text is sent.</td></tr>
+    <tr><td>a dismissed question sends the prompt as typed, with no rewrite</td><td>127</td><td>The sonnet request is not made. The original text is sent.</td></tr>
+    <tr><td>a failed rewrite sends the prompt as typed</td><td>134</td><td>A rewrite with no answer gives the original text.</td></tr>
+  </tbody>
+</table></div>
+
+<h3>6.5 Problems and solutions</h3>
+<div class="table-wrap"><table>
+  <thead><tr><th>Problem</th><th>Cause</th><th>Solution</th></tr></thead>
+  <tbody>
+    <tr><td><code>claude: command not found</code></td><td>Claude Code is not installed, or the terminal cannot find it.</td><td>Install Claude Code. Open a new terminal.</td></tr>
+    <tr><td><code>claude plugin validate</code> says the path does not exist</td><td>You are not in the repository root.</td><td>Run <code>pwd</code>. Run <code>cd</code> to the repository root. Try again.</td></tr>
+    <tr><td>Validation fails</td><td>A file of the mod has an error.</td><td>Read the lines that start with <code>✘</code>. Fix the file they name.</td></tr>
+    <tr><td>No dialog after you send a long prompt</td><td>The mod did not load.</td><td>Check the transcript for a line with <code>brain-dump</code>. It names the error. Check that the path in the flag or the setting is correct.</td></tr>
+    <tr><td>No dialog, but no error</td><td>The prompt is shorter than 400 characters, you did not type it (for example, it came from a command), or the model said it is clear.</td><td>Send a longer and less clear prompt.</td></tr>
+    <tr><td>Only the final dialog appears, with no question</td><td>The question model returned no question, or its reply had no answer.</td><td>None needed. The mod goes on to the rewrite.</td></tr>
+    <tr><td>A long wait, then the prompt is sent as typed</td><td>The classify request or the rewrite request failed or ran out of time (60 seconds for the rewrite).</td><td>Send the prompt again.</td></tr>
+    <tr><td>The draft has many <code>Unspecified</code> words</td><td>Your prompt and answers do not give those facts.</td><td>Add the facts to your prompt, or choose <code>Send my original</code>.</td></tr>
+    <tr><td>The draft is wrong</td><td>The model misread the prompt.</td><td>Choose <code>Send my original</code>.</td></tr>
+  </tbody>
+</table></div>
+
+<h3>6.6 Type-check (optional)</h3>
+<p>A type-check finds mistakes in the code types. It needs <code>tsc</code>, the TypeScript program. <code>tsc</code> was not installed when this document was written, so this check was <strong>not run</strong>.</p>
+<p>To run it, install TypeScript. Load the mod in a session one time (the engine then writes the folder <code>.claude-plugin/types/</code>). Then run <code>tsc -p mods/brain-dump</code>.</p>
+<div class="expected"><strong>Expected result:</strong> no output and no errors.</div>
+
+<!-- 7 -->
+<h2 id="limits">7. Known limits</h2>
+<ul>
+  <li><strong>Cost and wait.</strong> Each long prompt that you type makes a classify request, even if it is clear. A messy prompt makes 2 more requests (haiku and sonnet). Each request takes time before Claude starts.</li>
+  <li><strong>No conversation.</strong> The code passes only your prompt and your answers to the models. It does not pass the conversation. A prompt that refers to earlier messages can give a draft with <code>Unspecified</code> words.</li>
+  <li><strong>No edit.</strong> You cannot edit the draft. You can only send it or send your original.</li>
+  <li><strong>The original is not kept.</strong> After you choose <code>Send it</code>, Claude gets only the draft. The draft is in the transcript.</li>
+  <li><strong>One closed question stops the flow.</strong> If you close a question, the mod sends the original and does not ask the next question.</li>
+  <li><strong>No time limit for you.</strong> The model requests have time limits. Your answers do not. The prompt waits until you answer or close the dialog.</li>
+  <li><strong>Fixed values.</strong> The length (400) and the question limit (3) are not settings. To change them, edit the code (see 5.7).</li>
+  <li><strong>The model decides.</strong> The classify request decides if a prompt is messy. It can be wrong in both directions.</li>
+</ul>
+
+<!-- 8 -->
+<h2 id="glossary">8. Glossary</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td>Prompt</td><td>The text that you send to Claude.</td></tr>
+    <tr><td>Hook</td><td>A part of a mod that the engine runs when an event occurs. This mod has one hook, <code>prompt.submit</code>.</td></tr>
+    <tr><td>Classify</td><td>Ask a model to put a text in one of a few named groups. Here: <code>clear</code> or <code>messy</code>.</td></tr>
+    <tr><td>Messy</td><td>A prompt that is unclear, or that leaves out the goal or the limits.</td></tr>
+    <tr><td>Draft</td><td>The new prompt in 4 sections that the mod writes.</td></tr>
+    <tr><td>Dialog</td><td>A box with a question and options. You choose an option.</td></tr>
+    <tr><td>Close (a dialog)</td><td>End a dialog with no choice. The mod then sends your original prompt.</td></tr>
+    <tr><td>haiku</td><td>The small, fast model. The mod uses it to classify and to write questions.</td></tr>
+    <tr><td>sonnet</td><td>The larger model. The mod uses it to write the draft.</td></tr>
+    <tr><td>Transcript</td><td>The list of messages in the session.</td></tr>
+  </tbody>
+</table></div>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "name": "handoff",
+  "version": "0.1.0",
+  "description": "Packages the session's goal, files, skills, tools and links into a prompt for a fresh chat, offered at 250k tokens or when the cache has likely gone cold.",
+  "types": "./types/index.d.ts"
+}
