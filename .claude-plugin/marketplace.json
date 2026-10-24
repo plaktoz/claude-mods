@@ -1,11 +1,38 @@
 {
   "name": "claude-mods",
-  "owner": { "name": "plaktoz" },
+  "owner": {
+    "name": "plaktoz"
+  },
   "plugins": [
     {
       "name": "switchboard",
       "source": "./mods/switchboard",
       "description": "/mods opens a panel that lists every installed mod with an on/off toggle; new installs appear on their own."
+    },
+    {
+      "name": "brain-dump",
+      "source": "./mods/brain-dump",
+      "description": "Turns long, messy prompts into a structured task, why, guardrails and definition of done after a few clarifying questions."
+    },
+    {
+      "name": "cache-warm",
+      "source": "./mods/cache-warm",
+      "description": "Keeps the prompt cache warm: a band above the prompt counts down the cache's life and pings it with a tiny forked request just before it lapses, so the next reply reads the context at a fraction of the price."
+    },
+    {
+      "name": "handoff",
+      "source": "./mods/handoff",
+      "description": "Packages the session's goal, files, skills, tools and links into a prompt for a fresh chat, offered at 250k tokens or when the cache has likely gone cold."
+    },
+    {
+      "name": "screen-share",
+      "source": "./mods/screen-share",
+      "description": "Screen-share mode: names, emails, phone numbers and amounts draw as shaded bars on screen while Claude still reads the real data."
+    },
+    {
+      "name": "theme-cli",
+      "source": "./mods/theme-cli",
+      "description": "Pixel-art characters run along a strip above the prompt while Claude works, one extra companion per running subagent, and a flagpole finale when the task completes. Themes are folders of your own images in ~/.claude/theme-cli/themes, switched with /theme-use. Terminal only."
     }
   ]
 }
