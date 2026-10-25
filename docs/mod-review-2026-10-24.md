@@ -267,7 +267,7 @@ Each agent must keep to the Cross-platform rules in `CLAUDE.md`.
 - cache-warm: a timeout on the ping request.
 - handoff: stop counting the mod's own tool calls.
 - ~~brain-dump license (`LICENSE_MISSING`).~~ Done 2026-10-25: MIT, holder `plaktoz`, year 2026. `mods/brain-dump/LICENSE` added; `plugin.json` has `author` and `license`. `claude plugin validate` ends `✔ Validation passed`; the icon warning stays. `claude plugin test`: 10 pass.
-- theme-cli: marketplace install line and long table cells.
+- ~~theme-cli: marketplace install line and long table cells.~~ Done 2026-10-25. See the theme-cli README and the handoff.
 
 ### Not in this task (earlier, for reference)
 

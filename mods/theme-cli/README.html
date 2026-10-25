@@ -419,7 +419,7 @@
     <tr><td><code>/theme-list</code></td><td>List the built-in theme and the themes with a <code>theme.json</code>.</td><td>One name on each line. <code>*</code> marks the theme on show. A last line names the themes folder.</td></tr>
     <tr><td><code>/theme-use &lt;name&gt;</code></td><td>Load the theme. Write the name to <code>config.json</code>. A name that is not listed is refused.</td><td><code>Theme: &lt;name&gt; (&lt;status&gt;). It stays your choice in new sessions.</code> Refused: <code>No theme "&lt;name&gt;". Themes: ….</code></td></tr>
     <tr><td><code>/theme-build</code></td><td>Rebuild the theme in <code>config.json</code>, even when the stamp matches.</td><td><code>Theme &lt;name&gt;: &lt;status&gt;</code>. For the built-in theme: <code>The built-in theme has no images to build.</code></td></tr>
-    <tr><td><code>/theme-new &lt;name&gt;</code></td><td>Write a template <code>theme.json</code> in a new theme folder.</td><td><code>Wrote &lt;path&gt;. Put your images beside it, edit it, then /theme-use &lt;name&gt;.</code> Refused: <code>Theme "&lt;name&gt;" already exists: &lt;path&gt;</code>. A name with other characters, or <code>default</code>, gets <code>Give a name of letters, digits, - or _, such as /theme-new castle.</code></td></tr>
+    <tr><td><code>/theme-new &lt;name&gt;</code></td><td>Write a template <code>theme.json</code> in a new theme folder.</td><td><code>Wrote &lt;path&gt;. Put your images beside it, edit it, then /theme-use &lt;name&gt;.</code></td></tr>
     <tr><td><code>/theme-hide</code></td><td>Hide the strip.</td><td><code>Strip hidden. /theme-show shows it again.</code></td></tr>
     <tr><td><code>/theme-show</code></td><td>Show the strip.</td><td><code>Strip shown.</code></td></tr>
     <tr><td><code>/theme-mute</code></td><td>Silence every sound and stop the <code>working</code> loop. The setting lasts for the session and a hot reload.</td><td><code>Sounds muted. /theme-unmute plays them again.</code></td></tr>
@@ -427,6 +427,11 @@
     <tr><td><code>/theme-dump</code></td><td>Write <code>theme-cli-log.txt</code> in the current folder.</td><td><code>Wrote &lt;n&gt; log lines and the strip to theme-cli-log.txt.</code></td></tr>
   </tbody>
 </table></div>
+<p>The command <code>/theme-new</code> refuses in two cases:</p>
+<ul>
+  <li>A theme with that name exists. The reply is <code>Theme "&lt;name&gt;" already exists: &lt;path&gt;</code>.</li>
+  <li>The name has other characters, or is <code>default</code>. The reply is <code>Give a name of letters, digits, - or _, such as /theme-new castle.</code></li>
+</ul>
 <p>The dump file has these parts:</p>
 <ul>
   <li>The log lines.</li>
@@ -548,7 +553,7 @@ error.wav 1.44s</code></pre>
 </table></div>
 
 <h2 id="install">5. Install</h2>
-<p>You install this mod by telling Claude Code where its folder is. You can also install it through the marketplace script in this repository.</p>
+<p>You install this mod by telling Claude Code where its folder is. You can also install it from the <code>claude-mods</code> marketplace.</p>
 <h3 id="5-1-before-you-start">5.1 Before you start</h3>
 <p>You need:</p>
 <ul>
@@ -570,7 +575,7 @@ error.wav 1.44s</code></pre>
   <tbody>
     <tr><td>A. Flag <code>--plugin-dir</code></td><td>You want to try the mod.</td><td>One session</td></tr>
     <tr><td>B. Setting <code>CLAUDE_CODE_PLUGIN_DIRS</code></td><td>You want the mod in every session.</td><td>All sessions, until you remove the setting</td></tr>
-    <tr><td>C. Marketplace script</td><td>You want the install that this repository provides.</td><td>Until you uninstall. The default scope is <code>user</code>.</td></tr>
+    <tr><td>C. Marketplace</td><td>You want the install that this repository provides.</td><td>Until you uninstall. The default scope is <code>user</code>.</td></tr>
   </tbody>
 </table></div>
 <h3 id="5-3-method-a-try-it-for-one-session">5.3 Method A: try it for one session</h3>
@@ -596,18 +601,38 @@ error.wav 1.44s</code></pre>
 </ol>
 <p>To uninstall, delete the line and start a new session.</p>
 <p>On Windows, the settings file is <code>%USERPROFILE%\.claude\settings.json</code>. Write the path with forward slashes, for example <code>C:/Users/your-name/Developer/claude-mods/mods/theme-cli</code>, or double each backslash in the JSON. In PowerShell, <code>(Get-Location).Path</code> prints the path of the repository root. The Windows form was not tested.</p>
-<h3 id="5-5-method-c-marketplace-install-script">5.5 Method C: marketplace install script</h3>
-<p>The repository has a marketplace file, <code>.claude-plugin/marketplace.json</code>. It lists <code>theme-cli</code>. The install scripts add this repository as a marketplace named <code>claude-mods</code>, and then install the mod.</p>
+<h3 id="5-5-method-c-marketplace-install">5.5 Method C: marketplace install</h3>
+<p>The repository has a marketplace file, <code>.claude-plugin/marketplace.json</code>. The marketplace is named <code>claude-mods</code>. It lists <code>theme-cli</code>.</p>
 <ol>
-  <li>Open a terminal and go to the repository root (see 5.1).</li>
+  <li>Open a terminal.</li>
+  <li>Add the marketplace once:
+<pre><code>claude plugin marketplace add plaktoz/claude-mods</code></pre></li>
+  <li>Install the mod:
+<pre><code>claude plugin install theme-cli@claude-mods</code></pre></li>
+  <li>Start a new session. Do the check in 5.6.</li>
+</ol>
+<p>The <code>--scope</code> option sets where the mod applies:</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Scope</th><th>Where the mod runs</th></tr></thead>
+  <tbody>
+    <tr><td><code>user</code> (default)</td><td>Every project, for you.</td></tr>
+    <tr><td><code>project</code></td><td>The current project, for everyone who opens it. Saved in <code>.claude/settings.json</code>.</td></tr>
+    <tr><td><code>local</code></td><td>The current project, for you only. Not shared.</td></tr>
+  </tbody>
+</table></div>
+<p>Inside a Claude Code session, the same steps are <code>/plugin marketplace add plaktoz/claude-mods</code> and <code>/plugin install theme-cli@claude-mods</code>.</p>
+<p>To use your local copy of this repository, add the marketplace from its path:</p>
+<pre><code>claude plugin marketplace add /path/to/claude-mods</code></pre>
+<p>The install scripts do the same steps. They add this repository as the marketplace <code>claude-mods</code>, and then install the mod.</p>
+<ol>
+  <li>Go to the repository root (see 5.1).</li>
   <li>Run the script for your system, and name the mod:
 <pre><code>scripts/install-mods.sh theme-cli</code></pre>
 <p>On Windows PowerShell, run this instead:</p>
 <pre><code>scripts\install-mods.ps1 theme-cli</code></pre></li>
-  <li>Start a new session. Do the check in 5.6.</li>
 </ol>
 <p>The shell script accepts <code>--scope user</code>, <code>--scope project</code> or <code>--scope local</code>, <code>--list</code> and <code>--uninstall</code>. The PowerShell script accepts <code>-Scope user</code>, <code>-Scope project</code> or <code>-Scope local</code>, <code>-List</code> and <code>-Uninstall</code>. The default scope is <code>user</code>. <code>--scope project</code> installs into the folder where you run the script, not into this repository.</p>
-<p>This document check did not run the install script.</p>
+<p>This document check did not run the <code>claude plugin</code> commands or the install script.</p>
 <p>The validator suggests this install line for a marketplace on GitHub: <code>/plugin install theme-cli --marketplace &lt;owner&gt;/&lt;repo&gt;</code>. Replace <code>&lt;owner&gt;/&lt;repo&gt;</code> with the owner and the name of the repository. This line was not run.</p>
 <h3 id="5-6-check-that-the-install-worked">5.6 Check that the install worked</h3>
 <ol>
@@ -667,7 +692,7 @@ error.wav 1.44s</code></pre>
     <tr><td><code>types … declares on $: nothing</code></td><td>Correct. The mod adds nothing to <code>$</code>.</td></tr>
     <tr><td><code>answers its own command</code></td><td>Correct. Each of the 9 commands answers itself.</td></tr>
     <tr><td><code>gating hook with .catch</code></td><td>Correct. Three hooks pass the event on when they fail.</td></tr>
-    <tr><td><code>This README has no line that installs "theme-cli" from a marketplace</code></td><td>Advice only. It does not change the result. Section 5.5 gives the install script.</td></tr>
+    <tr><td><code>This README has no line that installs "theme-cli" from a marketplace</code></td><td>Advice only. It does not change the result. Section 5.5 gives the install steps.</td></tr>
   </tbody>
 </table></div>
 <p>The output also lists what the mod uses. Compare it with this list:</p>
@@ -732,7 +757,7 @@ Ran 2 tests across 2 files. [5.00ms]</code></pre>
     <tr><td>the strip stays out of the way until a turn starts</td><td>77</td><td>Before <code>turn.start</code>, the mod draws no <code>Raster</code>. The engine band shows.</td></tr>
     <tr><td>a turn draws one Raster of the band width and repaints it with blit</td><td>87</td><td>The <code>Raster</code> is 40 columns by 5 rows. In 1,000 ms the mod sends at least 8 blits. The first and last blit differ.</td></tr>
     <tr><td>the sprites move: a later frame differs from an earlier one</td><td>106</td><td>The cells at 1,000 ms differ from the cells at 500 ms.</td></tr>
-    <tr><td>each running subagent adds one companion and its stop removes it</td><td>119</td><td>Each new agent changes the cells. A stop for an unknown id is ignored. The test checks that the strip still draws after the stops.</td></tr>
+    <tr><td>each running subagent adds one companion and its stop removes it</td><td>119</td><td>Each new agent changes the cells. A stop for an unknown id is ignored. The strip still draws after the stops.</td></tr>
     <tr><td>each companion holds its own colour slot, and a stop frees the lowest one</td><td>146</td><td>3 agents get <code>a1:0 a2:1 a3:2</code>. After <code>a2</code> stops, a new agent gets slot 1.</td></tr>
     <tr><td>a subagent turn does not end the main turn</td><td>167</td><td>A <code>turn.complete</code> with an <code>agentId</code> does not stop the blits.</td></tr>
     <tr><td>the finale plays once the turn is answered, then the strip clears and the timer stops</td><td>181</td><td>The strip shows 2,000 ms after the answer. It is gone 5,000 ms after the answer. No blit follows.</td></tr>
@@ -785,11 +810,12 @@ Ran 2 tests across 2 files. [5.00ms]</code></pre>
     <tr><td>The status says <code>skipped &lt;frame&gt;: &lt;n&gt; colours is more than one frame can hold (36)</code></td><td>The frame has more than 36 colors.</td><td>Use fewer colors in the image. Or make the frame smaller. Type <code>/theme-build</code>.</td></tr>
     <tr><td>A drive-letter or UNC path fails on macOS or Linux</td><td>The build script reads the path as relative.</td><td>Use a <code>~/</code> path or a path relative to the theme folder.</td></tr>
     <tr><td>A frame has a colored box around the sprite</td><td>The sheet background is not clear.</td><td>Set <code>key</code> to the background color <code>[r, g, b]</code>. Type <code>/theme-build</code>.</td></tr>
-    <tr><td>All companions have the same color</td><td><code>cast.companion.frame</code> has no <code>recolor</code>, or <code>recolor.hue</code> does not match the base frame.</td><td>Add <code>recolor</code> with <code>hue</code> set to the body hue of the base frame. Or list one frame for each slot in <code>cast.companion.frames</code>. Raise <code>range</code> if needed.</td></tr>
+    <tr><td>All companions have the same color</td><td><code>cast.companion.frame</code> has no <code>recolor</code>, or <code>recolor.hue</code> does not match the base frame.</td><td>Add <code>recolor</code> with <code>hue</code> set to the body hue of the base frame. A second fix is below the table.</td></tr>
     <tr><td>No sound plays</td><td>The theme has no <code>sounds</code> block, the sounds are muted, or the engine has no player for the platform.</td><td>Type <code>/theme-dump</code>. Read the <code>sounds=</code> and <code>muted=</code> line. Section 7 lists the platform limits.</td></tr>
     <tr><td>You edited an image and nothing changed</td><td>The session loaded the theme before the edit.</td><td>Type <code>/theme-build</code>.</td></tr>
   </tbody>
 </table></div>
+<p>For the companion color row, list one frame for each slot in <code>cast.companion.frames</code>. Raise <code>range</code> if needed.</p>
 <h3 id="6-7-type-check-optional">6.7 Type-check (optional)</h3>
 <p>A type-check finds mistakes in the code types. It needs <code>tsc</code>, the TypeScript compiler. The file <code>tsconfig.json</code> extends <code>.claude-plugin/types/tsconfig.json</code>. The repository ignores the folder <code>.claude-plugin/types/</code>. Its header says that Claude Code writes it at each mod load. The folder existed in this check. Its creation at load was not tested.</p>
 <p>Run <code>npx -y -p typescript@5.6 tsc -p mods/theme-cli</code>. <strong>Expected result:</strong> no output and exit code 0.</p>
