@@ -562,7 +562,7 @@ The shell script accepts `--scope user`, `--scope project` or `--scope local`, `
 
 This document check did not run the `claude plugin` commands or the install script.
 
-The validator suggests this install line for a marketplace on GitHub: `/plugin install theme-cli --marketplace <owner>/<repo>`. Replace `<owner>/<repo>` with the owner and the name of the repository. This line was not run.
+The validator suggests a different install line, with an `<owner>/<repo>` shorthand. This document does not use that form. Use the marketplace URL in section 5.5. The validator's line was not run.
 
 ### 5.6 Check that the install worked
 
