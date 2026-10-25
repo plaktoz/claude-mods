@@ -11,7 +11,7 @@
 | Marketplace | Not listed in `.claude-plugin/marketplace.json`. Do not add it. |
 | Surface | Desktop only. The pane and the strip use `Svg`. |
 | Spec | `library/theme-mod-spec.md`, sections 6.4 and 6.5. |
-| Full review | `docs/mod-review-2026-10-24.md`, section "theme-desk". |
+| Full review | Removed from the working tree. In git at `ac06a9b`: `docs/mod-review-2026-10-24.md`, section "theme-desk". |
 
 ## Rules for reviews and agents
 
