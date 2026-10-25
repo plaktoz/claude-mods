@@ -1,0 +1,47 @@
+{
+  "name": "reflect",
+  "version": "0.1.0",
+  "description": "Spots a lasting rule in a prompt you type and, after Claude's reply, asks where to save it: auto memory or a CLAUDE.md file.",
+  "author": {
+    "name": "plaktoz"
+  },
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "toAutoMemory": {
+      "type": "boolean",
+      "title": "Offer auto memory",
+      "description": "Offer to save a rule in the project's auto-memory folder.",
+      "required": false,
+      "default": true
+    },
+    "toProjectClaudeMd": {
+      "type": "boolean",
+      "title": "Offer the project CLAUDE.md",
+      "description": "Offer to save a rule in the CLAUDE.md of the working directory.",
+      "required": false,
+      "default": true
+    },
+    "toGlobalClaudeMd": {
+      "type": "boolean",
+      "title": "Offer the global CLAUDE.md",
+      "description": "Offer to save a rule in ~/.claude/CLAUDE.md, which applies to every project.",
+      "required": false,
+      "default": false
+    },
+    "secondBrainPath": {
+      "type": "string",
+      "title": "Second Brain folder",
+      "description": "Folder of your Second Brain. Empty means the destination is off. Not built yet.",
+      "required": false,
+      "default": ""
+    },
+    "cues": {
+      "type": "string",
+      "title": "Cue words",
+      "description": "Comma-separated words and phrases. Only a prompt that holds one is checked for a rule.",
+      "required": false,
+      "default": "always,never,from now on,must,keep,make sure,do not,don't,stop,avoid,prefer"
+    }
+  }
+}
