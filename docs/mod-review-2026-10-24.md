@@ -227,7 +227,7 @@ Each task states its acceptance criteria (AC). "Verified by test" means an autom
 
 ### Parked (KIV)
 
-Parked by the user on 2026-10-25. Do not raise again unless the user asks.
+Parked by the user on 2026-10-25. Do not raise again unless the user asks. The decision is recorded in the mod's own folder, `mods/theme-desk/README.md`, so a review of that folder sees it.
 
 - **theme-desk docs and fix pass.** Typecheck errors (TS2345), `reconcile` on session end only, `frame` never written, no README. The mod is not in the marketplace.
 
