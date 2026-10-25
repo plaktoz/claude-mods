@@ -595,12 +595,13 @@ error.wav 1.44s</code></pre>
     "CLAUDE_CODE_PLUGIN_DIRS": "/Users/your-name/Developer/claude-mods/mods/theme-cli"
   }
 }</code></pre></li>
-  <li>Replace <code>/Users/your-name/Developer/claude-mods</code> with the real path to your repository. To print the path, run <code>pwd</code> in the repository root.</li>
+  <li>Replace <code>/Users/your-name/Developer/claude-mods</code> with the real path to your repository. To print the path, run <code>pwd</code> in the repository root.
+    <p>On Windows, the settings file is <code>%USERPROFILE%\.claude\settings.json</code>. Write the path with forward slashes, for example <code>C:/Users/your-name/Developer/claude-mods/mods/theme-cli</code>, or double each backslash in the JSON. In PowerShell, <code>(Get-Location).Path</code> prints the path of the repository root. The Windows form was not tested.</p>
+  </li>
   <li>Save the file. Start a new Claude Code session.</li>
   <li>Do the check in 5.6.</li>
 </ol>
 <p>To uninstall, delete the line and start a new session.</p>
-<p>On Windows, the settings file is <code>%USERPROFILE%\.claude\settings.json</code>. Write the path with forward slashes, for example <code>C:/Users/your-name/Developer/claude-mods/mods/theme-cli</code>, or double each backslash in the JSON. In PowerShell, <code>(Get-Location).Path</code> prints the path of the repository root. The Windows form was not tested.</p>
 <h3 id="5-5-method-c-marketplace-install">5.5 Method C: marketplace install</h3>
 <p>The repository has a marketplace file, <code>.claude-plugin/marketplace.json</code>. The marketplace is named <code>claude-mods</code>. It lists <code>theme-cli</code>.</p>
 <ol>
@@ -634,7 +635,7 @@ error.wav 1.44s</code></pre>
 </ol>
 <p>The shell script accepts <code>--scope user</code>, <code>--scope project</code> or <code>--scope local</code>, <code>--list</code> and <code>--uninstall</code>. The PowerShell script accepts <code>-Scope user</code>, <code>-Scope project</code> or <code>-Scope local</code>, <code>-List</code> and <code>-Uninstall</code>. The default scope is <code>user</code>. <code>--scope project</code> installs into the folder where you run the script, not into this repository.</p>
 <p>This document check did not run the <code>claude plugin</code> commands or the install script.</p>
-<p>The validator suggests this install line for a marketplace on GitHub: <code>/plugin install theme-cli --marketplace &lt;owner&gt;/&lt;repo&gt;</code>. Replace <code>&lt;owner&gt;/&lt;repo&gt;</code> with the owner and the name of the repository. This line was not run.</p>
+<p>The validator suggests a different install line, with an <code>&lt;owner&gt;/&lt;repo&gt;</code> shorthand. This document does not use that form. Use the marketplace URL in section 5.5. The validator's line was not run.</p>
 <h3 id="5-6-check-that-the-install-worked">5.6 Check that the install worked</h3>
 <ol>
   <li>Start a session with method A or method B.</li>

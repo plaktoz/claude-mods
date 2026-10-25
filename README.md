@@ -119,7 +119,7 @@ claude plugin install switchboard@claude-mods --scope project
 
 Inside a Claude Code session, the same steps are `/plugin marketplace add https://github.com/plaktoz/claude-mods` and `/plugin install switchboard@claude-mods`. Then run `/reload-plugins`, or start a new session.
 
-To use your local copy of this repository (a branch that is not merged yet), add the marketplace from its path:
+To use your local copy (a branch that is not merged yet), add the marketplace from its path:
 
 ```bash
 claude plugin marketplace add /path/to/claude-mods
@@ -151,7 +151,7 @@ Then restart Claude Code.
 | `--list` | `-List` | Show which mods are installed. Change nothing. |
 | `--uninstall` | `-Uninstall` | Remove the mods. |
 
-The installed mods load from your clone, so `git pull` brings in changes. Restart Claude Code to load them. If you added `claude-mods` from `plaktoz/claude-mods` before, the script points it at your clone and keeps the mods that you installed. To add a mod, put it in `mods/` and add it to `.claude-plugin/marketplace.json`.
+The installed mods load from your clone, so `git pull` brings in changes. Restart Claude Code to load them. If you added `claude-mods` from `plaktoz/claude-mods` before, the script points it at your clone. The script keeps the mods that you installed. To add a mod, put it in `mods/` and add it to `.claude-plugin/marketplace.json`.
 
 To try one mod for one session without installing it:
 
