@@ -20,14 +20,18 @@ const NAME = /^[a-z0-9][a-z0-9_-]{0,39}$/i
 
 export type Loaded = { scene: Scene; sounds: Sounds; status: string }
 
+// The Python launchers to try in turn; `py -3` is the Windows launcher.
+const PYTHONS = [['python3'], ['python'], ['py', '-3']]
+
 const MIME: Record<string, string> = { wav: 'audio/wav', mp3: 'audio/mpeg', m4a: 'audio/mp4', aac: 'audio/aac', aiff: 'audio/aiff', aif: 'audio/aiff', ogg: 'audio/ogg' }
 
 export function isThemeName(name: string) {
   return NAME.test(name)
 }
 
+// Native Windows sets USERPROFILE, not HOME. The build script gets the same folder as `--home`.
 export async function homeOf($: EngineInterface) {
-  return (await $.env.get('HOME')) ?? ''
+  return (await $.env.get('HOME')) || (await $.env.get('USERPROFILE')) || ''
 }
 
 export async function rootOf($: EngineInterface) {
@@ -70,7 +74,7 @@ export async function readChoice($: EngineInterface): Promise<string> {
 
 export async function writeChoice($: EngineInterface, name: string) {
   const root = await rootOf($)
-  if (!root) throw new Error('HOME is not set, so there is no library folder')
+  if (!root) throw new Error('HOME (or USERPROFILE) is not set, so there is no library folder')
 
   await $.fs.write(`${root}/config.json`, JSON.stringify({ theme: name }, null, 2) + '\n')
 }
@@ -129,6 +133,16 @@ async function loadSounds($: EngineInterface, spec: ThemeSpec, home: string, dir
   return { sounds, missing }
 }
 
+// The first Python launcher that answers `--version`, or undefined when none does.
+async function pythonLauncher($: EngineInterface) {
+  for (const python of PYTHONS) {
+    const probe = await $.process.run([...python, '--version'], { timeoutMs: 10_000 }).catch(() => undefined)
+    if (probe?.exitCode === 0) return python
+  }
+
+  return undefined
+}
+
 // Loads a theme by name: the check, the build when the stamp moved, then the scene.
 // A theme that cannot load comes back as the built-in one, with the reason in `status`.
 export async function loadTheme($: EngineInterface, name: string, force = false): Promise<Loaded> {
@@ -151,8 +165,10 @@ export async function loadTheme($: EngineInterface, name: string, force = false)
   if (force || cache?.stamp !== stamp) {
     const script = `${$.plugin.root}/scripts/build-theme.py`
     try {
+      const python = await pythonLauncher($)
+      if (python === undefined) throw new Error('no Python found (tried python3, python, py -3)')
       const run = await $.process.run(
-        ['python3', '-I', script, '--theme', dir, '--out', cachePath, '--home', home, '--height', String(heightOf(spec)), '--stamp', stamp],
+        [...python, '-I', script, '--theme', dir, '--out', cachePath, '--home', home, '--height', String(heightOf(spec)), '--stamp', stamp],
         { timeoutMs: 120_000 },
       )
       const lines = `${run.stdout}${run.stderr}`.trim().split('\n').filter(Boolean)

@@ -179,11 +179,12 @@ export function recolor(p: Pix, from: number, to: number, range = 20): Pix {
   return { ...p, px }
 }
 
-// A path in theme.json: `~/` is the home folder, a relative path is the theme folder's.
+// A path in theme.json: `~/` (or `~\`) is the home folder, a relative path is the theme folder's.
+// Absolute is a leading `/` or `\` (UNC `\\host\share` included), or a drive letter such as `C:\` or `C:/`.
 export function resolvePath(text: string, home: string, dir: string) {
-  if (text.startsWith('~/')) return `${home}/${text.slice(2)}`
+  if (text.startsWith('~/') || text.startsWith('~\\')) return `${home}/${text.slice(2)}`
 
-  return text.startsWith('/') ? text : `${dir}/${text}`
+  return /^([/\\]|[A-Za-z]:[/\\])/.test(text) ? text : `${dir}/${text}`
 }
 
 // The image files and folders a theme draws from: each sheet, and each frame that names its own file.

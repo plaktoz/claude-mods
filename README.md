@@ -16,7 +16,7 @@ A centralized framework for customizing, structuring, and deploying tailored beh
 | `mods/` | Claude Code plugins of function hooks (`<mod>/.claude-plugin/plugin.json` + `hooks/register.ts`); test with `claude plugin test mods/<mod>` |
 | `.claude-plugin/` | `marketplace.json`: lists the mods so `claude plugin install` can find them |
 | `scripts/` | Install, sync, and validate tooling |
-| `scratch/` | Git-ignored. Source images and audio you supply yourself, never committed |
+| `docs/` | Review reports and task lists for the repo |
 
 ### theme-cli themes
 
@@ -41,6 +41,7 @@ Scaling happens once. When the session starts, the mod stamps `theme.json`, its 
 | `/theme-new <name>` | Write a `theme.json` template to fill in |
 | `/theme-build` | Rebuild the cache even if nothing changed |
 | `/theme-hide`, `/theme-show` | Turn the strip off and on |
+| `/theme-mute`, `/theme-unmute` | Silence the theme sounds, and play them again |
 | `/theme-dump` | Write `theme-cli-log.txt` in the working directory, for debugging |
 
 Images you use may be copyrighted. Keep them in your own folder, never in this repository.
@@ -159,6 +160,11 @@ claude --plugin-dir /path/to/claude-mods/mods/switchboard
 | Mod | What it does |
 |-----|--------------|
 | `switchboard` | `/mods` opens a panel of every installed mod, with an on/off switch for each. See `mods/switchboard/README.md`. |
+| `brain-dump` | Turns long, messy prompts into a structured task after a few clarifying questions. See `mods/brain-dump/README.md`. |
+| `cache-warm` | Keeps the prompt cache warm with a countdown band and small pings before it lapses. See `mods/cache-warm/README.md`. |
+| `handoff` | Packages the session into a prompt for a fresh chat. It offers this at 250,000 tokens, or when the cache has likely gone cold. See `mods/handoff/README.md`. |
+| `screen-share` | Draws names, emails, phone numbers and amounts as shaded bars during a screen share. See `mods/screen-share/README.md`. |
+| `theme-cli` | Pixel-art characters run along a strip above the prompt while Claude works. Terminal only. See `mods/theme-cli/README.md`. |
 
 ## Concepts
 

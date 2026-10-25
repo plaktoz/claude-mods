@@ -286,7 +286,7 @@ export const register: Register = on => {
     const name = e.args.trim()
     const root = await rootOf($)
     if (!isThemeName(name) || name === DEFAULT_THEME) return { text: 'Give a name of letters, digits, - or _, such as /theme-new castle.' }
-    if (!root) return { text: 'HOME is not set, so there is no library folder.' }
+    if (!root) return { text: 'HOME (or USERPROFILE) is not set, so there is no library folder.' }
 
     const file = `${root}/themes/${name}/theme.json`
     if (await $.fs.exists(file)) return { text: `Theme "${name}" already exists: ${file}` }

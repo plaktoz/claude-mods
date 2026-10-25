@@ -14,7 +14,11 @@ const rows = atom({ plugin: 'switchboard', key: 'rows' } as const, [] as Switchb
 const note = atom({ plugin: 'switchboard', key: 'note' } as const, '')
 
 // The files whose change means a plugin was installed, removed or switched.
-const WATCHED = ['.claude/plugins/installed_plugins.json', '.claude/settings.json']
+const WATCHED = [
+  ['.claude', 'plugins', 'installed_plugins.json'],
+  ['.claude', 'settings.json'],
+]
+const LIST_FAILED = 'Could not list mods: '
 
 let seen = ''
 let isBusy = false
@@ -27,14 +31,42 @@ type ListedPlugin = {
   projectPath?: string
 }
 
-const isHere = (p: ListedPlugin, cwd: string) =>
-  p.scope === 'user' ||
-  (p.projectPath !== undefined && (cwd === p.projectPath || cwd.startsWith(p.projectPath + '/')))
+// A Windows path (drive letter or UNC): either slash, any letter case, no trailing slash.
+const isWindowsPath = (p: string) => /^[a-z]:[\\/]/i.test(p) || p.startsWith('\\\\')
+const normalized = (p: string) => {
+  if (!isWindowsPath(p)) return p
+
+  return p.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase()
+}
+
+const isHere = (p: ListedPlugin, cwd: string) => {
+  if (p.scope === 'user') return true
+  if (p.projectPath === undefined) return false
+
+  const here = normalized(cwd)
+  const project = normalized(p.projectPath)
+
+  return here === project || here.startsWith(project + '/')
+}
+
+// The home folder: native Windows sets USERPROFILE, not HOME.
+async function homeOf($: EngineInterface) {
+  return (await $.env.get('HOME')) || (await $.env.get('USERPROFILE'))
+}
+
+// Joins with the separator the home path already uses.
+const under = (home: string, parts: string[]) => {
+  const sep = home.includes('\\') && !home.includes('/') ? '\\' : '/'
+
+  return [home.replace(/[\\/]+$/, ''), ...parts].join(sep)
+}
+
+const reason = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
 async function fingerprint($: EngineInterface, home: string) {
   const parts = await Promise.all(
     WATCHED.map(async file => {
-      const stat = await $.fs.stat(`${home}/${file}`).catch(() => undefined)
+      const stat = await $.fs.stat(under(home, file)).catch(() => undefined)
 
       return stat === undefined ? '-' : `${stat.mtimeMs}:${stat.size}`
     }),
@@ -45,14 +77,26 @@ async function fingerprint($: EngineInterface, home: string) {
 
 // Reads the installed plugins through the CLI and stores the ones that apply here.
 async function refresh($: EngineInterface) {
-  const home = await $.env.get('HOME')
-  if (home === undefined) return
+  const home = await homeOf($)
+  if (!home) return
 
   const print = await fingerprint($, home)
   seen = print
 
-  const ran = await $.process.run(['claude', 'plugin', 'list', '--json'], { timeoutMs: 20000 }).catch(() => undefined)
-  if (ran === undefined || ran.exitCode !== 0) return
+  let ran
+  try {
+    ran = await $.process.run(['claude', 'plugin', 'list', '--json'], { timeoutMs: 20000 })
+  } catch (error) {
+    await update($, note, () => `${LIST_FAILED}${reason(error)}`)
+
+    return
+  }
+  if (ran.exitCode !== 0) {
+    const why = (ran.stderr || ran.stdout || `exit code ${ran.exitCode}`).trim().split(/\r?\n/)[0]
+    await update($, note, () => `${LIST_FAILED}${why}`)
+
+    return
+  }
 
   let listed: ListedPlugin[]
   try {
@@ -60,6 +104,8 @@ async function refresh($: EngineInterface) {
   } catch {
     return
   }
+  // The list worked, so an earlier failure notice is out of date.
+  await update($, note, old => (old.startsWith(LIST_FAILED) ? '' : old))
 
   const cwd = await $.session.cwd()
   const next: SwitchboardRow[] = listed
@@ -91,12 +137,17 @@ async function toggle($: EngineInterface, row: SwitchboardRow) {
   const verb = row.isEnabled ? 'disable' : 'enable'
   await update($, note, () => `${verb === 'enable' ? 'Enabling' : 'Disabling'} ${row.name}...`)
 
+  let spawnError: string | undefined
   const ran = await $.process
     .run(['claude', 'plugin', verb, row.id, '--scope', row.scope], { timeoutMs: 60000 })
-    .catch(() => undefined)
+    .catch(error => {
+      spawnError = reason(error)
+
+      return undefined
+    })
 
   if (ran === undefined || ran.exitCode !== 0) {
-    const why = (ran?.stderr || ran?.stdout || 'the command did not run').trim().split('\n')[0]
+    const why = (ran?.stderr || ran?.stdout || spawnError || 'the command did not run').trim().split(/\r?\n/)[0]
     await update($, note, () => `Could not ${verb} ${row.name}: ${why}`)
     isBusy = false
 
@@ -126,8 +177,8 @@ export const register: Register = on => {
     void refresh($)
     // Installs show up on their own: a cheap file check each period, the CLI only on a change.
     $.clock.every(POLL_MS, async () => {
-      const home = await $.env.get('HOME')
-      if (home === undefined || isBusy) return
+      const home = await homeOf($)
+      if (!home || isBusy) return
       if ((await fingerprint($, home)) !== seen) await refresh($)
     })
 

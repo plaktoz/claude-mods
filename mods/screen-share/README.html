@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>screen-share</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #fbfaf7;
+    --panel: #ffffff;
+    --fg: #1f2328;
+    --muted: #5b6470;
+    --line: #d9d6cc;
+    --accent: #b45f06;
+    --accent-bg: #fdf0dc;
+    --link: #1f5fbf;
+    --ok: #1a7f37;
+    --ok-bg: #e6f4ea;
+    --warn-bg: #fff4d6;
+    --code-bg: #f1efe8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #17181a;
+      --panel: #1f2124;
+      --fg: #e6e4de;
+      --muted: #a2a7ae;
+      --line: #3a3d42;
+      --accent: #f0a042;
+      --accent-bg: #3a2c14;
+      --link: #7fb0ff;
+      --ok: #5fcf80;
+      --ok-bg: #16301e;
+      --warn-bg: #3a3214;
+      --code-bg: #26282b;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #17181a;
+    --panel: #1f2124;
+    --fg: #e6e4de;
+    --muted: #a2a7ae;
+    --line: #3a3d42;
+    --accent: #f0a042;
+    --accent-bg: #3a2c14;
+    --link: #7fb0ff;
+    --ok: #5fcf80;
+    --ok-bg: #16301e;
+    --warn-bg: #3a3214;
+    --code-bg: #26282b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 60rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
+  h1 { font-size: 2rem; margin: 0 0 .25rem; }
+  h2 { font-size: 1.45rem; margin: 2.75rem 0 .75rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+  h3 { font-size: 1.1rem; margin: 1.75rem 0 .5rem; }
+  p, ul, ol { margin: .6rem 0; }
+  li { margin: .25rem 0; }
+  a { color: var(--link); }
+  code { font: .88em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code-bg); padding: .1em .35em; border-radius: 4px; }
+  pre { background: var(--code-bg); padding: .8rem 1rem; border-radius: 8px; overflow-x: auto; margin: .8rem 0; }
+  pre code { background: none; padding: 0; font-size: .85rem; }
+  .lede { color: var(--muted); margin: 0 0 1.25rem; }
+  .table-wrap { overflow-x: auto; margin: .8rem 0; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); font-size: .92rem; }
+  th, td { border: 1px solid var(--line); padding: .45rem .65rem; text-align: left; vertical-align: top; }
+  th { background: var(--code-bg); font-weight: 600; }
+  nav.toc { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: .75rem 1.1rem; margin: 1rem 0 0; }
+  nav.toc ol { columns: 2 14rem; margin: 0; padding-left: 1.2rem; }
+  .callout { border-left: 4px solid var(--accent); background: var(--accent-bg); padding: .6rem .9rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+  .expected { border-left: 4px solid var(--ok); background: var(--ok-bg); padding: .6rem .9rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+  .warn { border-left: 4px solid var(--accent); background: var(--warn-bg); padding: .6rem .9rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+  figure { margin: 1.25rem 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: .75rem; }
+  figure svg { display: block; width: 100%; max-width: 100%; height: auto; color: var(--fg); }
+  figcaption { color: var(--muted); font-size: .9rem; margin-top: .5rem; }
+  .band { font: .85rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: .7rem .9rem; overflow-x: auto; white-space: pre; }
+  .band .w { color: var(--accent); font-weight: 700; }
+  .band .d { color: var(--muted); }
+  .band .s { color: var(--link); }
+  /* SVG parts, styled here so the drawings follow the theme */
+  .node { fill: var(--panel); stroke: currentColor; stroke-width: 1.5; }
+  .node-hot { fill: var(--accent-bg); stroke: var(--accent); stroke-width: 2; }
+  .edge { stroke: currentColor; stroke-width: 1.5; fill: none; }
+  .edge-hot { stroke: var(--accent); stroke-width: 2; fill: none; }
+  .edge-dash { stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 5 4; fill: none; }
+  .lbl { fill: currentColor; font: 12px -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .lbl-b { fill: currentColor; font: 600 13px -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .lbl-m { fill: var(--muted); font: 12px -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .lbl-hot { fill: var(--accent); font: 600 12px -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .arrow-fill { fill: currentColor; }
+  .arrow-hot { fill: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+<h1 id="screen-share">screen-share</h1>
+<p class="lede">This mod masks names, emails, phone numbers and money amounts on screen. Claude still reads the real data.</p>
+<p>The mod masks what the transcript draws. It does not change the stored conversation.</p>
+<p>The mod is not a privacy guarantee. Real text still reaches Claude. The name search also sends text to Haiku.</p>
+<nav class="toc" aria-label="Contents">
+<ol>
+<li><a href="#1-purpose">1. Purpose</a></li>
+<li><a href="#2-where-to-find-the-code">2. Where to find the code</a></li>
+<li><a href="#3-how-it-works">3. How it works</a></li>
+<li><a href="#4-settings">4. Settings</a></li>
+<li><a href="#5-install">5. Install</a></li>
+<li><a href="#6-validate">6. Validate</a></li>
+<li><a href="#7-known-limits">7. Known limits</a></li>
+<li><a href="#8-glossary">8. Glossary</a></li>
+</ol>
+</nav>
+<h2 id="1-purpose">1. Purpose</h2>
+<p>Use this mod when you share or record your screen during a Claude Code session.</p>
+<p>While the mode is on, the mod draws shaded bars over:</p>
+<ul>
+<li>Emails, phone numbers and money amounts, found by pattern.</li>
+<li>Names, learned from the conversation by a small model.</li>
+</ul>
+<p>The mod also adds a band above the prompt. The band says the mode is on. It has a <strong>Turn off</strong> button.</p>
+<p>Claude receives the real text. Only the drawing changes.</p>
+<h2 id="2-where-to-find-the-code">2. Where to find the code</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Item</th><th>File</th><th>Line</th></tr></thead>
+<tbody>
+<tr><td>Mode flag (session state)</td><td><code>hooks/register.tsx</code></td><td>9</td></tr>
+<tr><td>Learned names list (session state)</td><td><code>hooks/register.tsx</code></td><td>11-13</td></tr>
+<tr><td>Stored key for the mode flag</td><td><code>hooks/register.tsx</code></td><td>15, 153, 192</td></tr>
+<tr><td>Bar helper</td><td><code>hooks/register.tsx</code></td><td>23-24</td></tr>
+<tr><td>Email pattern</td><td><code>hooks/register.tsx</code></td><td>26</td></tr>
+<tr><td>Money patterns</td><td><code>hooks/register.tsx</code></td><td>28-31</td></tr>
+<tr><td>Phone pattern</td><td><code>hooks/register.tsx</code></td><td>32</td></tr>
+<tr><td>Phone check, <code>isPhone</code></td><td><code>hooks/register.tsx</code></td><td>35-41</td></tr>
+<tr><td>Name pattern</td><td><code>hooks/register.tsx</code></td><td>49-59</td></tr>
+<tr><td>Masking, <code>mask</code></td><td><code>hooks/register.tsx</code></td><td>61-71</td></tr>
+<tr><td>Masking inside tool data, <code>deepMask</code></td><td><code>hooks/register.tsx</code></td><td>74-85</td></tr>
+<tr><td>Name list entries, <code>expand</code></td><td><code>hooks/register.tsx</code></td><td>88-100</td></tr>
+<tr><td>Add names to the list, <code>addNames</code></td><td><code>hooks/register.tsx</code></td><td>102-106</td></tr>
+<tr><td>Model prompt and reply parser</td><td><code>hooks/register.tsx</code></td><td>108-123</td></tr>
+<tr><td>Model call for names, <code>learnNames</code></td><td><code>hooks/register.tsx</code></td><td>126-137</td></tr>
+<tr><td>History scan, <code>learnHistory</code></td><td><code>hooks/register.tsx</code></td><td>140-149</td></tr>
+<tr><td>Mode change, <code>setMode</code></td><td><code>hooks/register.tsx</code></td><td>151-155</td></tr>
+<tr><td>Mode prompt text, <code>MODE_PROMPT</code></td><td><code>hooks/register.tsx</code></td><td>161-163</td></tr>
+<tr><td>Session start: command, tools, restore</td><td><code>hooks/register.tsx</code></td><td>166-195</td></tr>
+<tr><td>Slash command, <code>/screen-share</code></td><td><code>hooks/register.tsx</code></td><td>197-203</td></tr>
+<tr><td>Tool hook, <code>set_mode</code></td><td><code>hooks/register.tsx</code></td><td>205-210</td></tr>
+<tr><td>Tool hook, <code>hide_names</code></td><td><code>hooks/register.tsx</code></td><td>212-218</td></tr>
+<tr><td>Learn from tool calls</td><td><code>hooks/register.tsx</code></td><td>221-228</td></tr>
+<tr><td>Hook, <code>prompt.submit</code></td><td><code>hooks/register.tsx</code></td><td>230-234</td></tr>
+<tr><td>Hook, <code>turn.complete</code></td><td><code>hooks/register.tsx</code></td><td>236-240</td></tr>
+<tr><td>Hook, <code>prompt.compose</code></td><td><code>hooks/register.tsx</code></td><td>242-247</td></tr>
+<tr><td>Drawing hooks for rows</td><td><code>hooks/register.tsx</code></td><td>250-287</td></tr>
+<tr><td>Band above the prompt</td><td><code>hooks/register.tsx</code></td><td>290-307</td></tr>
+<tr><td>Hooks module list</td><td><code>hooks/hooks.json</code></td><td>1</td></tr>
+<tr><td>Plugin name and version</td><td><code>.claude-plugin/plugin.json</code></td><td>2-3</td></tr>
+<tr><td>State types</td><td><code>types/index.d.ts</code></td><td>2, 5-9</td></tr>
+<tr><td>Tests</td><td><code>hooks/register.test.tsx</code></td><td>51, 77, 93</td></tr>
+<tr><td>Test stand-in engine</td><td><code>hooks/register.test.tsx</code></td><td>29-49</td></tr>
+</tbody></table></div>
+<h2 id="3-how-it-works">3. How it works</h2>
+<h3 id="3-1-modes">3.1 Modes</h3>
+<p>The mode has two states: on and off. The mode starts off.</p>
+<p>Three actions turn the mode on or off:</p>
+<ul>
+<li>The command <code>/screen-share on</code>, <code>/screen-share off</code>, or <code>/screen-share</code> alone. Without an argument, the command toggles the mode.</li>
+<li>The tool <code>set_mode</code>. Claude calls it when the person asks.</li>
+<li>The <strong>Turn off</strong> button in the band.</li>
+</ul>
+<p>Turning off stops the masking. Turning off does not clear the names list.</p>
+<h3 id="3-2-learning-names">3.2 Learning names</h3>
+<p>The mod learns names in five places. Four of them run only when the mode is on. The <code>hide_names</code> tool adds names without a model call.</p>
+<ul>
+<li><code>prompt.submit</code>: the mod reads the prompt text. Slash command prompts are skipped.</li>
+<li><code>turn.complete</code>: the mod reads the finished reply.</li>
+<li><code>tool.call</code>: the mod reads the tool input and output. Calls to the mod's own tools are skipped.</li>
+<li><code>/screen-share on</code> and <code>set_mode</code> with <code>on</code>: the mod reads the recent history with <code>learnHistory</code>.</li>
+<li><code>hide_names</code>: the mod adds the names that Claude gives. It makes no model call.</li>
+</ul>
+<p><code>learnNames</code> reads the last 20,000 characters of its text. It skips the text when the text has no capital letter followed by a lower-case letter. Otherwise it asks Haiku for the names. <code>Aa pair</code> means a capital letter followed by a lower-case letter.</p>
+<p>Figure 1 shows the paths.</p>
+<figure>
+  <svg viewBox="0 0 800 400" role="img" aria-label="Flowchart of how the mod learns names. Five triggers feed the learning. A prompt, a finished reply and a tool call reach the learning step directly. Turning the mode on reaches a history scan first. The learning step skips text with no capital and lower-case pair. Otherwise it sends the text to a Haiku call with an 8 second timeout. The Haiku call adds names to the names list. The hide_names tool adds names to the list without a model call. The highlighted path runs from a prompt to the names list.">
+    <defs>
+      <marker id="f1a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-fill"/></marker>
+      <marker id="f1h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-hot"/></marker>
+    </defs>
+    <path class="edge-hot" d="M220 45 L260 45 L260 112 L300 112" marker-end="url(#f1h)"/>
+    <line class="edge" x1="220" y1="125" x2="300" y2="125" marker-end="url(#f1a)"/>
+    <path class="edge" d="M220 205 L260 205 L260 138 L300 138" marker-end="url(#f1a)"/>
+    <line class="edge" x1="220" y1="285" x2="300" y2="285" marker-end="url(#f1a)"/>
+    <line class="edge" x1="400" y1="260" x2="400" y2="150" marker-end="url(#f1a)"/>
+    <line class="edge-hot" x1="500" y1="125" x2="580" y2="125" marker-end="url(#f1h)"/>
+    <path class="edge" d="M220 365 L680 365 L680 312" marker-end="url(#f1a)"/>
+    <line class="edge-hot" x1="680" y1="150" x2="680" y2="260" marker-end="url(#f1h)"/>
+    <rect class="node" x="20" y="20" width="200" height="50" rx="8"/>
+    <text text-anchor="middle"><tspan class="lbl-b" x="120" y="41">prompt.submit</tspan><tspan class="lbl-m" x="120" y="58">not a command</tspan></text>
+    <rect class="node" x="20" y="100" width="200" height="50" rx="8"/>
+    <text text-anchor="middle"><tspan class="lbl-b" x="120" y="131">turn.complete</tspan></text>
+    <rect class="node" x="20" y="180" width="200" height="50" rx="8"/>
+    <text text-anchor="middle"><tspan class="lbl-b" x="120" y="201">tool.call</tspan><tspan class="lbl-m" x="120" y="218">not a mod tool</tspan></text>
+    <rect class="node" x="20" y="260" width="200" height="50" rx="8"/>
+    <text text-anchor="middle"><tspan class="lbl-b" x="120" y="291">on: command or set_mode</tspan></text>
+    <rect class="node" x="20" y="340" width="200" height="50" rx="8"/>
+    <text text-anchor="middle"><tspan class="lbl-b" x="120" y="371">hide_names tool</tspan></text>
+    <rect class="node-hot" x="300" y="100" width="200" height="50" rx="8"/>
+    <text text-anchor="middle"><tspan class="lbl-hot" x="400" y="121">learnNames</tspan><tspan class="lbl-m" x="400" y="138">skip if no Aa pair</tspan></text>
+    <rect class="node" x="300" y="260" width="200" height="50" rx="8"/>
+    <text text-anchor="middle"><tspan class="lbl-b" x="400" y="281">learnHistory</tspan><tspan class="lbl-m" x="400" y="298">last 60,000 characters</tspan></text>
+    <rect class="node-hot" x="580" y="100" width="200" height="50" rx="8"/>
+    <text text-anchor="middle"><tspan class="lbl-hot" x="680" y="121">Haiku call</tspan><tspan class="lbl-m" x="680" y="138">8 second timeout</tspan></text>
+    <rect class="node-hot" x="580" y="260" width="200" height="50" rx="8"/>
+    <text text-anchor="middle"><tspan class="lbl-hot" x="680" y="281">addNames</tspan><tspan class="lbl-m" x="680" y="298">names list</tspan></text>
+  </svg>
+  <figcaption><strong>Figure 1.</strong> How the mod learns names. Each trigger reaches <code>learnNames</code> or <code>addNames</code>. The highlighted path runs from a prompt to the names list through the Haiku call.</figcaption>
+</figure>
+<h3 id="3-3-masking-one-row">3.3 Masking one row</h3>
+<p><code>mask</code> runs four pattern steps and then the names step. Each step replaces matches with bars. The stored text does not change.</p>
+<p>Figure 2 shows the order.</p>
+<figure>
+  <svg viewBox="0 0 560 430" role="img" aria-label="Flowchart of the masking steps for one row. The stored text goes through the email pattern, then the money pattern before a number, then the money pattern after a number, then the phone pattern. A phone match is masked only when the phone check passes. The learned names are masked last. The result is drawn with bars.">
+    <defs>
+      <marker id="f2a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-fill"/></marker>
+    </defs>
+    <line class="edge" x1="280" y1="50" x2="280" y2="70" marker-end="url(#f2a)"/>
+    <line class="edge" x1="280" y1="110" x2="280" y2="130" marker-end="url(#f2a)"/>
+    <line class="edge" x1="280" y1="170" x2="280" y2="190" marker-end="url(#f2a)"/>
+    <line class="edge" x1="280" y1="230" x2="280" y2="250" marker-end="url(#f2a)"/>
+    <line class="edge" x1="280" y1="290" x2="280" y2="310" marker-end="url(#f2a)"/>
+    <line class="edge" x1="280" y1="350" x2="280" y2="370" marker-end="url(#f2a)"/>
+    <rect class="node" x="50" y="10" width="460" height="40" rx="8"/>
+    <text class="lbl" x="280" y="35" text-anchor="middle">Text of one row, as stored</text>
+    <rect class="node" x="50" y="70" width="460" height="40" rx="8"/>
+    <text class="lbl" x="280" y="95" text-anchor="middle">EMAIL pattern: each match becomes bars</text>
+    <rect class="node" x="50" y="130" width="460" height="40" rx="8"/>
+    <text class="lbl" x="280" y="155" text-anchor="middle">MONEY_BEFORE: a symbol or code, then a number</text>
+    <rect class="node" x="50" y="190" width="460" height="40" rx="8"/>
+    <text class="lbl" x="280" y="215" text-anchor="middle">MONEY_AFTER: a number, then a code or currency word</text>
+    <rect class="node" x="50" y="250" width="460" height="40" rx="8"/>
+    <text class="lbl" x="280" y="275" text-anchor="middle">PHONE pattern: a match becomes bars only if isPhone is true</text>
+    <rect class="node" x="50" y="310" width="460" height="40" rx="8"/>
+    <text class="lbl" x="280" y="335" text-anchor="middle">Learned names: each name becomes bars, case-sensitive</text>
+    <rect class="node" x="50" y="370" width="460" height="40" rx="8"/>
+    <text class="lbl" x="280" y="395" text-anchor="middle">Text drawn with bars</text>
+  </svg>
+  <figcaption><strong>Figure 2.</strong> The masking steps for one row. The steps run in this order. The names step runs last.</figcaption>
+</figure>
+<p>The mod draws one bar for each non-space character. Spaces stay as they are.</p>
+<h3 id="3-4-what-each-hook-does">3.4 What each hook does</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Hook</th><th>Condition</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td><code>session.start</code></td><td>Always</td><td>Registers the command, the <code>set_mode</code> tool and the <code>hide_names</code> tool. Sets the mode on when the stored value is <code>true</code> (line 192).</td></tr>
+<tr><td><code>command.run</code> for <code>screen-share</code></td><td>Always</td><td>Sets the mode from the argument, or toggles it. Returns the on or off text.</td></tr>
+<tr><td><code>tool.call</code> for <code>set_mode</code></td><td>Always</td><td>Sets the mode from the <code>on</code> input. Returns the on or off text. If the call fails, the hook denies it.</td></tr>
+<tr><td><code>tool.call</code> for <code>hide_names</code></td><td>Always</td><td>Adds the names from the input. Makes no model call. If the call fails, the hook denies it.</td></tr>
+<tr><td><code>tool.call</code>, any other tool</td><td>Mode on, not a mod tool</td><td>Calls <code>learnNames</code> on the input and the result. If the call fails, the hook passes the call on.</td></tr>
+<tr><td><code>prompt.submit</code></td><td>Mode on, not a command</td><td>Calls <code>learnNames</code> on the prompt text. If the call fails, the hook passes the prompt on.</td></tr>
+<tr><td><code>turn.complete</code></td><td>Mode on</td><td>Calls <code>learnNames</code> on the reply. The hook has no fallback.</td></tr>
+<tr><td><code>prompt.compose</code></td><td>Mode on</td><td>Adds the mode prompt text to the session prompt.</td></tr>
+<tr><td><code>ui.render</code> for five row components</td><td>Mode on</td><td>Draws masked text. The components are <code>UserMessage</code>, <code>AssistantMessage</code>, <code>CommandOutput</code>, <code>ToolUse</code> and <code>ToolResult</code>.</td></tr>
+<tr><td><code>ui.render</code> for <code>AbovePrompt</code></td><td>Mode on, no survey open</td><td>Adds the band below any other band.</td></tr>
+</tbody></table></div>
+<h3 id="3-5-mode-prompt-and-tools">3.5 Mode prompt and tools</h3>
+<p>The mode prompt tells Claude three things:</p>
+<ul>
+<li>The mod masks names, emails, phone numbers and money amounts on screen.</li>
+<li>Claude still reads the real data. Claude does not reword the text.</li>
+<li>Claude calls <code>hide_names</code> before it writes a new name.</li>
+</ul>
+<p>The two tools are <code>set_mode</code> and <code>hide_names</code>. Both use the mod's tool prefix, <code>mcp__screen-share__</code>.</p>
+<p><code>hide_names</code> shows its own input as bars in the transcript. The names in that input are not yet in the list.</p>
+<h3 id="3-6-stored-values">3.6 Stored values</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Value</th><th>Where</th><th>Kept across sessions</th></tr></thead>
+<tbody>
+<tr><td>Mode flag, <code>isOn</code></td><td><code>$.store</code> under the key <code>isOn</code> (line 15)</td><td>Yes. Session start reads it (line 192).</td></tr>
+<tr><td>Mode flag, live copy</td><td>Session atom <code>isOn</code> (line 9)</td><td>No. Set by <code>setMode</code>, and by session start when the stored value is <code>true</code> (line 192).</td></tr>
+<tr><td>Names list</td><td>Session atom <code>names</code>, shape tag <code>names-1</code> (lines 11-13)</td><td>Not checked.</td></tr>
+</tbody></table></div>
+<p>The shape tag <code>names-1</code> marks the list format. Change the tag when the meaning of the list changes.</p>
+<h2 id="4-settings">4. Settings</h2>
+<p>This mod has no settings in <code>/config</code>. The manifest has no <code>userConfig</code> block.</p>
+<p>The values below are fixed in the code. To change a value, edit <code>hooks/register.tsx</code>.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Name</th><th>Line</th><th>Value</th><th>Effect</th></tr></thead>
+<tbody>
+<tr><td><code>MAX_NAMES</code></td><td>18</td><td>500</td><td>The list keeps the last 500 names.</td></tr>
+<tr><td><code>SCAN_CHARS</code></td><td>20</td><td>20,000 characters</td><td>Text read by one model call.</td></tr>
+<tr><td><code>HISTORY_CHUNKS</code></td><td>21</td><td>3</td><td>Number of chunks read by <code>learnHistory</code>. Total: 60,000 characters.</td></tr>
+<tr><td><code>model</code></td><td>130</td><td><code>haiku</code></td><td>Model for name finding.</td></tr>
+<tr><td><code>maxTokens</code></td><td>133</td><td>600</td><td>Reply size limit for name finding.</td></tr>
+<tr><td><code>timeoutMs</code></td><td>134</td><td>8000</td><td>A name finding call stops after 8 seconds.</td></tr>
+<tr><td><code>BAR</code></td><td>23</td><td><code>░</code></td><td>Character for each masked character.</td></tr>
+<tr><td><code>TOOL_PREFIX</code></td><td>16</td><td><code>mcp__screen-share__</code></td><td>Prefix for the mod's tools.</td></tr>
+</tbody></table></div>
+<p>Name entries keep only text from 2 to 60 characters (line 92). Name parts keep only text of 2 characters or more that starts with a capital letter (line 95). The text <code>Claude</code> is never added (line 99).</p>
+<h2 id="5-install">5. Install</h2>
+<p>You install this mod in one of three ways. Method A and method B load the mod from a folder on your computer. Method C installs it through the repository's marketplace.</p>
+<h3 id="5-1-before-you-start">5.1 Before you start</h3>
+<p>You need:</p>
+<ul>
+<li>Claude Code. The version used to write and test this mod is 2.1.310. To see your version, run <code>claude --version</code>.</li>
+<li>A copy of this repository on your computer.</li>
+<li>A terminal. A terminal is a window where you type commands.</li>
+</ul>
+<p>In this document, the <strong>repository root</strong> is the top folder of the repository. The folder is named <code>claude-mods</code>. All commands in this document start from this folder.</p>
+<p>This review did not run any Windows or Linux step. There is no OS-specific code in this mod.</p>
+<h3 id="5-2-choose-a-method">5.2 Choose a method</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Method</th><th>Use it when</th><th>Duration</th></tr></thead>
+<tbody>
+<tr><td>A. Flag <code>--plugin-dir</code></td><td>You want to try the mod.</td><td>One session</td></tr>
+<tr><td>B. Setting <code>CLAUDE_CODE_PLUGIN_DIRS</code></td><td>You want the mod in every session, from your clone.</td><td>Until you remove the setting</td></tr>
+<tr><td>C. Marketplace</td><td>You want a standard install.</td><td>Until you uninstall the mod</td></tr>
+</tbody></table></div>
+<h3 id="5-3-method-a-try-the-mod-for-one-session">5.3 Method A: try the mod for one session</h3>
+<ol>
+<li>Open a terminal. Go to the repository root.</li>
+<li>Start Claude Code with this flag: <code>claude --plugin-dir mods/screen-share</code>.</li>
+<li>Do the check in 5.6.</li>
+</ol>
+<p>This review did not start a session with this flag.</p>
+<h3 id="5-4-method-b-load-the-mod-in-every-session">5.4 Method B: load the mod in every session</h3>
+<ol>
+<li>Open the file <code>~/.claude/settings.json</code> in a text editor.</li>
+<li>Add the full path of the mod folder to an <code>env</code> block. The line is <code>"CLAUDE_CODE_PLUGIN_DIRS": "/Users/your-name/Developer/claude-mods/mods/screen-share"</code>.</li>
+<li>Replace <code>/Users/your-name/Developer/claude-mods</code> with the real path to your repository.</li>
+<li>Save the file. Start a new Claude Code session.</li>
+<li>Do the check in 5.6.</li>
+</ol>
+<p>The file has this shape:</p>
+<pre><code>{
+  "env": {
+    "CLAUDE_CODE_PLUGIN_DIRS": "/Users/your-name/Developer/claude-mods/mods/screen-share"
+  }
+}</code></pre>
+<p>To remove the mod, delete the line. Start a new session.</p>
+<p>This review did not test method B.</p>
+<h3 id="5-5-method-c-marketplace">5.5 Method C: marketplace</h3>
+<p>The repository marketplace file, <code>.claude-plugin/marketplace.json</code>, lists <code>screen-share</code> at line 28.</p>
+<ol>
+<li>Add the marketplace once. Run this command: <code>claude plugin marketplace add plaktoz/claude-mods</code>.</li>
+<li>Install the mod. Run this command: <code>claude plugin install screen-share@claude-mods</code>.</li>
+<li>Restart Claude Code to load the mod.</li>
+</ol>
+<p>This review did not run method C. It needs network access to GitHub and it changes your Claude Code setup. The install command was not run.</p>
+<h3 id="5-6-check-that-the-install-worked">5.6 Check that the install worked</h3>
+<ol>
+<li>Start a session with method A, B or C.</li>
+<li>Run <code>/screen-share on</code>.</li>
+<li><strong>Expected:</strong> the reply starts with <code>Screen-share is on.</code> The band shows <code>Screen-share mode:</code> above the prompt.</li>
+</ol>
+<p>No person has done this check yet.</p>
+<h3 id="5-7-change-the-fixed-values">5.7 Change the fixed values</h3>
+<p>This mod has no settings in <code>/config</code>. To change a value, see section 4.</p>
+<h2 id="6-validate">6. Validate</h2>
+<h3 id="6-1-level-1-validate-the-files">6.1 Level 1: validate the files</h3>
+<p>Run this command from the repository root:</p>
+<pre><code>claude plugin validate mods/screen-share</code></pre>
+<p>The last lines of the real output in this review:</p>
+<pre><code>✔ Validation passed with warnings</code></pre>
+<p>The command exited with code 0. The output has 1 warning: <code>author: No author information provided</code>.</p>
+<p>The plugin directory checks add 1 problem and 1 warning. They do not change the result:</p>
+<ul>
+<li><code>LICENSE_MISSING</code>: the plugin folder has no LICENSE file and <code>plugin.json</code> has no <code>license</code>.</li>
+<li><code>ICON_MISSING</code>: the plugin has no icon.</li>
+</ul>
+<p>The output also has 1 advice line. It asks for a <code>/plugin install</code> line with <code>&lt;owner&gt;/&lt;repo&gt;</code> filled in. Section 5.5 uses <code>claude plugin install</code> instead. The advice was not applied.</p>
+<h3 id="6-2-level-2-run-the-tests">6.2 Level 2: run the tests</h3>
+<p>Run this command from the repository root:</p>
+<pre><code>claude plugin test mods/screen-share</code></pre>
+<p>The last lines of the real output in this review:</p>
+<pre><code> 3 pass
+ 0 fail
+Ran 3 tests across 1 file. [0.37s]</code></pre>
+<p>The command exited with code 0. The three tests are:</p>
+<ul>
+<li><code>a prompt row is drawn masked once the mode is on</code></li>
+<li><code>the mode leaves dates, versions and plain words alone</code></li>
+<li><code>the band shows while on and Turn off ends the mode</code></li>
+</ul>
+<h3 id="6-3-level-3-live-check-in-a-session">6.3 Level 3: live check in a session</h3>
+<p>Start a session with the mod. Then:</p>
+<ol>
+<li>Run <code>/screen-share on</code>. Check the band.</li>
+<li>Send a prompt with a name, an email and a phone number. Check that the row shows bars.</li>
+<li>Run <code>/screen-share off</code>. Check that the band is gone and the text is normal.</li>
+</ol>
+<p>No person has done this check yet.</p>
+<h3 id="6-4-what-each-test-proves">6.4 What each test proves</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Test</th><th>What it proves</th><th>What it does not prove</th></tr></thead>
+<tbody>
+<tr><td><code>a prompt row is drawn masked once the mode is on</code></td><td>A <code>UserMessage</code> row with a name, an email, a phone number and an amount draws masked. It does this on two surfaces, <code>terminal</code> and <code>desktop</code>.</td><td>Learning from a real model. The stand-in returns <code>Jane Doe</code> for every call.</td></tr>
+<tr><td><code>the mode leaves dates, versions and plain words alone</code></td><td>An <code>AssistantMessage</code> with <code>2.1.310</code>, <code>2026-10-24</code> and the word <code>Northvale</code> draws unchanged.</td><td>Masking of plain number lists.</td></tr>
+<tr><td><code>the band shows while on and Turn off ends the mode</code></td><td>The band shows on two surfaces. <code>Turn off</code> sets the stored flag to <code>false</code> and removes the band.</td><td>Restore after a new session.</td></tr>
+</tbody></table></div>
+<p>The test stand-in is in <code>hooks/register.test.tsx</code> at lines 29-49. It provides a store, a history with one row, a model that returns <code>["Jane Doe"]</code>, and a transcript that draws the text it receives.</p>
+<p>The tests do not cover:</p>
+<ul>
+<li><code>prompt.submit</code>, <code>turn.complete</code>, <code>tool.call</code> learning, <code>hide_names</code> and <code>prompt.compose</code>.</li>
+<li>The model reply parser, <code>parseNames</code>, with real model output.</li>
+<li>Masking of tool input and output (<code>ToolUse</code> and <code>ToolResult</code>).</li>
+<li>Each regex edge case in section 7.</li>
+<li>The 8-second timeout.</li>
+<li>A restore after a new session.</li>
+<li>A live session.</li>
+</ul>
+<h3 id="6-5-problems-and-solutions">6.5 Problems and solutions</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Problem</th><th>Cause</th><th>Solution</th></tr></thead>
+<tbody>
+<tr><td>Validate shows <code>LICENSE_MISSING</code>.</td><td>The plugin folder has no LICENSE file, and <code>plugin.json</code> has no <code>license</code>.</td><td>Add a LICENSE file, or set <code>license</code> in <code>plugin.json</code>.</td></tr>
+<tr><td>Validate shows <code>ICON_MISSING</code>.</td><td>The plugin has no icon.</td><td>Add a square PNG icon, or set <code>icon</code> in <code>plugin.json</code>.</td></tr>
+<tr><td><code>/screen-share</code> is not a command.</td><td>The mod is not loaded.</td><td>Check the install with 5.6. Start a new session after a change.</td></tr>
+<tr><td>A name shows in a reply.</td><td>The mod learns names after the reply finishes.</td><td>Ask Claude to call <code>hide_names</code> first. Learning takes place after the reply.</td></tr>
+</tbody></table></div>
+<h3 id="6-6-type-check-optional">6.6 Type check (optional)</h3>
+<p>This review did not run a type check. The <code>tsc</code> command is not installed on this computer. <code>tsconfig.json</code> extends <code>./.claude-plugin/types/tsconfig.json</code>.</p>
+<h2 id="7-known-limits">7. Known limits</h2>
+<p>Each limit below comes from the code or from a check in this review.</p>
+<h3 id="7-1-rows-that-the-mod-does-not-draw">7.1 Rows that the mod does not draw</h3>
+<ul>
+<li>The mod has no hook for <code>ToolGroup</code>, <code>AskUserQuestion</code> or <code>InfoNotice</code>.</li>
+<li>Rows drawn by these components are not masked by the mod.</li>
+<li>A live check was not run.</li>
+</ul>
+<h3 id="7-2-text-that-the-mod-does-not-mask">7.2 Text that the mod does not mask</h3>
+<ul>
+<li>The mod does not scan slash command prompts (line 231).</li>
+<li>The mod does not mask the prompt box, the status line or the panes of other mods.</li>
+<li>The mod does not mask keys of objects in tool input or output (line 79). Only string values are masked.</li>
+<li>The <code>hide_names</code> input is always bars (line 276). The transcript shows bars for the names in that input.</li>
+</ul>
+<h3 id="7-3-name-matching">7.3 Name matching</h3>
+<ul>
+<li>Learned names are case-sensitive. The name <code>Jane Doe</code> does not mask <code>jane doe</code>.</li>
+<li>A common word learned as a name masks every capital use of that word. For example, the name <code>Mark</code> turns <code>Mark said mark</code> into <code>░ said mark</code>.</li>
+<li>A name next to a letter or number is not masked. For example, <code>田中太郎が</code> is not masked when the name is <code>田中太郎</code>.</li>
+<li>A name in a reply is learned when the reply finishes. A name in a streaming reply shows until then, unless <code>hide_names</code> ran first.</li>
+<li>A name is learned only when the model returns it. The mod does not check the model reply against the text.</li>
+<li>A name of one character is not learned (line 92).</li>
+<li>Lower-case name parts, such as <code>van</code>, are not learned alone (line 95).</li>
+</ul>
+<h3 id="7-4-phone-numbers">7.4 Phone numbers</h3>
+<ul>
+<li>A plain figure group is masked when it has 7 to 15 digits. The check is <code>isPhone</code> (lines 35-41).</li>
+<li>Plain numbers with spaces between them are masked. For example, <code>2024 2025 2026</code> becomes bars.</li>
+<li>These numbers are not masked: <code>4155550134</code> (no separator), <code>415,555,0134</code> (commas), and <code>415 555</code> followed by a line break and <code>0134</code>.</li>
+<li>Dates such as <code>2026-10-24</code> and addresses such as <code>192.168.1.10</code> are not masked.</li>
+<li>A number with a leading <code>+</code> is masked, for example <code>+4155550134</code>.</li>
+</ul>
+<p>Checked in this review with the mod's patterns:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Input</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td><code>2024 2025 2026</code></td><td>Masked: <code>░░░░ ░░░░ ░░░░</code></td></tr>
+<tr><td><code>3 4 5 6 7 8 9</code></td><td>Masked: <code>░ ░ ░ ░ ░ ░ ░</code></td></tr>
+<tr><td><code>ref 1234-5678</code></td><td>Masked: <code>ref ░░░░░░░░░</code></td></tr>
+<tr><td><code>1.234.567 units</code></td><td>Masked: <code>░░░░░░░░░ units</code></td></tr>
+<tr><td><code>0412 345 678</code></td><td>Masked: <code>░░░░ ░░░ ░░░</code></td></tr>
+<tr><td><code>4155550134</code></td><td>Not masked</td></tr>
+<tr><td><code>415,555,0134</code></td><td>Not masked</td></tr>
+<tr><td><code>1,234,567 units</code></td><td>Not masked</td></tr>
+<tr><td><code>2026-10-24</code>, <code>2.1.310</code></td><td>Not masked</td></tr>
+</tbody></table></div>
+<h3 id="7-5-money-amounts">7.5 Money amounts</h3>
+<ul>
+<li>A symbol or code before a number is masked, for example <code>$</code>, <code>€</code>, <code>£</code>, <code>US$</code>, <code>S$</code>, <code>USD</code> or <code>EUR</code>. Checked: <code>$12,000</code>, <code>S$5</code> and <code>USD 5</code>.</li>
+<li>A currency code after a number is masked: <code>USD</code>, <code>EUR</code>, <code>GBP</code>, <code>SGD</code>, <code>AUD</code>, <code>CAD</code>, <code>JPY</code>, <code>INR</code> or <code>CHF</code>. Checked: <code>12 USD</code>. The words <code>dollars</code>, <code>euros</code> and <code>pounds</code> are masked too.</li>
+<li>These amounts are not masked: <code>5€</code>, <code>1.234,56 €</code>, <code>5 €</code>, <code>5 million dollars</code>, <code>5 dollar</code>, <code>1 euro</code>, <code>100 yen</code>, <code>₩5000</code> and <code>Rs 500</code>.</li>
+</ul>
+<h3 id="7-6-bars">7.6 Bars</h3>
+<ul>
+<li>The bar helper has no <code>u</code> flag (line 24). One character outside the Basic Multilingual Plane, such as an emoji, draws as 2 bars.</li>
+</ul>
+<h3 id="7-7-model-calls">7.7 Model calls</h3>
+<ul>
+<li>Each name call sends its text to Haiku. The text can include prompts, tool inputs, tool outputs, replies and history.</li>
+<li>A call can take up to 8 seconds (line 134).</li>
+<li><code>prompt.submit</code> and <code>tool.call</code> wait for the call before they continue. <code>turn.complete</code> waits too. <code>/screen-share on</code> and <code>set_mode</code> wait for up to three calls in parallel (line 148).</li>
+<li>The calls are billed to the session.</li>
+<li>The <code>turn.complete</code> hook has no fallback. The effect of a failed call on that hook was not checked.</li>
+<li>The model result varies. Names can be missed or added. The live model was not tested.</li>
+</ul>
+<h3 id="7-8-state">7.8 State</h3>
+<ul>
+<li>The mode flag is saved with <code>$.store</code>. A new session reads it (line 192).</li>
+<li>The names list is session state. Session start does not scan the history again.</li>
+<li>Whether the names list survives a resume was not checked.</li>
+<li>The list keeps the last 500 names (line 105). Older names are dropped.</li>
+<li><code>Turn off</code> does not clear the names list.</li>
+</ul>
+<h2 id="8-glossary">8. Glossary</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Term</th><th>Meaning in this document</th></tr></thead>
+<tbody>
+<tr><td>Band</td><td>The line above the prompt that shows the mode and the <strong>Turn off</strong> button.</td></tr>
+<tr><td>Bar</td><td>The character <code>░</code>. The mod draws one bar for each masked character.</td></tr>
+<tr><td>Drawn text</td><td>The text on screen. The stored conversation does not change.</td></tr>
+<tr><td>Haiku</td><td>The small model that the mod calls to find names.</td></tr>
+<tr><td>Hook</td><td>A function that the engine runs on an event, such as <code>prompt.submit</code>.</td></tr>
+<tr><td>Learned name</td><td>A name in the names list. The mod masks it on screen.</td></tr>
+<tr><td>Mode</td><td>Screen-share mode. The mode is on or off.</td></tr>
+<tr><td>Mode flag</td><td>The stored value <code>isOn</code> that says whether the mode is on.</td></tr>
+<tr><td>Names list</td><td>The session list of learned names.</td></tr>
+<tr><td>Mask</td><td>To draw bars over text.</td></tr>
+<tr><td>Rewrite</td><td>A change that a <code>ui.render</code> hook makes to the text it draws.</td></tr>
+<tr><td>Session state</td><td>A value kept for the current session. It is not stored across sessions.</td></tr>
+<tr><td>Store</td><td>The engine store that keeps a value across sessions.</td></tr>
+<tr><td>Stand-in</td><td>The fake engine in the tests.</td></tr>
+</tbody></table></div>
+</main>
+</body>
+</html>

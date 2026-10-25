@@ -33,6 +33,14 @@ Use only what this conversation shows. Reply with the handoff only.`
 const addUnique = (list: string[], item: string) =>
   list.includes(item) ? list : [...list, item].slice(-LIST_LIMIT)
 
+// A Windows path (drive letter or UNC) compares with either slash and any letter case, so `C:\a` and `c:/a` are one file.
+// Other paths compare as they are.
+const sameFile = (a: string, b: string) => {
+  const key = (p: string) => (/^[a-z]:[\\/]/i.test(p) || p.startsWith('\\\\') ? p.replace(/\\/g, '/').toLowerCase() : p)
+
+  return key(a) === key(b)
+}
+
 const describe = (inv: Inventory) => {
   const section = (label: string, items: string[]) =>
     items.length ? `${label}:\n${items.map(item => `- ${item}`).join('\n')}` : `${label}: none`
@@ -43,7 +51,7 @@ const describe = (inv: Inventory) => {
   return [
     `First request: ${inv.goal ?? 'unknown'}`,
     section('Files edited', inv.edited),
-    section('Files read', inv.read.filter(file => !inv.edited.includes(file))),
+    section('Files read', inv.read.filter(file => !inv.edited.some(edited => sameFile(edited, file)))),
     section('Skills used', inv.skills),
     section('Links fetched', inv.urls),
     section('Tools used', tools),
