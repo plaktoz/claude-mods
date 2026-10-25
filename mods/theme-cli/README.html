@@ -595,12 +595,13 @@ error.wav 1.44s</code></pre>
     "CLAUDE_CODE_PLUGIN_DIRS": "/Users/your-name/Developer/claude-mods/mods/theme-cli"
   }
 }</code></pre></li>
-  <li>Replace <code>/Users/your-name/Developer/claude-mods</code> with the real path to your repository. To print the path, run <code>pwd</code> in the repository root.</li>
+  <li>Replace <code>/Users/your-name/Developer/claude-mods</code> with the real path to your repository. To print the path, run <code>pwd</code> in the repository root.
+    <p>On Windows, the settings file is <code>%USERPROFILE%\.claude\settings.json</code>. Write the path with forward slashes, for example <code>C:/Users/your-name/Developer/claude-mods/mods/theme-cli</code>, or double each backslash in the JSON. In PowerShell, <code>(Get-Location).Path</code> prints the path of the repository root. The Windows form was not tested.</p>
+  </li>
   <li>Save the file. Start a new Claude Code session.</li>
   <li>Do the check in 5.6.</li>
 </ol>
 <p>To uninstall, delete the line and start a new session.</p>
-<p>On Windows, the settings file is <code>%USERPROFILE%\.claude\settings.json</code>. Write the path with forward slashes, for example <code>C:/Users/your-name/Developer/claude-mods/mods/theme-cli</code>, or double each backslash in the JSON. In PowerShell, <code>(Get-Location).Path</code> prints the path of the repository root. The Windows form was not tested.</p>
 <h3 id="5-5-method-c-marketplace-install">5.5 Method C: marketplace install</h3>
 <p>The repository has a marketplace file, <code>.claude-plugin/marketplace.json</code>. The marketplace is named <code>claude-mods</code>. It lists <code>theme-cli</code>.</p>
 <ol>
