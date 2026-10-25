@@ -1,6 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
-import { LABELS, SKIP, hasCue, isWatched, parseRule, ruleKey, settingsFrom } from './register'
+import { LABELS, SKIP, hasCue, isWatched, parseRule, settingsFrom } from './register'
+import { ruleKey } from './save'
 
 const RULE = 'Never use m-dashes in answers.'
 const PROMPT = 'never use m-dashes in your answers, and fix the typo in the intro'
@@ -90,6 +91,7 @@ const setup = ($: any, on: any, stubs: Stubs) => {
     return { text: e.text }
   })
   on('turn.complete', (_: unknown, e: { answer: string }) => ({ text: e.answer }))
+  on('ui.toast', () => ({ value: undefined }))
 
   return { asked, prompts, sent }
 }

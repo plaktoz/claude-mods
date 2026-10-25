@@ -2,6 +2,8 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterfaceBuilt, PluginOptions, Register } from 'claude-code'
 
 import type { Pending } from '../types'
+import { ruleKey, saveRule } from './save'
+import type { Destination, SaveResult } from './save'
 
 // A rule is a short sentence. A long prompt is a task, and it would match a
 // cue word by chance.
@@ -20,7 +22,7 @@ If it holds none, reply NONE.`
 
 export const SKIP = 'Skip'
 
-export type Destination = 'memory' | 'project' | 'global'
+export type { Destination }
 
 export const LABELS: Record<Destination, string> = {
   memory: 'Auto memory',
@@ -87,8 +89,6 @@ export const parseRule = (reply: string): string | undefined => {
   return line
 }
 
-export const ruleKey = (rule: string) => plain(rule).replace(/\s+/g, ' ').trim()
-
 // Returns the rule the prompt holds, or undefined. A failed request is silent.
 const ruleFrom = async ($: Engine, text: string): Promise<string | undefined> => {
   try {
@@ -122,6 +122,22 @@ const chooseDestination = async ($: Engine, rule: string, destinations: Destinat
   }
 }
 
+// Saves the rule and says so. A failed write saves nothing and stays silent.
+const keep = async ($: Engine, destination: Destination, rule: string) => {
+  let result: SaveResult
+  try {
+    result = await saveRule($, destination, rule)
+  } catch {
+    return
+  }
+
+  try {
+    $.ui.toast(result === 'saved' ? `Saved to ${LABELS[destination]}.` : `Already in ${LABELS[destination]}.`)
+  } catch {
+    // The rule is saved; the notice is only a courtesy.
+  }
+}
+
 // Looks at each prompt recorded this turn, and asks about the rule it holds.
 const offerRules = async ($: Engine, settings: Settings) => {
   const prompts = await read($, pending)
@@ -136,7 +152,8 @@ const offerRules = async ($: Engine, settings: Settings) => {
     if ((await read($, handled)).includes(key)) continue
     await update($, handled, list => [...list, key].slice(-MAX_HANDLED))
 
-    await chooseDestination($, rule, settings.destinations)
+    const destination = await chooseDestination($, rule, settings.destinations)
+    if (destination !== undefined) await keep($, destination, rule)
   }
 }
 
