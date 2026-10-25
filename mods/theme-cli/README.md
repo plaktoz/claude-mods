@@ -41,30 +41,30 @@ The logic is in six files in `hooks/` and two scripts in `scripts/`. The line nu
 | Item | File | Line |
 |------|------|------|
 | Constants: frame time, finale time, strip width limits, strip key | `hooks/register.tsx` | 13–17 |
-| Stored values | `hooks/register.tsx` | 19–33 |
-| Module variables: `scene`, `sounds`, `loop`, `timer`, `isTicking`, `stats` | `hooks/register.tsx` | 37–44 |
-| `isActive()` – decides if the strip shows | `hooks/register.tsx` | 50 |
-| `readView()` – reads the values that a frame needs | `hooks/register.tsx` | 56 |
-| `note()` – writes a line to the log | `hooks/register.tsx` | 67 |
-| `useTheme()` – loads a theme and tells the band to redraw | `hooks/register.tsx` | 73 |
-| `play()`, `startLoop()`, `stopLoop()`, `finish()` – the sound cues | `hooks/register.tsx` | 88, 98, 109, 117 |
-| `stopLoop()` calls `stopWindowsLoops()` | `hooks/register.tsx` | 113 |
-| `tick()` – draws one frame and sends it with `blit` | `hooks/register.tsx` | 124 |
-| `startTimer()` and `stopTimer()` | `hooks/register.tsx` | 162, 168 |
-| `addAgent()` and `freeSlot()` – give a companion its color slot | `hooks/register.tsx` | 174, 180 |
-| `reconcile()` – drops agents that the engine no longer lists. It keeps the crew when the list cannot be read. | `hooks/register.tsx` | 188 |
-| `register()` – adds all hooks. It calls `winAudio(on)` first. | `hooks/register.tsx` | 205, 206 |
-| Hook `session.start` (registers 10 commands, calls `readPlatform()`, loads the theme) | `hooks/register.tsx` | 208, 223 |
-| Commands `theme-hide`, `theme-show` | `hooks/register.tsx` | 234, 240 |
-| Commands `theme-mute`, `theme-unmute` | `hooks/register.tsx` | 246, 253 |
-| Commands `theme-list`, `theme-use`, `theme-build`, `theme-new` | `hooks/register.tsx` | 261, 275, 286, 293 |
-| Command `theme-sound-test` | `hooks/register.tsx` | 307 |
-| Command `theme-dump` | `hooks/register.tsx` | 319 |
-| Hooks `turn.start`, `turn.complete` | `hooks/register.tsx` | 352, 372 |
-| Hooks `classic.SubagentStart`, `classic.SubagentStop` | `hooks/register.tsx` | 397, 416 |
-| Hooks `tool.call`, `turn.step`, `session.measure` | `hooks/register.tsx` | 438, 453, 470 |
-| Hook `session.end` | `hooks/register.tsx` | 476 |
-| Hook `ui.render` (the strip) | `hooks/register.tsx` | 485 |
+| Stored values | `hooks/register.tsx` | 19–35 |
+| Module variables: `scene`, `sounds`, `loop`, `timer`, `isTicking`, `stats` | `hooks/register.tsx` | 39–46 |
+| `isActive()` – decides if the strip shows | `hooks/register.tsx` | 52 |
+| `readView()` – reads the values that a frame needs | `hooks/register.tsx` | 58 |
+| `note()` – writes a line to the log | `hooks/register.tsx` | 69 |
+| `useTheme()` – loads a theme and tells the band to redraw | `hooks/register.tsx` | 75 |
+| `play()`, `startLoop()`, `stopLoop()`, `finish()` – the sound cues | `hooks/register.tsx` | 90, 100, 111, 119 |
+| `stopLoop()` calls `stopWindowsLoops()` | `hooks/register.tsx` | 115 |
+| `tick()` – draws one frame and sends it with `blit` | `hooks/register.tsx` | 126 |
+| `startTimer()` and `stopTimer()` | `hooks/register.tsx` | 164, 170 |
+| `addAgent()` and `freeSlot()` – give a companion its color slot | `hooks/register.tsx` | 176, 182 |
+| `reconcile()` – drops agents that the engine no longer lists. It keeps the crew when the list cannot be read. | `hooks/register.tsx` | 190 |
+| `register()` – adds all hooks. It calls `winAudio(on)` first. | `hooks/register.tsx` | 207, 208 |
+| Hook `session.start` (registers 9 commands, calls `readPlatform()`, loads the theme) | `hooks/register.tsx` | 210, 228 |
+| Commands `theme-hide`, `theme-show` | `hooks/register.tsx` | 239, 245 |
+| Command `theme-sound` | `hooks/register.tsx` | 251 |
+| Commands `theme-list`, `theme-use`, `theme-build`, `theme-new` | `hooks/register.tsx` | 264, 278, 289, 296 |
+| Command `theme-sound-test` | `hooks/register.tsx` | 310 |
+| Command `theme-dump` | `hooks/register.tsx` | 322 |
+| Hooks `turn.start`, `turn.complete` | `hooks/register.tsx` | 355, 375 |
+| Hooks `classic.SubagentStart`, `classic.SubagentStop` | `hooks/register.tsx` | 400, 419 |
+| Hooks `tool.call`, `turn.step`, `session.measure` | `hooks/register.tsx` | 441, 456, 473 |
+| Hook `session.end` | `hooks/register.tsx` | 479 |
+| Hook `ui.render` (the strip) | `hooks/register.tsx` | 488 |
 | Module variables `windows` (is this Windows) and `loops` (looped clips now playing) | `hooks/winaudio.ts` | 66, 20 |
 | Constants `WAV_MIME`, `READ`, `PLAY_ONCE`, `PLAY_LOOP` – the WAV type and the PowerShell scripts | `hooks/winaudio.ts` | 11, 14–16 |
 | `stopWindowsLoops()` – ends every Windows loop | `hooks/winaudio.ts` | 22 |
@@ -99,9 +99,9 @@ The logic is in six files in `hooks/` and two scripts in `scripts/`. The line nu
 | `pack()` – writes a frame as glyph rows | `scripts/build-theme.py` | 205 |
 | `source_of()` and `main()` | `scripts/build-theme.py` | 219, 240 |
 | Sound clip functions `voice()`, `start()`, `working()`, `success()`, `error()`, `main()` | `scripts/make-mario-sounds.py` | 28, 74, 79, 96, 108, 115 |
-| Type of the stored values | `types/index.d.ts` | 28–43 |
+| Type of the stored values | `types/index.d.ts` | 28–44 |
 | Tests for the strip (13 tests) | `hooks/register.test.tsx` | 77–271 |
-| Tests for themes and sounds (18 tests) | `hooks/theme.test.tsx` | 98–319 |
+| Tests for themes and sounds (21 tests) | `hooks/theme.test.tsx` | 98–352 |
 | Tests for the Windows player (8 tests) | `hooks/winaudio.test.tsx` | 9–156 |
 
 Other files: `hooks/hooks.json` names one hooks module, `./register.tsx`. `hooks/winaudio.ts` and `hooks/wav.ts` are imported by `register.tsx`. A test copy with a second entry in `modules` fails with `Found 1 error`, so the validator allows one module. `.claude-plugin/plugin.json` is the manifest. `.claude-plugin/marketplace.json` at the repository root lists the mod. `tsconfig.json` is for the type-check.
@@ -145,9 +145,9 @@ The `idle` beat returns only after the finale. The `aborted` and `error` beats s
 
 | Event | Condition | Action |
 |-------|-----------|--------|
-| `session.start` | Always | Register 10 commands. Read the platform. Load the chosen theme. Drop stale agents. Start the timer if the strip is active. |
+| `session.start` | Always | Register 9 commands. Read the platform. Load the chosen theme. Drop stale agents. Start the timer if the strip is active. |
 | `audio.play` | Windows, and the clip is a WAV in base64 | Play the clip with PowerShell, at the gain given. Return `deny` with the cause when PowerShell fails. Other clips go on to the engine. |
-| `turn.start` | Main loop only | Store the start time. Set the beat to `working`. Stop any loop. Play the `start` cue, then loop the `working` cue. Start the timer. |
+| `turn.start` | Main loop only | Store the start time. Set the beat to `working`. Stop any loop. Play the `start` cue, then loop the `working` cue in `all` mode. Start the timer. |
 | `turn.complete` | Main loop only, a subagent runs | Keep the beat at `working`. |
 | `turn.complete` | Main loop only, reason `answer` | Store the finale start. Set the beat to `complete`. Play the `success` cue. |
 | `turn.complete` | Main loop only, other reason | Set the beat to `aborted` or `error`. Stop the loop, or play the `error` cue. |
@@ -302,10 +302,11 @@ If `theme.json` is missing or invalid, the mod uses the built-in theme. The reas
 | `/theme-new <name>` | Write a template `theme.json` in a new theme folder. | `Wrote <path>. Put your images beside it, edit it, then /theme-use <name>.` |
 | `/theme-hide` | Hide the strip. | `Strip hidden. /theme-show shows it again.` |
 | `/theme-show` | Show the strip. | `Strip shown.` |
-| `/theme-mute` | Silence every sound and stop the `working` loop. The setting lasts for the session and a hot reload. | `Sounds muted. /theme-unmute plays them again.` |
-| `/theme-unmute` | Play the sounds again. A turn in progress gets its loop back. | `Sounds on.` |
+| `/theme-sound <mode>` | Set the sound mode. `all` plays every cue and the working loop, and is the default. `cues` plays the start, success and error cues but no working loop. `off` plays nothing. `cues` and `off` end a loop that is playing. Going back to `all` during a turn starts the working loop. The setting lasts for the session and a hot reload. | With no mode: `Sounds: <mode>. Set with /theme-sound all, cues or off.` Unknown mode: `Unknown mode "<x>". Use all, cues or off.` A change: `Sounds: <mode>.` |
 | `/theme-sound-test` | Play a 0.3 s test tone through the mod's Windows player. | On Windows: `Played a 0.3 s test tone. Heard nothing? Check the volume mixer for this terminal.` If PowerShell fails: `Could not play the tone: <cause>`. Elsewhere: `Not Windows: the engine plays sound itself here.` |
 | `/theme-dump` | Write `theme-cli-log.txt` in the current folder. | `Wrote <n> log lines and the strip to theme-cli-log.txt.` |
+
+`/theme-mute` and `/theme-unmute` were removed. `/theme-sound` replaces them.
 
 The command `/theme-new` refuses in two cases:
 
@@ -317,7 +318,7 @@ The dump file has these parts:
 - The log lines.
 - The theme, its sprite height and its missing frames.
 - The session cost.
-- The theme sounds, the mute state and the loop state.
+- The theme sounds, the sound mode and the loop state.
 - The beat, the crew and the timer state.
 - The band `requestId` and size.
 - The tick, blit and denied counts, and the time for each tick.
@@ -337,7 +338,7 @@ The dump file has these parts:
 | `finaleStart` | number | Time that the finale started. | `turn.complete`, `SubagentStop` |
 | `cost` | number | Session cost in US dollars. Only `/theme-dump` shows it. | `session.measure` |
 | `isHidden` | boolean | The strip is hidden. | `/theme-hide`, `/theme-show` |
-| `isMuted` | boolean | The sounds are muted. It holds for the session and a hot reload. | `/theme-mute`, `/theme-unmute` |
+| `soundMode` | text | The sound mode: `all`, `cues` or `off`. It holds for the session and a hot reload. | `/theme-sound` |
 | `band` | object | The `requestId` and size of the mounted band. | `ui.render` (a deferred update after the draw) |
 | `themeName` | text | The theme on show. A change redraws the band. | `useTheme()` |
 | `log` | list | The last 300 log lines. | `note()` |
@@ -348,12 +349,12 @@ The module variables `scene`, `sounds`, `loop`, `timer`, `isTicking` and `stats`
 
 ### 3.10 Sounds
 
-A theme can play a sound at four moments. The sounds are optional. A theme with no `sounds` block is silent. `/theme-mute` silences all four cues without editing the theme. The mute holds for the session and a hot reload.
+A theme can play a sound at four moments. The sounds are optional. A theme with no `sounds` block is silent. `/theme-sound` sets the sound mode without editing the theme. The mode is `all` by default. `all` plays all four cues and the working loop. `cues` plays the start, success and error cues but no working loop. `off` plays nothing. The mode holds for the session and a hot reload.
 
 | Cue | When it plays | Play mode |
 |-----|---------------|-----------|
 | `start` | `turn.start`, main loop only. | Once. |
-| `working` | When the play call of the `start` cue returns, while the beat is `working`. | Looped. It stops when the turn ends, at `/theme-mute`, at `session.end`, or when a theme switch replaces it. |
+| `working` | When the play call of the `start` cue returns, while the beat is `working`. | Looped, in `all` mode only. It stops when the turn ends, at `/theme-sound cues` or `/theme-sound off`, at `session.end`, or when a theme switch replaces it. Going back to `all` during a turn starts it again. |
 | `success` | The beat becomes `complete`. | Once, with the finale. |
 | `error` | `turn.complete` with a reason other than `answer` or `aborted`. | Once. |
 
@@ -369,7 +370,7 @@ Each platform plays the clips in a different way:
 
 On Windows, `gain` changes only 16-bit PCM WAV clips, because `SoundPlayer` has no volume control. Other WAV clips play at their own level.
 
-A looped WAV clip on Windows starts PowerShell with `PlayLooping()`. The child runs until it is stopped. The engine does not pass its signal to a hook. So `stopLoop()` also calls `stopWindowsLoops()`, which ends the child. `stopLoop()` runs at the start of a turn, at the end of a turn, at `/theme-mute`, at a theme switch and at `session.end`. The Windows stop is not verified. The tests use a fake child that ends only when the engine kills it. Section 7 lists the open points.
+A looped WAV clip on Windows starts PowerShell with `PlayLooping()`. The child runs until it is stopped. The engine does not pass its signal to a hook. So `stopLoop()` also calls `stopWindowsLoops()`, which ends the child. `stopLoop()` runs at the start of a turn, at the end of a turn, at `/theme-sound cues` or `/theme-sound off`, at a theme switch and at `session.end`. The Windows stop is not verified. The tests use a fake child that ends only when the engine kills it. Section 7 lists the open points.
 
 A failed PowerShell call returns its cause. `/theme-sound-test` shows that cause in its reply.
 
@@ -650,7 +651,7 @@ The expected output contains messages that look like problems. They are not prob
 | Message | Why you can ignore it |
 |---------|----------------------|
 | `types … declares on $: nothing` | Correct. The mod adds nothing to `$`. |
-| `answers its own command` | Correct. Each of the 9 commands answers itself. |
+| `answers its own command` | Correct. Each of the 8 commands answers itself. |
 | `gating hook with .catch` | Correct. Three hooks pass the event on when they fail. |
 | `gating hook without .catch` | Correct. `audio.play` and `theme-sound-test` catch their own PowerShell error and return a reply, so they do not throw. |
 | `hooks/hooks.json names a hooks module` | Not a failure. The plugin directory applies its own rules to a code module, and this command does not. The directory's own validation decides whether it accepts the plugin. |
@@ -659,7 +660,7 @@ The output ends with a note. It says that the plugin directory's own rules were 
 
 The output also lists what the mod uses. Compare it with this list:
 
-- Hooks: `audio.play`, `session.start`, 10 `command.run` hooks (`theme-hide`, `theme-show`, `theme-mute`, `theme-unmute`, `theme-list`, `theme-use`, `theme-build`, `theme-new`, `theme-sound-test`, `theme-dump`), `turn.start`, `turn.complete`, `classic.SubagentStart`, `classic.SubagentStop`, `tool.call`, `turn.step`, `session.measure`, `session.end`, `ui.render{component=AbovePrompt}`.
+- Hooks: `audio.play`, `session.start`, 9 `command.run` hooks (`theme-hide`, `theme-show`, `theme-sound`, `theme-list`, `theme-use`, `theme-build`, `theme-new`, `theme-sound-test`, `theme-dump`), `turn.start`, `turn.complete`, `classic.SubagentStart`, `classic.SubagentStop`, `tool.call`, `turn.step`, `session.measure`, `session.end`, `ui.render{component=AbovePrompt}`.
 - Stored values: the 13 names in section 3.9.
 - Environment reads: `HOME`, `OS`, `USERPROFILE`. Environment writes: none.
 - Engine calls: `$.agent.list`, `$.audio.play`, `$.clock.after`, `$.clock.every`, `$.clock.now`, `$.command.register`, `$.env.get`, `$.fs.exists`, `$.fs.list`, `$.fs.read`, `$.fs.stat`, `$.fs.write`, `$.process.run`, `$.process.spawn`, `$.state.get`, `$.state.set`, `$.ui.blit`, `$.ui.resolve`.
@@ -675,14 +676,14 @@ If the output lists a hook or call that is not in this list, the code and this d
    claude plugin test mods/theme-cli
    ```
 
-3. **Expected result:** the last lines are `39 pass` and `0 fail`. The runner reports 13 tests in `register.test.tsx`, 18 in `theme.test.tsx` and 8 in `winaudio.test.tsx`.
+3. **Expected result:** the last lines are `42 pass` and `0 fail`. The runner reports 13 tests in `register.test.tsx`, 21 in `theme.test.tsx` and 8 in `winaudio.test.tsx`.
 
 In this check, the output ended with these lines, and the exit code was 0:
 
 ```text
- 39 pass
+ 42 pass
  0 fail
-Ran 39 tests across 3 files. [1.19s]
+Ran 42 tests across 3 files. [1.30s]
 ```
 
 Do not use `bun test` for these tests. In this check, `bun test` in `mods/theme-cli` printed this error: `error: Cannot find module 'claude-code/testing'`. The output then ended with these lines, and the exit code was 1:
@@ -776,11 +777,14 @@ Each row names one test and the line where the test starts.
 | a theme with no sounds plays nothing | 236 | A theme without a `sounds` block plays no clip. |
 | a sound file that is missing is named in the status and the other cues still play | 244 | The status says `missing sounds: working`. The start clip still plays. |
 | a bad "sounds" entry in theme.json falls back to placeholders and says why | 256 | A `sounds` entry without a `file` path sends the theme to placeholders. The dump says why. |
-| /theme-mute silences every cue and the loop, and /theme-unmute brings them back | 265 | Mute stops the loop. Unmute restarts the working loop during a turn. |
-| the build runs under the first Python launcher that answers | 287 | With only `py` installed, the build runs `py -3 -I`. |
-| with no Python at all the status says so and the older cache or placeholders stand | 296 | No build runs. The dump says `no Python found`. |
-| with HOME unset, the library is found under USERPROFILE | 305 | The build receives the `USERPROFILE` folder as `--home`. |
-| theme.json paths: drive letters, UNC and ~\ are handled as Windows paths | 319 | The TypeScript path rule treats `C:\`, `C:/`, UNC paths and `~\` as Windows paths. |
+| /theme-sound off silences every cue and the loop, and all brings them back | 265 | `off` plays no clip, and the loop stops. `all` during a turn restarts the working loop. |
+| /theme-sound cues plays the start, success and error cues, but no working loop | 287 | The start clip plays, the working loop does not start, and the success clip plays at the answer. |
+| /theme-sound cues stops a loop that is already playing | 300 | `cues` during a turn ends the loop. The finish cue still plays. |
+| /theme-sound with no argument shows the mode, and an unknown mode is refused | 313 | The reply is `Sounds: all. Set with /theme-sound all, cues or off.` `loud` gets `Unknown mode "loud". Use all, cues or off.` |
+| the build runs under the first Python launcher that answers | 320 | With only `py` installed, the build runs `py -3 -I`. |
+| with no Python at all the status says so and the older cache or placeholders stand | 329 | No build runs. The dump says `no Python found`. |
+| with HOME unset, the library is found under USERPROFILE | 338 | The build receives the `USERPROFILE` folder as `--home`. |
+| theme.json paths: drive letters, UNC and ~\ are handled as Windows paths | 352 | The TypeScript path rule treats `C:\`, `C:/`, UNC paths and `~\` as Windows paths. |
 
 | Test (in `hooks/winaudio.test.tsx`) | Line | Rule it proves |
 |-------------------------------------|------|----------------|
@@ -791,7 +795,7 @@ Each row names one test and the line where the test starts.
 | off Windows, the clip goes on to the engine | 119 | On macOS, the engine's player gets the clip. No child starts. |
 | a non-WAV or asset clip on Windows goes on to the engine | 131 | An mp3 clip and an asset clip reach the engine on Windows. No child starts. |
 | a PowerShell failure rejects, so the caller can log it | 144 | A child that exits with code 1 makes the command reply name `powershell exited 1`. |
-| theme-cli stopping its loop ends the Windows loop | 156 | `/theme-mute` calls `stopLoop()`, which ends a looped child, and the command returns. The child is a fake. The test does not show that PowerShell stops on Windows. |
+| theme-cli stopping its loop ends the Windows loop | 156 | `/theme-sound off` calls `stopLoop()`, which ends a looped child, and the command returns. The child is a fake. The test does not show that PowerShell stops on Windows. |
 
 ### 6.6 Problems and solutions
 
@@ -813,7 +817,7 @@ Each row names one test and the line where the test starts.
 | A frame has a colored box around the sprite | The sheet background is not clear. | Set `key` to the background color `[r, g, b]`. Type `/theme-build`. |
 | All companions have the same color | `cast.companion.frame` has no `recolor`, or `recolor.hue` does not match the base frame. | Add `recolor` with `hue` set to the body hue of the base frame. A second fix is below the table. |
 | No sound plays on Windows | The PowerShell player failed. Or the clip is not a WAV, and the engine plays nothing on Windows. | Type `/theme-sound-test`. If it fails, the reply says why, as `Could not play the tone: <cause>`. Type `/theme-dump`. Read the `sounds=` line. Section 7 lists the Windows limits. |
-| No sound plays | The theme has no `sounds` block, the sounds are muted, or the platform has no player (Linux). | Type `/theme-dump`. Read the `sounds=` and `muted=` line. Section 7 lists the platform limits. |
+| No sound plays | The theme has no `sounds` block, the sound mode is `off`, or the platform has no player (Linux). | Type `/theme-sound`. If it shows `off`, type `/theme-sound all`. Type `/theme-dump` and read the `sounds=` and `mode=` line. Section 7 lists the platform limits. |
 | You edited an image and nothing changed | The session loaded the theme before the edit. | Type `/theme-build`. |
 
 For the companion color row, list one frame for each slot in `cast.companion.frames`. Raise `range` if needed.
@@ -847,7 +851,7 @@ In this check, that command printed nothing and exited with 0, run from the repo
 - **Root-relative paths on Windows.** A path such as `\art\a.png` has no drive letter. The mod and the build script can read it differently. A Python check with `PureWindowsPath` on macOS reports `\art\a.png` as not absolute. No Windows run has happened. Use `~/`, a drive letter or a path relative to the theme folder.
 - **No first frame without a band.** A tick does nothing until `ui.render` records the band. The first frame comes from the render.
 - **No survey.** The strip does not show while the engine shows a survey.
-- **Mute scope.** The mute holds for the session and a hot reload. Whether a new session starts unmuted was not tested.
+- **Sound mode scope.** The mode holds for the session and a hot reload. Whether a new session starts in `all` mode after `/theme-sound off` was not tested.
 - **Sound on Linux.** The engine has no player on Linux, and the mod adds none. Playback on Linux was not tested.
 - **Sound on Windows.** The mod plays WAV clips itself, with PowerShell, in `hooks/winaudio.ts`. Other formats go to the engine, which plays nothing on Windows. The fake-engine tests ran on macOS. Real playback on Windows is unverified. Task T5 in `docs/win-audio-merge-2026-10-25.md` is the Windows check, and it is pending. When the engine ships a Windows player, remove `hooks/winaudio.ts`, the `winAudio(on)` call and the `/theme-sound-test` command in `register.tsx`, and `hooks/wav.ts` if nothing else imports it.
 - **Windows loop stop.** Unverified on Windows. `stopLoop()` ends the child through `stopWindowsLoops()`. The mod then calls `return()` on the child's stream. The engine's documentation says `return()` kills the child. The child's stream is read in a separate task at the same time, so whether `return()` ends a child that writes no output is unverified. A hot reload resets the `loops` set, so `stopWindowsLoops()` cannot stop a child that started before the reload.
@@ -884,7 +888,7 @@ In this check, that command printed nothing and exited with 0, run from the repo
 | Slot | The color number of a companion. It is the lowest number that is free. |
 | Beat | The state of the main turn: `idle`, `working`, `complete`, `aborted` or `error`. |
 | Cue | One moment of a turn that can play a sound: `start`, `working`, `success` or `error`. |
-| Mute | The state that silences every cue. Set by `/theme-mute`. |
+| Sound mode | The setting `all`, `cues` or `off` that decides which cues play. Set by `/theme-sound`. |
 | Player | The part that plays a clip: the engine's player on macOS, or the mod's PowerShell child on Windows. |
 | Child | The PowerShell process that the mod starts to play one clip on Windows. |
 | Hot reload | Claude Code reloads a mod's code while a session runs. Module variables reset. |
