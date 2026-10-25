@@ -165,6 +165,7 @@ claude --plugin-dir /path/to/claude-mods/mods/switchboard
 | `brain-dump` | Turns long, messy prompts into a structured task after a few clarifying questions. See `mods/brain-dump/README.md`. |
 | `cache-warm` | Keeps the prompt cache warm with a countdown band and small pings before it lapses. See `mods/cache-warm/README.md`. |
 | `handoff` | Packages the session into a prompt for a fresh chat. It offers this at 250,000 tokens, or when the cache has likely gone cold. See `mods/handoff/README.md`. |
+| `reflect` | Spots a lasting rule in a prompt you type. After Claude's reply, it asks where to save the rule: auto memory or a `CLAUDE.md` file. See `mods/reflect/README.md`. |
 | `screen-share` | Draws names, emails, phone numbers and amounts as shaded bars during a screen share. See `mods/screen-share/README.md`. |
 | `theme-cli` | Pixel-art characters run along a strip above the prompt while Claude works. Terminal only. See `mods/theme-cli/README.md`. |
 

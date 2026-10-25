@@ -25,6 +25,11 @@
       "description": "Packages the session's goal, files, skills, tools and links into a prompt for a fresh chat, offered at 250k tokens or when the cache has likely gone cold."
     },
     {
+      "name": "reflect",
+      "source": "./mods/reflect",
+      "description": "Spots a lasting rule in a prompt you type and, after Claude's reply, asks where to save it: auto memory or a CLAUDE.md file."
+    },
+    {
       "name": "screen-share",
       "source": "./mods/screen-share",
       "description": "Screen-share mode: names, emails, phone numbers and amounts draw as shaded bars on screen while Claude still reads the real data."
