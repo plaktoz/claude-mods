@@ -146,6 +146,127 @@ test('a ping that rejects clears isPinging, logs to the debug log and raises no 
   expect(seen.logs.some(l => l.to === 'debug' && l.text.includes('ping'))).toBe(true)
 })
 
+const never = new Promise<void>(() => {})
+
+test('a ping that never answers stops after 30 seconds and the band drops the pinging text', async ($, on) => {
+  const { clock, seen, endTurn, text } = world($, on, undefined, never)
+
+  await endTurn()
+  await clock.advance(4 * MIN + 15_000)
+  expect(await text()).toContain(PINGING)
+
+  await clock.advance(29_000)
+  expect(await text()).toContain(PINGING)
+
+  await clock.advance(1_000)
+  await clock.settle()
+
+  const shown = await text()
+  expect(seen.forks).toBe(1)
+  expect(shown).toBe('engine')
+  expect(shown).not.toContain(PINGING)
+  expect(seen.logs.filter(l => l.to === 'debug' && l.text.includes('ping failed'))).toHaveLength(1)
+})
+
+test('a reply after the timeout changes no expiry, token count or ping count', async ($, on) => {
+  let release = () => {}
+  const hold = new Promise<void>(resolve => {
+    release = resolve
+  })
+  const late = { isAnswered: true, text: 'ok', usage: { ...usage, cache_read_input_tokens: 999_000 } }
+  const { clock, endTurn, text } = world($, on, late, hold)
+
+  await endTurn()
+  await clock.advance(4 * MIN + 15_000)
+  await clock.advance(30_000)
+  await clock.settle()
+  expect(await text()).toBe('engine')
+
+  // A turn ends after the timeout: 214k tokens, 0 pings, expiry 5:00 from now.
+  await endTurn()
+  await clock.advance(MIN)
+  const before = await text()
+  expect(before).toContain('4:00')
+  expect(before).toContain('214k tokens')
+  expect(before).toContain('first ping in 3:15')
+
+  // The old reply arrives one minute later. It must leave the band as it was.
+  release()
+  await clock.settle()
+
+  expect(await text()).toBe(before)
+})
+
+test('a turn that ends during a hung ping keeps its cache when the timeout fires', async ($, on) => {
+  let release = () => {}
+  const hold = new Promise<void>(resolve => {
+    release = resolve
+  })
+  const { clock, endTurn, text } = world($, on, undefined, hold)
+
+  await endTurn()
+  await clock.advance(4 * MIN + 15_000)
+  await $.turn.start({ text: 'next', turnId: 't2' })
+  await $.turn.complete({
+    answer: 'done',
+    durationMs: 1,
+    isAborted: false,
+    reason: 'answer',
+    turnId: 't2',
+    usage: { ...usage, cache_read_input_tokens: 0, cache_creation_input_tokens: 214_000, model: 'm' },
+  })
+  await clock.advance(30_000)
+  await clock.settle()
+
+  const shown = await text()
+  expect(shown).toContain('Cache warm')
+  expect(shown).toContain('Keeping warm ·')
+  expect(shown).not.toContain(PINGING)
+  release()
+})
+
+test('Stop keeping warm during a hung ping still clears the ping when the timeout fires', async ($, on) => {
+  const { clock, endTurn, text } = world($, on, undefined, never)
+
+  await endTurn()
+  await clock.advance(4 * MIN + 15_000)
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  await ui.press({ key: 'toggle' })
+  await ui.unmount()
+  await clock.advance(30_000)
+  await clock.settle()
+
+  const shown = await text()
+  expect(shown).toBe('engine')
+  expect(shown).not.toContain(PINGING)
+})
+
+test('the timeout of an older ping does not end a newer ping', async ($, on) => {
+  const { clock, seen, endTurn, text } = world($, on, undefined, never)
+  const press = async () => {
+    const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+    await ui.press({ key: 'toggle' })
+    await ui.unmount()
+  }
+
+  await endTurn()
+  await clock.advance(4 * MIN + 15_000)
+  await clock.advance(10_000)
+  // Stop, then Keep warm: arm() sends a second ping at once.
+  await press()
+  await press()
+  await clock.settle()
+  expect(seen.forks).toBe(2)
+
+  // The first ping times out here. The second is still waiting.
+  await clock.advance(20_000)
+  expect(await text()).toContain(PINGING)
+
+  await clock.advance(10_000)
+  await clock.settle()
+  expect(await text()).not.toContain(PINGING)
+})
+
 test('Stop keeping warm cancels the pings and the cache is left to expire', async ($, on) => {
   const { clock, seen, endTurn, text } = world($, on)
 

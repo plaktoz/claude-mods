@@ -30,26 +30,27 @@ All logic is in one file: `hooks/register.tsx`. The line numbers apply to this v
 
 | Item | File | Line |
 |------|------|------|
-| Constants (ping lead time, tick, bar width, ping text) | `hooks/register.tsx` | 6–10 |
-| Stored values `cache`, `isOn`, `now` | `hooks/register.tsx` | 15–17 |
-| Module variables (TTL, ping limit, timers, turn flag) | `hooks/register.tsx` | 30–34 |
-| `disarm()` – cancels both timers | `hooks/register.tsx` | 36 |
-| `logError()` – writes an error to the debug log | `hooks/register.tsx` | 44 |
-| `tick()` – redraws the countdown, detects expiry | `hooks/register.tsx` | 48 |
-| `ping()` – sends the ping, handles the reply | `hooks/register.tsx` | 59 |
-| `pingFailed()` – stops keeping warm when a ping throws | `hooks/register.tsx` | 92 |
-| `arm()` – starts both timers from the stored cache | `hooks/register.tsx` | 98 |
-| `register()` – reads the settings, adds the hooks | `hooks/register.tsx` | 114 |
-| Hook `session.start` | `hooks/register.tsx` | 119 |
-| Hook `session.end` | `hooks/register.tsx` | 125 |
-| Hook `turn.start` | `hooks/register.tsx` | 132 |
-| Hook `turn.complete` | `hooks/register.tsx` | 141 |
-| Hook `ui.render` (the band) | `hooks/register.tsx` | 160 |
-| Button "Stop keeping warm" / "Keep warm" | `hooks/register.tsx` | 188 |
+| Constants (ping lead time, tick, bar width, ping timeout, ping text) | `hooks/register.tsx` | 7–12 |
+| Stored values `cache`, `isOn`, `now` | `hooks/register.tsx` | 17–19 |
+| Module variables (TTL, ping limit, timers, turn flag, ping count) | `hooks/register.tsx` | 32–38 |
+| `disarm()` – cancels both timers | `hooks/register.tsx` | 40 |
+| `logError()` – writes an error to the debug log | `hooks/register.tsx` | 48 |
+| `withTimeout()` – gives up on a ping after `PING_TIMEOUT_MS` | `hooks/register.tsx` | 56 |
+| `tick()` – redraws the countdown, detects expiry | `hooks/register.tsx` | 71 |
+| `ping()` – sends the ping, handles the reply | `hooks/register.tsx` | 82 |
+| `pingFailed()` – stops keeping warm when a ping throws or times out | `hooks/register.tsx` | 123 |
+| `arm()` – starts both timers from the stored cache | `hooks/register.tsx` | 129 |
+| `register()` – reads the settings, adds the hooks | `hooks/register.tsx` | 145 |
+| Hook `session.start` | `hooks/register.tsx` | 150 |
+| Hook `session.end` | `hooks/register.tsx` | 156 |
+| Hook `turn.start` | `hooks/register.tsx` | 163 |
+| Hook `turn.complete` | `hooks/register.tsx` | 172 |
+| Hook `ui.render` (the band) | `hooks/register.tsx` | 191 |
+| Button "Stop keeping warm" / "Keep warm" | `hooks/register.tsx` | 219 |
 | Type of the stored values | `types/index.d.ts` | 1–22 |
 | Setting `ttl` | `.claude-plugin/plugin.json` | 7 |
 | Setting `maxPings` | `.claude-plugin/plugin.json` | 15 |
-| Tests, one line for each of the 7 tests (see 6.4) | `hooks/register.test.tsx` | 64, 76, 88, 98, 110, 132, 149 |
+| Tests, one line for each of the 12 tests (see 6.4) | `hooks/register.test.tsx` | 64, 76, 88, 98, 110, 132, 151, 171, 200, 228, 244, 270 |
 
 Other files: `hooks/hooks.json` names the module on line 2. `tsconfig.json` is for the type-check. See 6.6.
 
@@ -69,7 +70,7 @@ stateDiagram-v2
     Warm --> Pinging: 45 s before expiry
     Pinging --> Warm: ping answered
     Warm --> NoCache: timer reaches 0
-    Pinging --> NoCache: no reply
+    Pinging --> NoCache: no reply or 30 s
     linkStyle 4,5 stroke-width:3px
 ```
 
@@ -80,7 +81,7 @@ stateDiagram-v2
 | No cache | The mod holds no cache expiry. | Hidden |
 | Running | A turn is in progress. Both timers are cancelled. | Hidden |
 | Warm | The cache is valid. The countdown runs. | Shown |
-| Pinging | A ping request is in progress. | Shown |
+| Pinging | A ping request is in progress. It ends at a reply, or after 30 seconds. | Shown |
 
 In the Warm state, the mod sends a ping only when both conditions are true:
 
@@ -127,13 +128,13 @@ gantt
 | `ui.render` (`AbovePrompt`) | Not during a survey, not during a turn, cache not expired | Draw the band. |
 | `session.end` | Always | Cancel both timers. Clear the cache. |
 
-`arm()` sets two timers. The tick timer (line 108) calls `tick()` every 1 second. The ping timer (line 110) calls `ping()` 45 seconds before expiry.
+`arm()` sets two timers. The tick timer (line 139) calls `tick()` every 1 second. The ping timer (line 141) calls `ping()` 45 seconds before expiry.
 
-Subagent turns do not change the timers or the cache. `turn.start` and `turn.complete` act only when `e.agentId` is undefined (lines 133 and 142).
+Subagent turns do not change the timers or the cache. `turn.start` and `turn.complete` act only when `e.agentId` is undefined (lines 164 and 173).
 
 ### 3.4 The ping
 
-`ping()` sets `isPinging` to true (line 61). Then it sends one request with `$.model.fork` (line 65). The request uses the conversation as the main thread last sent it. The usage in the reply shows how much of the request the cache served (line 82).
+`ping()` sets `isPinging` to true (line 85). Then it sends one request with `$.model.fork` (line 89). The request has a 30-second timeout (line 56). The request uses the conversation as the main thread last sent it. The usage in the reply shows how much of the request the cache served (line 112).
 
 ```mermaid
 flowchart LR
@@ -154,23 +155,25 @@ flowchart LR
 | The reply is answered and the cache served at least half of the tokens | Set expiry to now plus TTL. Add 1 to the ping count. Clear `isPinging`. Call `arm()`. |
 | The reply is answered and the cache served less than half | Do the same. Also show a toast: "The cache had already gone cold, so that ping rewrote the context at full price." |
 | No reply, or the request failed | Cancel both timers. Clear the cache. Show a toast: "Cache keep-warm stopped: the ping got no reply." |
-| An error is thrown after `isPinging` is set, for example at line 80 when the reply has no `usage` | Log the error to the debug log. Cancel both timers. Clear the cache. Show no toast. |
-| A turn started during the ping | Return without changing the cache. `isPinging` stays true until the turn completes (lines 149 and 152). |
+| An error is thrown after `isPinging` is set, for example at line 110 when the reply has no `usage` | Log the error to the debug log. Cancel both timers. Clear the cache. Show no toast. |
+| No reply within 30 seconds (the timeout) | Log one line to the debug log. Cancel both timers. Clear the cache. Show no toast. Do nothing if a turn runs, a later ping has started, or `isPinging` is clear. |
+| A reply arrives after the timeout | Ignored. The state does not change. |
+| A turn started during the ping | Return without changing the cache. `isPinging` stays true until the turn completes (lines 180 and 183). |
 
 ### 3.5 Stored values
 
 | Name | Type | Meaning | Changed by (line) |
 |------|------|---------|-------------------|
-| `cache.expiresAt` | number | Time when the cache expires, in milliseconds. 0 means no cache. | Set by `turn.complete` (149) and `ping()` (86). Cleared at 53, 74, 95, 103 and 127. |
-| `cache.tokens` | number | Tokens in the cached conversation. | Set by 149 and 86. Cleared with the cache. |
-| `cache.pings` | number | Pings sent since the last reply. | Set to 0 by 149 and by the Keep warm button (193). Increased by 86. |
-| `cache.isPinging` | boolean | A ping is in progress. | Set to true at 61. Set to false at 86, 149 and 152. Cleared with the cache. |
-| `isOn` | boolean | Pinging is allowed. | Toggled by the button (192). |
-| `now` | number | Time at the last update. The band redraws from it. | Set at 56, 85, 107 and 148. |
+| `cache.expiresAt` | number | Time when the cache expires, in milliseconds. 0 means no cache. | Set by `turn.complete` (180) and `ping()` (116). Cleared at 76, 104, 126, 134 and 158. |
+| `cache.tokens` | number | Tokens in the cached conversation. | Set by 180 and 116. Cleared with the cache. |
+| `cache.pings` | number | Pings sent since the last reply. | Set to 0 by 180 and by the Keep warm button (224). Increased by 116. |
+| `cache.isPinging` | boolean | A ping is in progress. | Set to true at 85. Set to false at 116, 180 and 183. Cleared with the cache. |
+| `isOn` | boolean | Pinging is allowed. | Toggled by the button (223). |
+| `now` | number | Time at the last update. The band redraws from it. | Set at 79, 115, 138 and 179. |
 
-"Cleared with the cache" means the mod sets the whole `cache` value to `EMPTY` (line 12).
+"Cleared with the cache" means the mod sets the whole `cache` value to `EMPTY` (line 14).
 
-The code comments say the stored cache survives a reload. The timers and `isTurnRunning` are module variables. A reload resets them. `session.start` then arms the timers again (lines 27–29).
+The code comments say the stored cache survives a reload. The timers and `isTurnRunning` are module variables. A reload resets them. `session.start` then arms the timers again (lines 29–31).
 
 ## 4. Settings
 
@@ -178,8 +181,8 @@ Change the settings in `/config`. This review did not run the `/config` steps. N
 
 | Setting | Values | Default | Effect | Line |
 |---------|--------|---------|--------|------|
-| `ttl` | `5m` or `1h` | `5m` | The cache lifetime. Any other value counts as `5m`. Set it to the real lifetime of your cache. | 115 |
-| `maxPings` | a number | 6 | The most pings after one reply. Set 0 to turn pinging off. A negative number counts as 0. | 116 |
+| `ttl` | `5m` or `1h` | `5m` | The cache lifetime. Any other value counts as `5m`. Set it to the real lifetime of your cache. | 146 |
+| `maxPings` | a number | 6 | The most pings after one reply. Set 0 to turn pinging off. A negative number counts as 0. | 147 |
 
 The fixed constants are these:
 
@@ -188,7 +191,8 @@ The fixed constants are these:
 | `LEAD_MS` | 45,000 ms (45 seconds) | 7 | The ping starts this long before expiry. |
 | `TICK_MS` | 1,000 ms (1 second) | 8 | The countdown redraws this often. |
 | `BAR_CELLS` | 16 | 9 | The number of cells in the bar. |
-| `PING_PROMPT` | Text | 10 | The text sent with each ping: `Cache keep-alive ping. Reply with the single word "ok" and nothing else.` |
+| `PING_TIMEOUT_MS` | 30,000 ms (30 seconds) | 11 | A ping with no reply in this time counts as failed. It is not a setting. |
+| `PING_PROMPT` | Text | 12 | The text sent with each ping: `Cache keep-alive ping. Reply with the single word "ok" and nothing else.` |
 
 The engine does not report the real cache lifetime. If `ttl` is wrong, the pings arrive too late or too early.
 
@@ -311,7 +315,7 @@ To validate means to check that the mod works as this document says. There are t
 | Level | What it proves | Time | Needs an API request |
 |-------|----------------|------|----------------------|
 | 1. Validate | The files are correct, and the engine can read the mod. | Under 1 second | No |
-| 2. Test | The logic is correct: countdown, ping, stop and limit. | 1 to 2 seconds | No |
+| 2. Test | The logic is correct: countdown, ping, timeout, stop and limit. | 2 to 3 seconds | No |
 | 3. Live check | The mod works in a real session. | 5 minutes or more | Yes, a small one |
 
 ### 6.1 Level 1: validate the files
@@ -345,7 +349,7 @@ The output also lists what the mod uses. Compare it with this list:
 - Stored values: `cache-warm.cache`, `cache-warm.isOn`, `cache-warm.now`
 - Engine calls: `$.clock.after`, `$.clock.every`, `$.clock.now`, `$.model.fork`, `$.state.get`, `$.state.set`, `$.ui.log`, `$.ui.resolve`, `$.ui.toast`
 
-If the output lists a hook or a call that is not in this list, the code and this document differ. Tell the owner of the mod.
+If the output lists a hook or a call not in this list, the code and this document differ. Tell the owner of the mod.
 
 ### 6.2 Level 2: run the tests
 
@@ -358,12 +362,12 @@ If the output lists a hook or a call that is not in this list, the code and this
 
 3. Check the last lines.
 
-**Expected result:** the last lines are `7 pass` and `0 fail`. This review printed:
+**Expected result:** the last lines are `12 pass` and `0 fail`. This review printed:
 
 ```text
- 7 pass
+ 12 pass
  0 fail
-Ran 7 tests across 1 file. [1.22s]
+Ran 12 tests across 1 file. [2.90s]
 ```
 
 The time in brackets changes from run to run.
@@ -390,14 +394,19 @@ Do this once after you install. Use `ttl` = `5m`, the default, so that you wait 
 ### 6.4 What each test proves
 
 | Test (in `hooks/register.test.tsx`) | Line | Rule it proves |
-|-------------------------------------|------|----------------|
+|---|---|---|
 | a finished turn shows the countdown and the first ping | 64 | After `turn.complete`, the band shows `5:00`, `214k tokens` and `first ping in 4:15`. |
 | a ping is sent before the cache lapses and the countdown restarts | 76 | No ping at 4:14. One ping at 4:16. The status then shows `next ping in`. |
 | pings stop after the limit and the band disappears when the cache lapses | 88 | Exactly 6 pings. Then the band is gone. |
 | a failed ping stops keeping warm and says so | 98 | A ping with no reply gives a toast and removes the band. |
 | a turn that starts during a ping and ends without usage clears isPinging | 110 | After such a turn, the band shows no pinging status. |
 | a ping that rejects clears isPinging, logs to the debug log and raises no rejection | 132 | After the error, the band is hidden. One line goes to the debug log. The kit fails the file on an unhandled rejection. |
-| Stop keeping warm cancels the pings and the cache is left to expire | 149 | After the button press: 0 pings and the status `Not keeping warm`. |
+| a ping that never answers stops after 30 seconds and the band drops the pinging text | 151 | At 29 seconds the band still says pinging. At 30 seconds it does not. One debug-log line is written. |
+| a reply after the timeout changes no expiry, token count or ping count | 171 | The late reply changes nothing. The band still shows `4:00`, `214k tokens` and `first ping in 3:15`. |
+| a turn that ends during a hung ping keeps its cache when the timeout fires | 200 | The turn ends during the ping. When the timeout fires, the band keeps its cache and shows no pinging text. |
+| Stop keeping warm during a hung ping still clears the ping when the timeout fires | 228 | After Stop, the timeout still clears the pinging text. |
+| the timeout of an older ping does not end a newer ping | 244 | Stop, then Keep warm, starts a second ping. The first ping timeout leaves the second ping running. |
+| Stop keeping warm cancels the pings and the cache is left to expire | 270 | After the button press: 0 pings and the status `Not keeping warm`. |
 
 ### 6.5 Problems and solutions
 
@@ -408,7 +417,8 @@ Do this once after you install. Use `ttl` = `5m`, the default, so that you wait 
 | `✘ Validation failed` | A file of the mod has an error. | Read the lines under the `✘ Found` heading. Fix the file they name. |
 | No band after you send a prompt | The mod did not load. | Run `claude plugin validate mods/cache-warm` from the repository root. Read any `✘` line. Check that the path in the flag or the setting is correct. |
 | No band after you send a prompt, and no error | The last turn gave no usage data, for example because you interrupted it. | Send a new prompt. Wait for the full answer. |
-| The band shows `Pinging to keep the cache warm…` for a long time | A ping did not finish. See "No timeout on the ping" in section 7. | Send a new prompt. Wait for the full answer. A turn that completes clears the status. |
+| The band shows `Pinging to keep the cache warm…` for more than 30 seconds | The ping has not ended. The timeout should end it within 30 seconds. | Send a new prompt. Wait for the full answer. Tell the owner of the mod how long the text stayed. |
+| The band disappears after about 30 seconds of pinging. No toast says why. | The ping got no reply within 30 seconds. The mod writes one line to the debug log. | Send a new prompt. The next reply starts the cache timer again. |
 | The band appears but no ping is sent | Pinging is off, the limit is reached, or `maxPings` is not a number. | Read the status line. If it says `Not keeping warm`, press `Keep warm`. Check that `maxPings` is a number above 0. |
 | Pings arrive too late, or too early | `ttl` does not match your real cache lifetime. | Set `ttl` in `/config` to the real value. |
 | A toast says the cache had already gone cold | The cache had expired when the ping arrived. A likely cause is a `ttl` setting longer than the real lifetime. | Set `ttl` in `/config` to the real value. |
@@ -422,17 +432,18 @@ The file `tsconfig.json` extends `./.claude-plugin/types/tsconfig.json`. That fo
 ## 7. Known limits
 
 - **Cost.** Each ping reads the whole conversation from the cache. The band and the manifest state a cost of 5 to 10 percent of the full price. This review did not measure that price. `maxPings` limits the pings after one reply.
-- **TTL is a setting.** The mod trusts `ttl`. It does not read the real lifetime. Any value other than `1h` counts as `5m` (line 115).
-- **Ping time.** The new expiry is the time the reply arrives plus the TTL (lines 81 and 86). The mod does not know when the API set the cache. The real expiry can be a little earlier.
-- **Button label.** After the ping limit, the status shows "Not keeping warm". The button still shows "Stop keeping warm" (line 190). Pressing it sets `isOn` to false.
+- **TTL is a setting.** The mod trusts `ttl`. It does not read the real lifetime. Any value other than `1h` counts as `5m` (line 146).
+- **Ping time.** The new expiry is the time the reply arrives plus the TTL (lines 111 and 116). The mod does not know when the API set the cache. The real expiry can be a little earlier.
+- **Button label.** After the ping limit, the status shows "Not keeping warm". The button still shows "Stop keeping warm" (line 221). Pressing it sets `isOn` to false.
 - **Stop persists.** A new turn does not reset `isOn`. After "Stop keeping warm", pinging stays off until you press "Keep warm".
-- **Turn without usage.** A turn that ends with no usage data keeps the old expiry (line 149 does not run). If the ping time has already passed, `arm()` sets the ping timer to 0 (line 110), so the ping runs at once. This was verified by reading the code. It was not run.
-- **No timeout on the ping.** The request at line 65 has no time limit. A request that never returns leaves `isPinging` true until a turn completes. The band then hides at expiry. No further ping is sent. The stored cache stays until a turn completes or the session ends. This was verified by reading the code. It was not run.
-- **Late ping reply.** A ping reply that arrives after a turn completes overwrites that turn's token count and sets a new expiry (lines 79 to 86). The band can then show the ping's token count instead of the turn's count. This was verified by reading the code. It was not run.
-- **Invalid `maxPings`.** `Number(...)` returns NaN for a value that is not a number (line 116). `Math.max` keeps NaN. The check at line 109 then fails, so no ping is sent. The status shows "Not keeping warm". This follows from the JavaScript rules. It was not run in the engine.
-- **Legacy Windows console.** The characters `◔`, `█`, `░` and `…` (lines 172, 181, 185 and 186) can display wrongly on a console that does not use UTF-8. Windows Terminal is expected to display them. This was not checked on Windows.
-- **Silent stop on a thrown ping.** When a ping throws, the band disappears and no toast says so. The debug log has one line. The no-reply path shows a toast. This path does not.
-- **Errors are only partly logged.** The mod writes a debug-log line when `tick()` or `ping()` rejects (lines 44 to 46 and 108 to 110). A fork error caught at line 66 is treated as no reply and writes no log line. The `turn.complete` hook has a `.catch` handler (line 158) that calls `next(e)` and writes no log line. `ui.render` (line 160) has no `.catch`. This review did not check what the engine does with these errors.
+- **Turn without usage.** A turn that ends with no usage data keeps the old expiry (line 180 does not run). If the ping time has passed, `arm()` sets the ping timer to 0 (line 141). The ping then runs at once. This was verified by reading the code. It was not run.
+- **Timeout is fixed.** A ping with no reply in 30 seconds counts as failed (line 11). The timeout is not a setting. A reply that arrives later is ignored (lines 56 to 69). The tests cover this with a fake clock (section 6.4).
+- **The timed-out request keeps running.** The code cannot cancel a fork, because `$.model.fork` takes only a prompt. The mod ignores the request. This review did not check whether the engine stops it or bills it. This was verified by reading the types.
+- **Late ping reply.** A ping reply can overwrite the token count of a turn that already completed (lines 109 to 116). It also sets a new expiry. The band can then show the ping's token count instead of the turn's count. This was verified by reading the code. It was not run.
+- **Invalid `maxPings`.** `Number(...)` returns NaN for a value that is not a number (line 147). `Math.max` keeps NaN. The check at line 140 then fails, so no ping is sent. The status shows "Not keeping warm". This follows from the JavaScript rules. It was not run in the engine.
+- **Legacy Windows console.** The characters `◔`, `█`, `░` and `…` can display wrongly on a console that does not use UTF-8. They are on lines 203, 212, 216 and 217. Windows Terminal is expected to display them. This was not checked on Windows.
+- **Silent stop on a thrown ping or a timeout.** When a ping throws or times out, the band disappears and no toast says so. The debug log has one line. The no-reply path shows a toast. This path does not.
+- **Errors are only partly logged.** The mod writes a debug-log line when `tick()` or `ping()` rejects (lines 48 to 50, 139 and 141). A fork error caught at line 90 is treated as no reply and writes no log line. The `turn.complete` hook has a `.catch` handler (line 189) that calls `next(e)` and writes no log line. `ui.render` (line 191) has no `.catch`. This review did not check what the engine does with these errors.
 
 ## 8. Glossary
 
@@ -451,6 +462,7 @@ The file `tsconfig.json` extends `./.claude-plugin/types/tsconfig.json`. That fo
 | Stored value | A value that the engine keeps for the session. See 3.5. |
 | Subagent | A helper run that the main conversation starts. Its turns have an agent ID. |
 | Tick | The one-second timer that redraws the band and checks expiry. |
+| Timeout | The 30-second limit on a ping. A ping with no reply by then counts as failed. See 4. |
 | Toast | A short message that the engine displays. |
 | TTL | The time the API keeps the cache after a request. Set by the `ttl` setting. |
 | Turn | One run of the main loop, from your prompt to the final answer. |

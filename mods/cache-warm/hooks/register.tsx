@@ -7,6 +7,8 @@ import type { Cache } from '../types'
 const LEAD_MS = 45_000
 const TICK_MS = 1000
 const BAR_CELLS = 16
+// A ping that gets no reply by then counts as failed. $.model.fork has no timeout option.
+const PING_TIMEOUT_MS = 30_000
 const PING_PROMPT = 'Cache keep-alive ping. Reply with the single word "ok" and nothing else.'
 
 const EMPTY: Cache = { expiresAt: 0, tokens: 0, pings: 0, isPinging: false }
@@ -32,6 +34,8 @@ let maxPings = 6
 let pingTimer: Timer | null = null
 let tickTimer: Timer | null = null
 let isTurnRunning = false
+// Counts the pings started. A timeout that fires for an older ping is ignored.
+let pingCount = 0
 
 const disarm = () => {
   pingTimer?.cancel()
@@ -44,6 +48,25 @@ const disarm = () => {
 const logError = ($: Engine, what: string, error: unknown) => {
   $.ui.log(`cache-warm ${what} failed: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
 }
+
+const TIMED_OUT = Symbol('timed out')
+
+// Settles with the work, or with TIMED_OUT once PING_TIMEOUT_MS has passed. A reply that
+// arrives later is dropped: nothing reads it, so it cannot change any state.
+const withTimeout = <T,>($: Engine, work: Promise<T>) =>
+  new Promise<T | typeof TIMED_OUT>((resolve, reject) => {
+    const timer = $.clock.after(PING_TIMEOUT_MS, () => resolve(TIMED_OUT))
+    work.then(
+      value => {
+        timer.cancel()
+        resolve(value)
+      },
+      error => {
+        timer.cancel()
+        reject(error)
+      },
+    )
+  })
 
 const tick = async ($: Engine) => {
   const t = await $.clock.now()
@@ -58,16 +81,23 @@ const tick = async ($: Engine) => {
 
 async function ping($: Engine) {
   pingTimer = null
+  const id = ++pingCount
   await update($, cache, c => ({ ...c, isPinging: true }))
 
-  let reply: Awaited<ReturnType<Engine['model']['fork']>> | null = null
+  let reply: Awaited<ReturnType<Engine['model']['fork']>> | typeof TIMED_OUT | null = null
   try {
-    reply = await $.model.fork({ prompt: PING_PROMPT })
+    reply = await withTimeout($, $.model.fork({ prompt: PING_PROMPT }))
   } catch {
     // Treated as a failed ping below.
   }
   // A turn that began meanwhile has refreshed the cache itself.
   if (isTurnRunning) return
+
+  if (reply === TIMED_OUT) {
+    // A turn that completed meanwhile has cleared the mark, so only a ping still marked is failed.
+    if (id === pingCount && (await read($, cache)).isPinging) await pingFailed($, new Error(`no reply in ${PING_TIMEOUT_MS / 1000} seconds`))
+    return
+  }
 
   if (reply === null || !reply.isAnswered) {
     disarm()
@@ -87,8 +117,9 @@ async function ping($: Engine) {
   await arm($)
 }
 
-// A ping that throws after it set isPinging. It stops keeping warm, as a ping
-// with no reply does. It does not re-arm: the ping time has already passed.
+// A ping that throws, or gets no reply within PING_TIMEOUT_MS, after it set
+// isPinging. It stops keeping warm, as a ping with no reply does. It does not
+// re-arm: the ping time has already passed.
 const pingFailed = async ($: Engine, error: unknown) => {
   logError($, 'ping', error)
   disarm()
