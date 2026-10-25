@@ -272,7 +272,7 @@ On Windows, `scripts\install-mods.ps1` installs the mods through the marketplace
 
 3. Do the check in 5.6.
 
-This review did not check whether a change to a file of the mod reloads the mod in an open session. Start a new session after a change.
+This review did not check whether a file change reloads the mod in an open session. Start a new session after a change.
 
 ### 5.4 Method B: load the mod in every session
 
