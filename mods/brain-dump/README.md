@@ -271,7 +271,7 @@ The repository has a marketplace named `claude-mods`. Its file `.claude-plugin/m
 1. Run these two commands in a terminal:
 
    ```bash
-   claude plugin marketplace add plaktoz/claude-mods
+   claude plugin marketplace add https://github.com/plaktoz/claude-mods
    claude plugin install brain-dump@claude-mods
    ```
 
@@ -279,7 +279,9 @@ The repository has a marketplace named `claude-mods`. Its file `.claude-plugin/m
 
 The install uses the `user` scope by default. The mod then runs in every project for you. Add `--scope project` to the install command to share the mod with the current project instead.
 
-Inside a Claude Code session, the same steps are `/plugin marketplace add plaktoz/claude-mods` and `/plugin install brain-dump@claude-mods`.
+Inside a Claude Code session, the same steps are `/plugin marketplace add https://github.com/plaktoz/claude-mods` and `/plugin install brain-dump@claude-mods`. Then run `/reload-plugins`, or start a new session.
+
+Add the marketplace with the repository URL. Do not use the GitHub link to `.claude-plugin/marketplace.json`: the command treats a link as a git repository and fails with `repository ... not found`.
 
 To install from your own clone of this repository, run one script from the repository root. The script points the `claude-mods` marketplace at your clone. It installs the mod that you name, and it makes no symlinks:
 

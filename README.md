@@ -94,11 +94,13 @@ The links point to your copy of this repository, so they work on your machine on
 
 ## Install mods
 
-A mod is a Claude Code plugin in `mods/<name>/`. `.claude-plugin/marketplace.json` lists them, so you install a mod from this repository as from a marketplace. Add the marketplace once:
+A mod is a Claude Code plugin in `mods/<name>/`. `.claude-plugin/marketplace.json` lists them, so you install a mod from this repository as from a marketplace. Add the marketplace once, with the URL of the repository:
 
 ```bash
-claude plugin marketplace add plaktoz/claude-mods
+claude plugin marketplace add https://github.com/plaktoz/claude-mods
 ```
+
+Do not use the GitHub link to `.claude-plugin/marketplace.json`. The command treats a link as a git repository and fails with `repository ... not found`.
 
 Then install a mod. The `--scope` option sets where it applies:
 
@@ -115,7 +117,7 @@ cd /path/to/your-project
 claude plugin install switchboard@claude-mods --scope project
 ```
 
-Inside a Claude Code session, the same steps are `/plugin marketplace add plaktoz/claude-mods` and `/plugin install switchboard@claude-mods`.
+Inside a Claude Code session, the same steps are `/plugin marketplace add https://github.com/plaktoz/claude-mods` and `/plugin install switchboard@claude-mods`. Then run `/reload-plugins`, or start a new session.
 
 To use your local copy of this repository (a branch that is not merged yet), add the marketplace from its path:
 

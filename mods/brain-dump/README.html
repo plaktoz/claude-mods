@@ -464,13 +464,14 @@ Definition of done: Unspecified.</code></pre>
 <p>The repository has a marketplace named <code>claude-mods</code>. Its file <code>.claude-plugin/marketplace.json</code> lists the mods. The marketplace reads the copy of the repository on GitHub, <code>plaktoz/claude-mods</code>.</p>
 <ol>
   <li>Run these two commands in a terminal:
-    <pre><code>claude plugin marketplace add plaktoz/claude-mods
+    <pre><code>claude plugin marketplace add https://github.com/plaktoz/claude-mods
 claude plugin install brain-dump@claude-mods</code></pre>
   </li>
   <li>Start a new Claude Code session.</li>
 </ol>
 <p>The install uses the <code>user</code> scope by default. The mod then runs in every project for you. Add <code>--scope project</code> to the install command to share the mod with the current project instead.</p>
-<p>Inside a Claude Code session, the same steps are <code>/plugin marketplace add plaktoz/claude-mods</code> and <code>/plugin install brain-dump@claude-mods</code>.</p>
+<p>Inside a Claude Code session, the same steps are <code>/plugin marketplace add https://github.com/plaktoz/claude-mods</code> and <code>/plugin install brain-dump@claude-mods</code>. Then run <code>/reload-plugins</code>, or start a new session.</p>
+<p>Add the marketplace with the repository URL. Do not use the GitHub link to <code>.claude-plugin/marketplace.json</code>: the command treats a link as a git repository and fails with <code>repository ... not found</code>.</p>
 <p>To install from your own clone of this repository, run one script from the repository root. The script points the <code>claude-mods</code> marketplace at your clone. It installs the mod that you name, and it makes no symlinks:</p>
 <pre><code>bash scripts/install-mods.sh brain-dump</code></pre>
 <p>Windows PowerShell:</p>

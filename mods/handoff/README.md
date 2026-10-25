@@ -302,7 +302,7 @@ The repository has a marketplace file, `.claude-plugin/marketplace.json`. The fi
 1. Add the marketplace once. Run this command:
 
    ```bash
-   claude plugin marketplace add plaktoz/claude-mods
+   claude plugin marketplace add https://github.com/plaktoz/claude-mods
    ```
 
 2. Install the mod. Run this command:
@@ -314,6 +314,10 @@ The repository has a marketplace file, `.claude-plugin/marketplace.json`. The fi
 3. Restart Claude Code to load the mod.
 
 Add `--scope project` or `--scope local` to the install command to change where the mod applies. The default is `user`, which applies the mod to every project for you. `project` saves the setting in `.claude/settings.json` for everyone who opens the project. Run the command in the project folder.
+
+Inside a Claude Code session, the same steps are `/plugin marketplace add https://github.com/plaktoz/claude-mods` and `/plugin install handoff@claude-mods`. Then run `/reload-plugins`, or start a new session.
+
+Add the marketplace with the repository URL. Do not use the GitHub link to `.claude-plugin/marketplace.json`: the command treats a link as a git repository and fails with `repository ... not found`.
 
 To use your clone, add the marketplace from its path. Use this when your branch is not merged yet:
 

@@ -366,10 +366,12 @@
 <h3 id="5-5-method-c-marketplace">5.5 Method C: marketplace</h3>
 <p>The repository marketplace file, <code>.claude-plugin/marketplace.json</code>, lists <code>screen-share</code> at line 28.</p>
 <ol>
-<li>Add the marketplace once. Run this command: <code>claude plugin marketplace add plaktoz/claude-mods</code>.</li>
+<li>Add the marketplace once. Run this command: <code>claude plugin marketplace add https://github.com/plaktoz/claude-mods</code>.</li>
 <li>Install the mod. Run this command: <code>claude plugin install screen-share@claude-mods</code>.</li>
 <li>Restart Claude Code to load the mod.</li>
 </ol>
+<p>Inside a Claude Code session, the same steps are <code>/plugin marketplace add https://github.com/plaktoz/claude-mods</code> and <code>/plugin install screen-share@claude-mods</code>. Then run <code>/reload-plugins</code>, or start a new session.</p>
+<p>Add the marketplace with the repository URL. Do not use the GitHub link to <code>.claude-plugin/marketplace.json</code>: the command treats a link as a git repository and fails with <code>repository ... not found</code>.</p>
 <p>This review did not run method C. It needs network access to GitHub and it changes your Claude Code setup. The install command was not run.</p>
 <h3 id="5-6-check-that-the-install-worked">5.6 Check that the install worked</h3>
 <ol>

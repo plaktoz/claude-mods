@@ -269,7 +269,7 @@ The file `.claude-plugin/marketplace.json` at the repository root lists `cache-w
 1. Add the marketplace once. Run:
 
    ```bash
-   claude plugin marketplace add plaktoz/claude-mods
+   claude plugin marketplace add https://github.com/plaktoz/claude-mods
    ```
 
 2. Install the mod. Run:
@@ -281,6 +281,10 @@ The file `.claude-plugin/marketplace.json` at the repository root lists `cache-w
    The default scope is `user`, which applies the mod to every project. To change the scope, add `--scope project` or `--scope local`. See the root `README.md`.
 
 3. Restart Claude Code. Do the check in 5.6.
+
+Inside a Claude Code session, the same steps are `/plugin marketplace add https://github.com/plaktoz/claude-mods` and `/plugin install cache-warm@claude-mods`. Then run `/reload-plugins`, or start a new session.
+
+Add the marketplace with the repository URL. Do not use the GitHub link to `.claude-plugin/marketplace.json`: the command treats a link as a git repository and fails with `repository ... not found`.
 
 To use your copy of the repository instead, run the install script from the repository root. The script points the marketplace at your copy. Run one of these commands:
 

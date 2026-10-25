@@ -447,7 +447,7 @@
 <p>The file <code>.claude-plugin/marketplace.json</code> at the repository root lists <code>cache-warm</code>. The marketplace is named <code>claude-mods</code>. This review did not run the <code>marketplace add</code> and <code>install</code> commands below. No person has done this check yet.</p>
 <ol>
   <li>Add the marketplace once. Run:
-    <pre><code>claude plugin marketplace add plaktoz/claude-mods</code></pre>
+    <pre><code>claude plugin marketplace add https://github.com/plaktoz/claude-mods</code></pre>
   </li>
   <li>Install the mod. Run:
     <pre><code>claude plugin install cache-warm@claude-mods</code></pre>
@@ -455,6 +455,8 @@
   </li>
   <li>Restart Claude Code. Do the check in 5.6.</li>
 </ol>
+<p>Inside a Claude Code session, the same steps are <code>/plugin marketplace add https://github.com/plaktoz/claude-mods</code> and <code>/plugin install cache-warm@claude-mods</code>. Then run <code>/reload-plugins</code>, or start a new session.</p>
+<p>Add the marketplace with the repository URL. Do not use the GitHub link to <code>.claude-plugin/marketplace.json</code>: the command treats a link as a git repository and fails with <code>repository ... not found</code>.</p>
 <p>To use your copy of the repository instead, run the install script from the repository root. The script points the marketplace at your copy. Run one of these commands:</p>
 <ul>
   <li>Linux, macOS, or Git Bash: <code>bash scripts/install-mods.sh cache-warm</code></li>
