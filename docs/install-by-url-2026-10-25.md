@@ -42,6 +42,7 @@ State key: `[ ]` open, `[x]` done, `[-]` not done (reason given).
 
 ## Not done
 
-- `ste-docs` skill. It is not available in this session (`Unknown skill`). The existing README style is followed instead. Stated to the user.
+- `ste-docs` skill. It was not available in the session that made these edits (`Unknown skill`), so the edits follow the existing README style and were not checked with the skill. Update 2026-10-25: the skill is now installed in `~/.claude/skills/ste-docs`. The old link there was dangling (its target `orca/workspaces/claude-mods/feat-review` no longer exists), so `bash scripts/install-skills.sh --force ste-docs` replaced it. The link now points to `skills/ste-docs` in this repository. A session must start after the install to load the skill. The README edits were not re-checked with it.
+- `scripts/install-skills.sh` and a dangling link. `install-skills.sh ste-docs` skipped the skill as "already exists", and `--list` printed `missing`. The script does not tell the user that the existing link is dangling. Not fixed here. Open for a later change.
 - Install step (`claude plugin install`) for mods other than `brain-dump`. Not run; the docs say so where they already do.
 - Rendering of HTML files in a browser. Not run.
