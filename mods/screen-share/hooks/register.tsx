@@ -13,6 +13,9 @@ const names = atom({ plugin: 'screen-share', key: 'names' } as const, [] as Scre
 })
 
 const STORE_KEY = 'isOn'
+// Each session's names are saved under its id, so a resumed session gets them back.
+const NAMES_KEY = 'names'
+const MAX_SESSIONS = 20
 const TOOL_PREFIX = 'mcp__screen-share__'
 const HIDE_NAMES = `${TOOL_PREFIX}hide_names`
 const MAX_NAMES = 500
@@ -84,6 +87,34 @@ function deepMask(value: unknown, fn: (s: string) => string): unknown {
   return value
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+// True when masking would change any string inside the value.
+function masks(value: unknown, list: readonly string[]) {
+  return JSON.stringify(deepMask(value, s => mask(s, list))) !== JSON.stringify(value)
+}
+
+// Masks every string of an object except the keys in `keep`, which stay as they are.
+function maskExcept(value: Record<string, unknown>, keep: readonly string[], fn: (s: string) => string) {
+  return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, keep.includes(k) ? v : deepMask(v, fn)]))
+}
+
+// The header, option descriptions and previews are masked. The question and the option
+// labels stay: the answer the person gives is the label they chose, keyed by the question.
+function maskAsk(questions: unknown[], list: readonly string[]) {
+  const fn = (s: string) => mask(s, list)
+
+  return questions.map(q => {
+    if (!isRecord(q)) return q
+    const out = maskExcept(q, ['question', 'options'], fn)
+    if (!Array.isArray(q.options)) return out
+
+    return { ...out, options: q.options.map(o => (isRecord(o) ? maskExcept(o, ['label'], fn) : o)) }
+  })
+}
+
 // A full name and each capitalised part of it, so "Jane" alone is masked too.
 function expand(found: readonly string[]) {
   const out: string[] = []
@@ -103,6 +134,32 @@ export async function addNames($: EngineInterface, found: readonly string[]) {
   const more = expand(found)
   if (more.length === 0) return
   await update($, names, list => [...new Set([...list, ...more])].slice(-MAX_NAMES))
+  // A failed save loses the names on resume only: masking goes on from the session atom.
+  await saveNames($).catch(() => undefined)
+}
+
+type SavedNames = Record<string, readonly string[]>
+
+async function readSaved($: EngineInterface): Promise<SavedNames> {
+  const value = await $.store.get(NAMES_KEY)
+
+  return value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as SavedNames) : {}
+}
+
+// Saves this session's list last, so the oldest sessions drop out past MAX_SESSIONS.
+async function saveNames($: EngineInterface) {
+  const id = await $.session.id()
+  const { [id]: _, ...others } = await readSaved($)
+  const kept = Object.entries(others).slice(-(MAX_SESSIONS - 1))
+  await $.store.set(NAMES_KEY, Object.fromEntries([...kept, [id, await read($, names)]]))
+}
+
+// Puts back the names this session saved before it was resumed.
+async function restoreNames($: EngineInterface) {
+  const list = (await readSaved($))[await $.session.id()]
+  if (!Array.isArray(list) || list.length === 0) return
+  const saved = list.filter((n): n is string => typeof n === 'string')
+  await update($, names, now => [...new Set([...saved, ...now])].slice(-MAX_NAMES))
 }
 
 const NAME_SYSTEM = `You find people's names in text for a screen-share privacy filter.
@@ -190,6 +247,7 @@ export const register: Register = on => {
     })
     // The mode outlives the session, so a new session mid-call starts masked.
     if ((await $.store.get(STORE_KEY)) === true) await update($, isOn, () => true)
+    await restoreNames($).catch(() => undefined)
 
     return next(e)
   })
@@ -286,6 +344,31 @@ export const register: Register = on => {
     return next({ ...e, props: { ...e.props, output: deepMask(e.props.output, s => mask(s, list)) } })
   })
 
+  // A folded group shows a count, and a rewrite of its calls is not drawn. So a group whose
+  // calls hold a match unfolds, and each row it unfolds into draws masked through ToolUse.
+  on('ui.render', { component: 'ToolGroup' }, async ($, e, next) => {
+    if (!(await read($, isOn))) return next(e)
+    const list = await read($, names)
+    const hit = e.props.calls.some(c => masks({ input: c.input, output: c.output }, list))
+
+    return hit && !e.props.isExpanded ? next({ ...e, props: { ...e.props, isExpanded: true } }) : next(e)
+  })
+
+  // The ask dialog: the question and the option labels stay, since the answer is keyed on them.
+  on('ui.render', { component: 'AskUserQuestion' }, async ($, e, next) => {
+    if (!(await read($, isOn))) return next(e)
+    const questions = maskAsk(e.props.questions, await read($, names))
+
+    return next({ ...e, props: { ...e.props, questions } })
+  })
+
+  on('ui.render', { component: 'InfoNotice' }, async ($, e, next) => {
+    if (!(await read($, isOn))) return next(e)
+    const text = mask(e.props.text, await read($, names))
+
+    return text === e.props.text ? next(e) : next({ ...e, props: { ...e.props, text } })
+  })
+
   // The band sits under any other plugin's band, so theirs still shows.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey || !(await read($, isOn))) return next(e)
@@ -300,7 +383,15 @@ export const register: Register = on => {
             <Text bold>Screen-share mode: </Text>
             <Text dimColor>emails, phones, amounts and names hidden on screen</Text>
           </Text>
-          <Button key="off" label="Turn off" onPress={() => setMode($, false)} />
+          <Button
+            key="off"
+            label="Turn off"
+            onPress={() =>
+              setMode($, false).catch(() =>
+                $.ui.toast('Screen-share is off now, but the change was not saved. It may return in a new session.'),
+              )
+            }
+          />
         </Box>
       </Box>
     )

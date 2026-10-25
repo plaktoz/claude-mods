@@ -168,18 +168,18 @@ This session was idle 7 minutes, so its cache has likely gone cold. Move to a fr
     <tr><td><code>addUnique()</code>: adds an item to a list and keeps the last 50</td><td><code>hooks/register.ts</code></td><td>33–34</td></tr>
     <tr><td><code>sameFile()</code>: compares two paths for the file lists</td><td><code>hooks/register.ts</code></td><td>36–42</td></tr>
     <tr><td><code>describe()</code>: turns the inventory into text</td><td><code>hooks/register.ts</code></td><td>44–59</td></tr>
-    <tr><td><code>buildHandoff()</code>: asks the model and builds the handoff text</td><td><code>hooks/register.ts</code></td><td>63–76</td></tr>
-    <tr><td><code>deliver()</code>: copies the text and clears <code>pending</code></td><td><code>hooks/register.ts</code></td><td>78–85</td></tr>
-    <tr><td><code>register()</code>: adds the hooks</td><td><code>hooks/register.ts</code></td><td>87</td></tr>
-    <tr><td>Hook <code>session.start</code>: adds the command</td><td><code>hooks/register.ts</code></td><td>88–95</td></tr>
-    <tr><td>Hook <code>command.run</code>: the <code>/handover</code> command</td><td><code>hooks/register.ts</code></td><td>97–101</td></tr>
-    <tr><td>Hook <code>tool.call</code>: records the inventory</td><td><code>hooks/register.ts</code></td><td>103–117</td></tr>
-    <tr><td>Hook <code>session.measure</code>: the 250k token offer</td><td><code>hooks/register.ts</code></td><td>119–128</td></tr>
-    <tr><td>Hook <code>turn.complete</code>: stores the end time</td><td><code>hooks/register.ts</code></td><td>130–137</td></tr>
-    <tr><td>Hook <code>prompt.submit</code>: the decision</td><td><code>hooks/register.ts</code></td><td>139–176</td></tr>
-    <tr><td>The question to you: <code>$.ui.ask</code></td><td><code>hooks/register.ts</code></td><td>159–165</td></tr>
+    <tr><td><code>buildHandoff()</code>: asks the model and builds the handoff text</td><td><code>hooks/register.ts</code></td><td>63–82</td></tr>
+    <tr><td><code>deliver()</code>: copies the text and clears <code>pending</code></td><td><code>hooks/register.ts</code></td><td>84–91</td></tr>
+    <tr><td><code>register()</code>: adds the hooks</td><td><code>hooks/register.ts</code></td><td>93</td></tr>
+    <tr><td>Hook <code>session.start</code>: adds the command</td><td><code>hooks/register.ts</code></td><td>94–101</td></tr>
+    <tr><td>Hook <code>command.run</code>: the <code>/handover</code> command</td><td><code>hooks/register.ts</code></td><td>103–107</td></tr>
+    <tr><td>Hook <code>tool.call</code>: records the inventory</td><td><code>hooks/register.ts</code></td><td>109–123</td></tr>
+    <tr><td>Hook <code>session.measure</code>: the 250k token offer</td><td><code>hooks/register.ts</code></td><td>125–134</td></tr>
+    <tr><td>Hook <code>turn.complete</code>: stores the end time</td><td><code>hooks/register.ts</code></td><td>136–143</td></tr>
+    <tr><td>Hook <code>prompt.submit</code>: the decision</td><td><code>hooks/register.ts</code></td><td>145–182</td></tr>
+    <tr><td>The question to you: <code>$.ui.ask</code></td><td><code>hooks/register.ts</code></td><td>165–171</td></tr>
     <tr><td>Type of the stored values</td><td><code>types/index.d.ts</code></td><td>all</td></tr>
-    <tr><td>Tests</td><td><code>hooks/register.test.ts</code></td><td>63–190</td></tr>
+    <tr><td>Tests</td><td><code>hooks/register.test.ts</code></td><td>65–205</td></tr>
   </tbody>
 </table></div>
 
@@ -202,7 +202,7 @@ This session was idle 7 minutes, so its cache has likely gone cold. Move to a fr
 <p>All three ways use the same two functions. <code>buildHandoff()</code> makes the text. <code>deliver()</code> copies the text.</p>
 
 <figure>
-  <svg viewBox="0 0 800 300" role="img" aria-label="Flow of a handoff. Three starts lead to buildHandoff(): the /handover command, the token offer at 250k tokens, and the cold-cache offer after 5 idle minutes. buildHandoff() sends the facts and a prompt to model.fork, which returns a summary or no reply. buildHandoff() passes the handoff text to deliver(). deliver() copies it to the clipboard. If the copy fails, the text is shown in the chat.">
+  <svg viewBox="0 0 800 300" role="img" aria-label="Flow of a handoff. Three starts lead to buildHandoff(): the /handover command, the token offer at 250k tokens, and the cold-cache offer after 5 idle minutes. buildHandoff() sends the facts and a prompt to model.fork, which returns a summary, or no reply or an error. buildHandoff() passes the handoff text to deliver(). deliver() copies it to the clipboard. If the copy fails, the text is shown in the chat.">
     <defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-fill"/></marker><marker id="a1h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-hot"/></marker></defs>
     <rect class="node" x="20" y="30" width="170" height="50" rx="8"/>
     <text class="lbl-b" x="105" y="60" text-anchor="middle">/handover command</text>
@@ -229,7 +229,7 @@ This session was idle 7 minutes, so its cache has likely gone cold. Move to a fr
     <text class="lbl" x="307" y="206" text-anchor="end">facts + prompt</text>
     <line class="edge-hot" x1="375" y1="233" x2="375" y2="177" marker-end="url(#a1h)"/>
     <text class="lbl-hot" x="383" y="200">summary,</text>
-    <text class="lbl-m" x="383" y="216">or no reply</text>
+    <text class="lbl-m" x="383" y="216">or no reply or error</text>
     <line class="edge" x1="420" y1="150" x2="498" y2="150" marker-end="url(#a1)"/>
     <text class="lbl" x="459" y="142" text-anchor="middle">handoff text</text>
     <line class="edge" x1="620" y1="138" x2="668" y2="95" marker-end="url(#a1)"/>
@@ -237,7 +237,7 @@ This session was idle 7 minutes, so its cache has likely gone cold. Move to a fr
     <path class="edge-dash" d="M620 162 L668 215" marker-end="url(#a1)"/>
     <text class="lbl-m" x="630" y="208" text-anchor="end">if copy fails</text>
   </svg>
-  <figcaption>Three starts lead to one path. The model summary returns to <code>buildHandoff()</code>. <code>deliver()</code> copies the text. If the copy fails, the text shows in the chat.</figcaption>
+  <figcaption>Three starts lead to one path. The model summary, or the goal and the facts, returns to <code>buildHandoff()</code>. <code>deliver()</code> copies the text. If the copy fails, the text shows in the chat.</figcaption>
 </figure>
 
 <h3 id="sec-3-2">3.2 What happens at each prompt</h3>
@@ -292,7 +292,7 @@ This session was idle 7 minutes, so its cache has likely gone cold. Move to a fr
   <li><strong>Your choice.</strong> If you close the question without an answer, the mod uses <code>Continue here</code>.</li>
   <li><strong>After the question.</strong> The mod clears <code>pending</code> for every answer. This includes a dismissed question.</li>
   <li><strong>Choice <code>Make a handoff</code>.</strong> The mod adds your prompt to the handoff as the next request. The mod does not send your prompt to the model.</li>
-  <li><strong>Build fails.</strong> The mod shows the toast <code>Handoff failed; your prompt was sent here instead.</code> It sends your prompt in this session. The <code>try</code> block covers <code>buildHandoff()</code> and <code>deliver()</code>, so either call that throws leads here.</li>
+  <li><strong>Build fails.</strong> The mod shows the toast <code>Handoff failed; your prompt was sent here instead.</code> It sends your prompt in this session. The <code>try</code> block covers <code>buildHandoff()</code> and <code>deliver()</code>. An error from <code>$.model.fork</code> does not get here, because <code>buildHandoff()</code> catches it (see 3.6). Other errors in either call do.</li>
 </ul>
 
 <h3 id="sec-3-3">3.3 The token offer</h3>
@@ -384,7 +384,7 @@ This session was idle 7 minutes, so its cache has likely gone cold. Move to a fr
 <p><code>buildHandoff()</code> sends the facts and <code>HANDOFF_PROMPT</code> to the model with <code>$.model.fork</code>. The prompt asks for a summary of under 400 words. The code does not check the length. The summary has five labels: Goal, Progress, Current state, Next steps and Context.</p>
 
 <figure>
-  <svg viewBox="0 0 800 340" role="img" aria-label="How the handoff text is made. The facts from the inventory and the handoff prompt go to model.fork, which returns a summary that becomes the body. If there is no reply, the goal and the facts become the body. The handoff text is line 1, a fixed sentence, then the body. For an offer, your prompt is added as the next request.">
+  <svg viewBox="0 0 800 340" role="img" aria-label="How the handoff text is made. The facts from the inventory and the handoff prompt go to model.fork, which returns a summary that becomes the body. If there is no reply or an error, the goal and the facts become the body. The handoff text is line 1, a fixed sentence, then the body. For an offer, your prompt is added as the next request.">
     <defs><marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-fill"/></marker><marker id="a4h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-hot"/></marker></defs>
     <rect class="node" x="20" y="30" width="280" height="80" rx="8"/>
     <text class="lbl-b" x="160" y="58" text-anchor="middle">Facts from the inventory</text>
@@ -407,13 +407,13 @@ This session was idle 7 minutes, so its cache has likely gone cold. Move to a fr
     <line class="edge-hot" x1="550" y1="65" x2="638" y2="65" marker-end="url(#a4h)"/>
     <text class="lbl-hot" x="594" y="56" text-anchor="middle">summary</text>
     <path class="edge-dash" d="M160 110 V 150 H 710 V 102" marker-end="url(#a4)"/>
-    <text class="lbl-m" x="430" y="142" text-anchor="middle">if no reply: the goal and the facts</text>
+    <text class="lbl-m" x="430" y="142" text-anchor="middle">if no reply or error: the goal and the facts</text>
     <line class="edge" x1="280" y1="225" x2="618" y2="225" marker-end="url(#a4)"/>
     <line class="edge" x1="710" y1="102" x2="710" y2="198" marker-end="url(#a4)"/>
     <text class="lbl" x="718" y="150">body</text>
     <line class="edge-dash" x1="570" y1="282" x2="650" y2="262" marker-end="url(#a4)"/>
   </svg>
-  <figcaption>How the handoff text is built. The model summary becomes the body. If there is no reply, the body is the goal and the facts. An offer adds your prompt as the next request.</figcaption>
+  <figcaption>How the handoff text is built. The model summary becomes the body. If there is no reply, or the request throws an error, the body is the goal and the facts. An offer adds your prompt as the next request.</figcaption>
 </figure>
 
 <p>Line 1 is always: <code>Continue the work described in this handoff from a previous session.</code></p>
@@ -423,7 +423,7 @@ This session was idle 7 minutes, so its cache has likely gone cold. Move to a fr
   <tbody>
     <tr><td>The model answers (<code>isAnswered</code> is true)</td><td>The body is the reply text.</td></tr>
     <tr><td>The model does not answer (<code>isAnswered</code> is false)</td><td>The body is the goal and the facts. The body has no summary.</td></tr>
-    <tr><td>The model request throws an error</td><td><code>/handover</code> fails, and no copy is made. In the test harness the call raised a <code>HooksError</code>. The live engine was not checked. An offer shows the toast in 3.2 and sends your prompt.</td></tr>
+    <tr><td>The model request throws an error</td><td><code>buildHandoff()</code> catches the error. The body is the goal and the facts, as when the model does not answer. <code>/handover</code> and an offer both copy this text. The mod shows no message about the error.</td></tr>
     <tr><td>The copy works</td><td>The message is <code>Handoff copied to the clipboard. Start a fresh chat (/clear or a new session) and paste it.</code></td></tr>
     <tr><td>The copy fails</td><td>The message is <code>Could not copy the handoff.</code> The full text follows. Copy the text by hand.</td></tr>
   </tbody>
@@ -650,11 +650,11 @@ This session was idle 7 minutes, so its cache has likely gone cold. Move to a fr
 </ol>
 
 <ol>
-  <li><strong>Expected result:</strong> the last lines are <code>9 pass</code> and <code>0 fail</code>. The time in brackets varies.
+  <li><strong>Expected result:</strong> the last lines are <code>10 pass</code> and <code>0 fail</code>. The time in brackets varies.
 
-<pre><code> 9 pass
+<pre><code> 10 pass
  0 fail
-Ran 9 tests across 1 file. [0.53s]</code></pre></li>
+Ran 10 tests across 1 file. [0.57s]</code></pre></li>
 </ol>
 
 <p>The tests use a fake clock, a fake clipboard and a fake model request. They do not call the API. They do not cost money. Section 6.4 describes each test.</p>
@@ -688,23 +688,23 @@ Ran 9 tests across 1 file. [0.53s]</code></pre></li>
 <div class="table-wrap"><table>
   <thead><tr><th>Test (in <code>hooks/register.test.ts</code>)</th><th>Line</th><th>Rule it proves</th></tr></thead>
   <tbody>
-    <tr><td>the first prompt is recorded as the goal and sent untouched</td><td>63</td><td>The first prompt is sent unchanged. The request to the model contains <code>First request: fix the login flow</code>.</td></tr>
-    <tr><td>/handover copies a handoff built from the session, tools included</td><td>73</td><td>One copy is made. The copy has the summary and no <code>Next request</code>. An edited file is shown one time, as edited. The reply says <code>copied to the clipboard</code>.</td></tr>
-    <tr><td>/handover falls back to the facts when the fork fails, and prints the text if the copy fails</td><td>90</td><td>With no model answer, the text has the <code>Goal:</code> line. With a failed copy, the reply says <code>Could not copy</code> and shows the full text.</td></tr>
-    <tr><td>crossing 250k tokens toasts once and asks at the next prompt</td><td>101</td><td>No toast at 100k. One toast at 260k. No second toast at 270k. One question at the next prompt. No second question after you decline.</td></tr>
-    <tr><td>accepting the offer copies a handoff that carries the prompt, and drops it here</td><td>123</td><td>Your prompt is not sent. The copy has the summary and <code>Next request:</code> with your prompt.</td></tr>
-    <tr><td>a dismissed question sends the prompt on as typed</td><td>136</td><td>A dismissed question makes no copy. Your prompt is sent unchanged.</td></tr>
-    <tr><td>a prompt after a cold cache is asked about; a warm one is not</td><td>147</td><td>No question after 4 minutes. One question after 7 minutes, with the text <code>idle 7 minutes</code>.</td></tr>
-    <tr><td>a subagent finishing does not reset the idle clock</td><td>164</td><td>A subagent reply after 7 minutes does not stop the question.</td></tr>
-    <tr><td>prompts that are not the person's own are never asked about</td><td>176</td><td>A peer prompt, a hidden prompt and <code>/compact</code> get no question. All three are sent unchanged.</td></tr>
+    <tr><td>the first prompt is recorded as the goal and sent untouched</td><td>65</td><td>The first prompt is sent unchanged. The request to the model contains <code>First request: fix the login flow</code>.</td></tr>
+    <tr><td>/handover copies a handoff built from the session, tools included</td><td>75</td><td>One copy is made. The copy has the summary and no <code>Next request</code>. An edited file is shown one time, as edited. The reply says <code>copied to the clipboard</code>.</td></tr>
+    <tr><td>/handover falls back to the facts when the fork fails, and prints the text if the copy fails</td><td>92</td><td>With no model answer, the text has the <code>Goal:</code> line. With a failed copy, the reply says <code>Could not copy</code> and shows the full text.</td></tr>
+    <tr><td>/handover still copies the goal and the facts when the fork throws</td><td>103</td><td>The fork throws an error. The command does not throw. One copy is made, with the <code>Goal:</code> line and the <code>First request:</code> line. The reply says <code>copied to the clipboard</code>.</td></tr>
+    <tr><td>crossing 250k tokens toasts once and asks at the next prompt</td><td>116</td><td>No toast at 100k. One toast at 260k. No second toast at 270k. One question at the next prompt. No second question after you decline.</td></tr>
+    <tr><td>accepting the offer copies a handoff that carries the prompt, and drops it here</td><td>138</td><td>Your prompt is not sent. The copy has the summary and <code>Next request:</code> with your prompt.</td></tr>
+    <tr><td>a dismissed question sends the prompt on as typed</td><td>151</td><td>A dismissed question makes no copy. Your prompt is sent unchanged.</td></tr>
+    <tr><td>a prompt after a cold cache is asked about; a warm one is not</td><td>162</td><td>No question after 4 minutes. One question after 7 minutes, with the text <code>idle 7 minutes</code>.</td></tr>
+    <tr><td>a subagent finishing does not reset the idle clock</td><td>179</td><td>A subagent reply after 7 minutes does not stop the question.</td></tr>
+    <tr><td>prompts that are not the person's own are never asked about</td><td>191</td><td>A peer prompt, a hidden prompt and <code>/compact</code> get no question. All three are sent unchanged.</td></tr>
   </tbody>
 </table></div>
 
 <p>The tests do not cover these cases:</p>
 
 <ul>
-  <li>The model request throws an error. The test at line 90 covers a model request that gives no answer.</li>
-  <li>An offer when the model request fails.</li>
+  <li>An offer when the model request fails or throws an error. Line 92 covers a request with no answer, and line 103 covers a throw. Both cover <code>/handover</code> only.</li>
   <li>The Windows path comparison in <code>sameFile()</code>.</li>
   <li>A second prompt after a handoff is made. Section 7 describes this case.</li>
 </ul>
@@ -721,8 +721,8 @@ Ran 9 tests across 1 file. [0.53s]</code></pre></li>
     <tr><td>No question at a prompt you expect</td><td>The prompt is your first prompt, a slash command, or a prompt that is not typed by you. Or you did not wait for the full answer first. Or the idle time is 5 minutes or less.</td><td>Send a normal typed prompt. Wait for the full answer. Wait more than 5 minutes. Send another prompt.</td></tr>
     <tr><td>No question after the toast</td><td>The question shows at your next typed prompt that is not the first. Or the question was already answered.</td><td>Send a normal typed prompt. Or run <code>/handover</code>.</td></tr>
     <tr><td>The reply says <code>Could not copy the handoff.</code></td><td>The clipboard is not available.</td><td>Select the text in the reply. Copy it by hand.</td></tr>
-    <tr><td>The toast says <code>Handoff failed; your prompt was sent here instead.</code></td><td>The model request or the copy step threw an error.</td><td>Your prompt was sent in this session. Run <code>/handover</code> to try again.</td></tr>
-    <tr><td><code>/handover</code> fails with an error and no copy is made</td><td>The model request threw an error. The mod has no fallback on this path.</td><td>Run <code>/handover</code> again. Tell the owner of the mod if it fails again.</td></tr>
+    <tr><td>The toast says <code>Handoff failed; your prompt was sent here instead.</code></td><td>An error in the offer, outside the model request, such as the copy step.</td><td>Your prompt was sent in this session. Run <code>/handover</code> to try again.</td></tr>
+    <tr><td><code>/handover</code> fails with an error and no copy is made</td><td>A step after the summary threw an error, such as the copy step. The mod has no fallback there.</td><td>Run <code>/handover</code> again. Tell the owner of the mod if it fails again.</td></tr>
   </tbody>
 </table></div>
 
@@ -749,7 +749,7 @@ Ran 9 tests across 1 file. [0.53s]</code></pre></li>
   <li><strong>Five tools have their own lists.</strong> The mod records <code>Read</code>, <code>Edit</code>, <code>Write</code>, <code>WebFetch</code> and <code>Skill</code>. Other tools only add to the count. A file that changes through <code>Bash</code> is not listed.</li>
   <li><strong>Tool counts include every call the hook gets.</strong> The <code>tool.call</code> hook does not check <code>agentId</code>. A subagent tool call is counted if the engine sends it to the hook. The test harness models the question as an <code>AskUserQuestion</code> call, so the mod's own question is counted there. A live session did not confirm either case.</li>
   <li><strong>Windows paths.</strong> The hook runtime has no platform flag, so <code>sameFile()</code> keys on path shape. <code>sameFile()</code> is used only to remove edited files from <code>Files read</code>. <code>addUnique()</code> does not fold paths. So one Windows file written in two spellings appears twice in <code>Files read</code>. POSIX paths compare exactly, so <code>/Repo/x.ts</code> and <code>/repo/x.ts</code> are two entries. A probe in a <code>/tmp</code> copy of the mod confirmed both results. No repository test covers the Windows case. This review did not run on Windows.</li>
-  <li><strong>Model request errors.</strong> <code>buildHandoff()</code> has no <code>catch</code>. If <code>$.model.fork</code> throws, <code>/handover</code> fails and no copy is made. In a probe with a fake error, the test harness raised a <code>HooksError</code>. The live engine was not checked. The repository tests do not cover this path.</li>
+  <li><strong>Model request errors.</strong> <code>buildHandoff()</code> catches an error from <code>$.model.fork</code>. It then uses the goal and the facts, as for no answer. The mod shows no message about the error. A repository test covers <code>/handover</code> with a fake error. The offer path has no test for this case. The live engine was not checked.</li>
   <li><strong>Summary length.</strong> The prompt asks for under 400 words. The code does not check the length.</li>
   <li><strong>List size.</strong> Each list holds the last 50 items. Older items are removed. The tool counts have no limit.</li>
   <li><strong>Cost of the summary.</strong> The model request uses the conversation as the main thread last sent it. If the cache is cold, this request costs full price one time.</li>

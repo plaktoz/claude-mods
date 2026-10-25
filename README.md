@@ -166,6 +166,8 @@ claude --plugin-dir /path/to/claude-mods/mods/switchboard
 | `screen-share` | Draws names, emails, phone numbers and amounts as shaded bars during a screen share. See `mods/screen-share/README.md`. |
 | `theme-cli` | Pixel-art characters run along a strip above the prompt while Claude works. Terminal only. See `mods/theme-cli/README.md`. |
 
+`mods/theme-desk` is KIV (keep in view). It is not in the marketplace, and work on it is stopped. See `mods/theme-desk/README.md`.
+
 ## Concepts
 
 - **Part**: a single skill, agent, hook, or library doc.

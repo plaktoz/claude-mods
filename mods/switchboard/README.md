@@ -39,17 +39,18 @@ All logic is in one file: `hooks/register.tsx`. Search for the function name if 
 | `under()`: joins a path with the home separator | `hooks/register.tsx` | 58–62 |
 | `reason()`: the text of an error | `hooks/register.tsx` | 64 |
 | `fingerprint()`: reads the size and time of the watched files | `hooks/register.tsx` | 66–76 |
-| `refresh()`: lists the plugins and stores the rows | `hooks/register.tsx` | 79–129 |
-| `detail()`: the text after the row name | `hooks/register.tsx` | 131–132 |
-| `toggle()`: enables or disables one row | `hooks/register.tsx` | 134–169 |
-| `register()`: adds the hooks | `hooks/register.tsx` | 171 |
-| Hook `session.start`: adds the command and the poll | `hooks/register.tsx` | 172–186 |
-| Poll `$.clock.every` | `hooks/register.tsx` | 179–183 |
-| Hook `command.run` for `mods`: opens the pane | `hooks/register.tsx` | 188–193 |
-| Hook `ui.render` for the pane: draws the rows | `hooks/register.tsx` | 195–218 |
+| `refresh()`: lists the plugins and stores the rows | `hooks/register.tsx` | 79–135 |
+| `refreshOrNote()`: runs `refresh()` and shows a failure as the note | `hooks/register.tsx` | 137–139 |
+| `detail()`: the text after the row name | `hooks/register.tsx` | 141–142 |
+| `toggle()`: enables or disables one row | `hooks/register.tsx` | 144–181 |
+| `register()`: adds the hooks | `hooks/register.tsx` | 183 |
+| Hook `session.start`: adds the command and the poll | `hooks/register.tsx` | 184–198 |
+| Poll `$.clock.every` | `hooks/register.tsx` | 191–195 |
+| Hook `command.run` for `mods`: opens the pane | `hooks/register.tsx` | 200–205 |
+| Hook `ui.render` for the pane: draws the rows | `hooks/register.tsx` | 207–230 |
 | Type `SwitchboardRow`: one row | `types/index.d.ts` | 2–9 |
 | Type of the stored values | `types/index.d.ts` | 11–18 |
-| Tests | `hooks/register.test.tsx` | 17–34 |
+| Tests | `hooks/register.test.tsx` | 17–106 |
 
 Other files: `hooks/hooks.json` names the hooks module. `tsconfig.json` extends `.claude-plugin/types/tsconfig.json`. That file is not in the repository. `.claude-plugin/plugin.json` has the name and the version. The manifest has no `userConfig` block.
 
@@ -57,7 +58,7 @@ Other files: `hooks/hooks.json` names the hooks module. `tsconfig.json` extends 
 
 ### 3.1 Which plugins the pane shows
 
-The pane shows a plugin when its scope matches the working folder. The working folder is the folder where the session runs (`$.session.cwd()`, line 110).
+The pane shows a plugin when its scope matches the working folder. The working folder is the folder where the session runs (`$.session.cwd()`, line 116).
 
 | Scope | Shown when |
 |-------|------------|
@@ -75,7 +76,7 @@ The hooks module has no `path` module and no platform flag. The code checks the 
 - If neither is set, `refresh()` returns with no note. The poll does nothing.
 - A Windows path starts with a drive letter and a separator, such as `C:\` or `C:/`. It can also start with `\\` (line 35).
 - For a Windows path, `normalized()` (line 36) changes `\` to `/`, removes trailing slashes and lowercases the whole path. A POSIX path is compared exactly.
-- The mod starts `claude` with no shell, as an argument list (lines 88 and 142).
+- The mod starts `claude` with no shell, as an argument list (lines 88 and 153).
 - The watched file paths join with the separator that the home folder uses (line 59). A home folder with `\` and no `/` joins with `\`. Otherwise, the join uses `/`.
 - The Windows code has not run on Windows. Section 7 lists what is unverified.
 
@@ -93,7 +94,9 @@ flowchart TD
     D -->|no| N["Note: Could not<br/>list mods"]
     D -->|yes| J["Output parses as JSON?"]
     J -->|no| Z2["Stop, no note"]
-    J -->|yes| K["Store rows for this folder"]
+    J -->|yes| A["Output is an array?"]
+    A -->|no| Y["Note: Could not<br/>list mods: not a list"]
+    A -->|yes| K["Store rows for this folder"]
 ```
 
 Figure 1. How a refresh runs. The poll calls `refresh()` only when a watched file changed. The highlighted path is a failed list. It shows a note.
@@ -106,14 +109,15 @@ Figure 1. How a refresh runs. The poll calls `refresh()` only when a watched fil
 - The mod splits output on `\r?\n`, so output with CRLF line endings gives the same first line.
 - A failed list keeps the stored rows as they were.
 - If the output is not valid JSON, `refresh()` returns with no note (lines 101–106). An earlier failure note stays on the pane.
-- After the output parses, the mod clears a failure note (line 108).
-- Each plugin becomes one row. The row name is the text before the last `@` in the plugin id. The marketplace is the text after it. The row also has `version`, `scope` and `isEnabled` (lines 111–124).
-- The rows sort by name, then by scope (line 125).
-- The mod stores the rows only when they differ from the stored rows (line 128).
+- If the output parses but is not an array, the note shows `Could not list mods: the output is not a list` (lines 107–111).
+- After the output is an array, the mod clears a failure note (line 114).
+- Each plugin becomes one row. The row name is the text before the last `@` in the plugin id. The marketplace is the text after it. The row also has `version`, `scope` and `isEnabled` (lines 117–130).
+- The rows sort by name, then by scope (line 131).
+- The mod stores the rows only when they differ from the stored rows (line 134).
 
 ### 3.4 The poll
 
-- At session start, the mod starts a poll with a period of 3 seconds (`POLL_MS`, lines 179–183).
+- At session start, the mod starts a poll with a period of 3 seconds (`POLL_MS`, lines 191–195).
 - On each tick, the poll does nothing if there is no home folder or if `isBusy` is `true`.
 - Otherwise, the poll computes the fingerprint. If the fingerprint differs from `seen`, the poll calls `refresh()`.
 - The fingerprint has one part for each watched file. The part is the modification time in milliseconds, a colon and the size. If the stat call fails, the part is `-`. The parts join with `|` (lines 66–76).
@@ -123,7 +127,7 @@ Figure 1. How a refresh runs. The poll calls `refresh()` only when a watched fil
 
 ### 3.5 Switch a row
 
-`toggle()` (line 134) runs when you press a row. Figure 2 shows the steps.
+`toggle()` (line 144) runs when you press a row. Figure 2 shows the steps.
 
 ```mermaid
 flowchart TD
@@ -141,33 +145,33 @@ flowchart TD
 
 Figure 2. What a press on a row does. A press during a switch does nothing. The highlighted path is a failed switch. It shows a note and clears the busy flag.
 
-- A press during a switch does nothing. The pane shows no message (line 135).
-- The mod sets `isBusy` and shows `Enabling <name>...` or `Disabling <name>...` (lines 136–138).
-- It runs `claude plugin enable <id> --scope <scope>` or `claude plugin disable <id> --scope <scope>`. The timeout is 60 seconds (lines 141–142).
-- If the command does not start, or its exit code is not 0, the note shows `Could not enable <name>:` or `Could not disable <name>:`. The reason is the first line of stderr, or of stdout, or the error text. If none exists, the reason is `the command did not run` (lines 149–152). The split on `\r?\n` (line 150) also handles CRLF output.
-- If the command succeeds, the mod refreshes the list (line 157). Then it runs `/reload-plugins` (lines 159–162).
-- The success note is `<name> enabled.` or `<name> disabled.`. If `/reload-plugins` fails, the note adds ` Run /reload-plugins to apply it to this session.` (lines 163–167).
-- `isBusy` returns to `false` on each normal exit (lines 152 and 168). Section 7 lists the case where it does not.
+- A press during a switch does nothing. The pane shows no message (line 145).
+- The mod sets `isBusy` and shows `Enabling <name>...` or `Disabling <name>...` (lines 146–149).
+- It runs `claude plugin enable <id> --scope <scope>` or `claude plugin disable <id> --scope <scope>`. The timeout is 60 seconds (lines 152–153).
+- If the command does not start, or its exit code is not 0, the note shows `Could not enable <name>:` or `Could not disable <name>:`. The reason is the first line of stderr, or of stdout, or the error text. If none exists, the reason is `the command did not run` (lines 160–162). The split on `\r?\n` (line 161) also handles CRLF output.
+- If the command succeeds, the mod refreshes the list (line 167). Then it runs `/reload-plugins` (lines 169–172).
+- The success note is `<name> enabled.` or `<name> disabled.`. If `/reload-plugins` fails, the note adds ` Run /reload-plugins to apply it to this session.` (lines 173–177).
+- `isBusy` returns to `false` in a `finally` block (lines 178–179). It returns to `false` on every exit, including an exit by an error.
 
 ### 3.6 The pane
 
-- At session start, the mod registers the command `/mods` (lines 172–176).
-- Typing `/mods` opens the pane with the ID `mods` and the title `Mods`. The options set focus and `closeOnEscape` to `true` (line 189).
-- The command also refreshes the list. The reply is `Switchboard opened.` (lines 190–192).
-- The pane text is `No mods installed.` when no rows are stored. Otherwise, it is `<n> of <m> on. Press a mod to switch it.` (line 204).
-- Each row is a button. The label is `[x]` or `[ ]`, the name, two spaces and the detail (line 209).
-- The detail is the first 12 characters of the version, the scope and the marketplace. Empty parts do not show. The parts are separated by ` · ` (line 132).
-- Pressing a row starts a switch (lines 210–212).
-- The note shows below the rows when it is not empty (line 215).
+- At session start, the mod registers the command `/mods` (lines 185–187).
+- Typing `/mods` opens the pane with the ID `mods` and the title `Mods`. The options set focus and `closeOnEscape` to `true` (line 201).
+- The command also refreshes the list. The reply is `Switchboard opened.` (lines 202–204).
+- The pane text is `No mods installed.` when no rows are stored. Otherwise, it is `<n> of <m> on. Press a mod to switch it.` (line 216).
+- Each row is a button. The label is `[x]` or `[ ]`, the name, two spaces and the detail (line 221).
+- The detail is the first 12 characters of the version, the scope and the marketplace. Empty parts do not show. The parts are separated by ` · ` (line 142).
+- Pressing a row starts a switch (lines 222–224).
+- The note shows below the rows when it is not empty (line 227).
 
 ### 3.7 Stored values
 
 | Name | Type | Meaning | Set by | Cleared by |
 |------|------|---------|--------|------------|
 | `rows` | list of `SwitchboardRow`, shape `rows-1` | The plugins for the working folder. | `refresh()` | Replaced by the next different list. |
-| `note` | text | The last message under the rows. | `refresh()`, `toggle()` | A list that parses clears a failure note. A switch replaces the note. |
+| `note` | text | The last message under the rows. | `refresh()`, `refreshOrNote()`, `toggle()` | A list that parses clears a failure note. A switch replaces the note. |
 | `seen` | text, module variable | The fingerprint at the last refresh. | `refresh()` | Replaced by the next refresh. |
-| `isBusy` | boolean, module variable | A switch runs. | `toggle()` | `toggle()` at its normal exits. |
+| `isBusy` | boolean, module variable | A switch runs. | `toggle()` | `toggle()` in its `finally` block. |
 
 The engine stores `rows` and `note` as plugin state (lines 11–14). The shape tag `rows-1` marks the row fields. The comment at lines 9–10 says that a changed tag makes the engine decline an older stored value. If you change the fields of a row, change the tag.
 
@@ -182,8 +186,8 @@ This mod has no settings in `plugin.json`. The values below are fixed in the cod
 | `PANE` | `mods` | The ID of the pane. | 6 |
 | `POLL_MS` | 3,000 milliseconds (3 seconds) | The time between two checks of the watched files. | 7 |
 | List timeout | 20,000 milliseconds (20 seconds) | The longest wait for `claude plugin list --json`. | 88 |
-| Switch timeout | 60,000 milliseconds (60 seconds) | The longest wait for `claude plugin enable` or `disable`. | 142 |
-| Version length | 12 characters | The number of version characters that a row shows. | 132 |
+| Switch timeout | 60,000 milliseconds (60 seconds) | The longest wait for `claude plugin enable` or `disable`. | 153 |
+| Version length | 12 characters | The number of version characters that a row shows. | 142 |
 | `LIST_FAILED` | `Could not list mods: ` | The start of a list failure note. | 21 |
 
 The timeouts end the wait. The mod does not retry a timed-out command.
@@ -282,7 +286,7 @@ To validate means to prove that the mod works as this document says. There are t
 | Level | What it proves | Command | Model request |
 |-------|----------------|---------|---------------|
 | 1. Validate | The files are correct. The engine reads the mod. | `claude plugin validate mods/switchboard` | No |
-| 2. Test | The two tests pass. They cover the empty pane and one stored row. | `claude plugin test mods/switchboard` | No |
+| 2. Test | The five tests pass. They cover the empty pane, one stored row, a failed switch, a list that is not an array, and a refresh that rejects. | `claude plugin test mods/switchboard` | No |
 | 3. Live check | The pane lists plugins, and a switch works in a real session. | The steps in 6.3 | No |
 
 ### 6.1 Level 1: validate the files
@@ -333,12 +337,12 @@ The directory profile checks what a plugin directory accepts. Run it with `claud
    claude plugin test mods/switchboard
    ```
 
-3. **Expected result:** the last lines are `2 pass` and `0 fail`. The run on 2026-10-25 printed these last lines:
+3. **Expected result:** the last lines are `5 pass` and `0 fail`. The run on 2026-10-25 printed these last lines:
 
    ```text
-    2 pass
+    5 pass
     0 fail
-   Ran 2 tests across 1 file. [0.38s]
+   Ran 5 tests across 1 file. [0.67s]
    ```
 
 The time in brackets changes between runs.
@@ -364,15 +368,18 @@ No person has done this check yet. No Windows run has happened.
 |-------------------------------------|------|----------------|
 | the pane says when no mod is installed | 17 | With no stored rows, the pane shows `No mods installed.` |
 | a stored row is drawn with its switch | 24 | A stored row shows as a button with the text `[x] demo`. |
+| the next press works after a switch failed | 43 | After a switch fails in its state write, the next press on the row still starts a switch. |
+| output that is not a list shows a note and does not throw | 76 | Parsed output that is not an array shows `Could not list mods: the output is not a list`. |
+| a refresh that rejects raises no unhandled rejection | 94 | A rejected `refresh` at session start does not leave an unhandled rejection. |
 
-The tests do not call the CLI. They do not check these parts of the code:
+The tests do not call the CLI. The kit fails the file when a rejection goes unhandled, so the last test checks the rejection rule. The tests do not check these parts of the code:
 
 - `isHere()`: scope matching, project path matching and the Windows folding.
 - `normalized()` and `isWindowsPath()`: the Windows path shape and the folding.
 - `homeOf()` and `under()`: the `HOME` and `USERPROFILE` fallback, and the separator.
 - `fingerprint()` and the poll.
-- `refresh()`: the CLI call, the parse, the sort and the failure notes.
-- `toggle()`: the busy guard, the enable and disable commands and the reload note.
+- `refresh()`: the CLI call, the sort and the failure notes. The output check is covered by one test.
+- `toggle()`: the enable and disable commands and the reload note. The busy reset is covered by one test.
 - The hook `command.run` for `mods`.
 
 No test covers the Windows code. No Windows run has happened.
@@ -381,6 +388,7 @@ No test covers the Windows code. No Windows run has happened.
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
+| The note says `Could not list mods: the output is not a list`. | `claude plugin list --json` printed JSON that is not an array. | Run `claude plugin list --json` in a terminal. Check that the output is an array. Report the output to the owner of the mod. |
 | The note says `Could not list mods:` and an error. | `claude` is not on `PATH`, or the command failed. | Run `claude plugin list --json` in a terminal. Fix the error it shows. Start a new session. |
 | The pane says `No mods installed.` and no note appears. | No plugin applies to the working folder. Or the output did not parse. Or no home folder is set. | Run `claude plugin list --json`. Check that your plugins have scope `user`, `project` or `local`. Check `HOME` or `USERPROFILE`. |
 | A plugin is missing from the pane. | Its scope is `session`. Or its project path is not the working folder or a parent of it. | Install the plugin with a method in 5.3 or 5.4. Start the session in the project folder. |
@@ -404,10 +412,11 @@ The expected result is no output and no errors. This expectation was not checked
 - **The poll runs when the pane is closed.** The poll starts at session start. The code does not check whether the pane is open.
 - **No guard against overlap.** `refresh()` has no flag for a run in progress. Session start and `/mods` can run `claude plugin list --json` while the poll runs it. The poll skips its check while a switch runs (`isBusy`).
 - **A failed list is not retried.** `refresh()` stores the fingerprint (line 84) before it runs the CLI. After a failed list, the poll sees no change. The list stays stale until a watched file changes again, or until you type `/mods`.
-- **Parse failure is silent.** If the output is not JSON, `refresh()` returns with no note. The stored rows stay as they were, and an earlier failure note stays too. The engine type declares that it keeps the first 4,194,304 bytes of standard output. The code does not check this limit. A cut output does not parse, so the code takes the parse-failure path. This was not tested.
-- **The parsed value is not checked.** If the JSON is not an array, `listed.filter` throws. An array entry that is `null` throws. An entry with no `id` throws in the map step (lines 111–113). `refresh()` does not catch these errors. Session start and `/mods` call `refresh()` with `void` and have no `catch`. The poll callback awaits `refresh()` with no `catch`. A switch awaits `refresh()`, so the error ends `toggle()` before it clears `isBusy`.
-- **Blank error text.** If the error output is only spaces, the note has no reason. For example, the note is `Could not list mods: ` with nothing after it. The `||` test reads spaces as text (lines 95 and 150).
-- **A switch has no cleanup.** `toggle()` has no `try` and no `finally`. If `refresh()` throws during a switch, `isBusy` stays `true`. Presses then do nothing, and the poll skips each tick. The code does not show a reset.
+- **Parse failure is silent.** If the output is not JSON, `refresh()` returns with no note (lines 101–106). The stored rows stay as they were, and an earlier failure note stays too. The engine type declares that it keeps the first 4,194,304 bytes of standard output. The code does not check this limit. A cut output does not parse, so the code takes the parse-failure path. This was not tested.
+- **The entries are not checked.** The code checks that the parsed value is an array (line 107). It does not check each entry. An array entry that is `null` throws. An entry with no `id` throws in the map step (lines 117–120). `refresh()` does not catch these errors.
+- **The poll has no `catch`.** The poll callback awaits `refresh()` and has no `catch` (line 194). A throw from `refresh()` in the poll is an unhandled rejection. Session start and `/mods` use `refreshOrNote()`, which shows the error as the note. A press on a row catches an error from `toggle()` and shows `Could not switch <name>:` and the error text (line 223).
+- **Blank error text.** If the error output is only spaces, the note has no reason. For example, the note is `Could not list mods: ` with nothing after it. The `||` test reads spaces as text (lines 95 and 161).
+- **A switch error is shown as a note.** `toggle()` resets `isBusy` in a `finally` block (lines 178–179). A throw from `refresh()` or from a state write ends `toggle()` early. The press handler (line 223) then shows `Could not switch <name>: <error>`. The next press works.
 - **The empty message is not proof.** The message `No mods installed.` shows when the stored rows are empty. That happens when no plugin applies, or when no list has succeeded yet. After a failed CLI list, the pane shows the message and the `Could not list mods:` note. A parse failure shows the message with no note. So does a missing home folder.
 - **No guard on this mod's own row.** The code does not stop a press on the `switchboard` row. The code does not show what happens to the pane then. This was not tested.
 - **Presses are ignored during a switch.** A press during a switch does nothing. The pane shows no message for it.
@@ -416,7 +425,7 @@ The expected result is no output and no errors. This expectation was not checked
 - **Path matching is text only.** A POSIX path matches only with the same letter case. A Windows path matches without regard to case, and its trailing slashes are removed. A POSIX project path that ends with `/` does not match a subfolder (line 49).
 - **Session plugins are not shown.** A plugin loaded with `--plugin-dir` has scope `session`. The pane does not show it (section 5.5).
 - **Windows is not verified.** No Windows run has happened. The following points are unverified:
-  - The mod starts `claude` without a shell (lines 88 and 142). It is unverified whether an npm shim named `claude.cmd` starts that way on Windows.
+  - The mod starts `claude` without a shell (lines 88 and 153). It is unverified whether an npm shim named `claude.cmd` starts that way on Windows.
   - The mod reads `HOME` first. When `HOME` is set, the mod does not read `USERPROFILE`.
   - A home folder that contains both `\` and `/` joins with `/`.
 

@@ -1,5 +1,9 @@
 {
   "name": "brain-dump",
   "version": "0.1.0",
-  "description": "Turns long, messy prompts into a structured task, why, guardrails and definition of done after a few clarifying questions."
+  "description": "Turns long, messy prompts into a structured task, why, guardrails and definition of done after a few clarifying questions.",
+  "author": {
+    "name": "plaktoz"
+  },
+  "license": "MIT"
 }

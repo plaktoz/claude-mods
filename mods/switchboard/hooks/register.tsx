@@ -98,12 +98,18 @@ async function refresh($: EngineInterface) {
     return
   }
 
-  let listed: ListedPlugin[]
+  let parsed: unknown
   try {
-    listed = JSON.parse(ran.stdout)
+    parsed = JSON.parse(ran.stdout)
   } catch {
     return
   }
+  if (!Array.isArray(parsed)) {
+    await update($, note, () => `${LIST_FAILED}the output is not a list`)
+
+    return
+  }
+  const listed: ListedPlugin[] = parsed
   // The list worked, so an earlier failure notice is out of date.
   await update($, note, old => (old.startsWith(LIST_FAILED) ? '' : old))
 
@@ -128,6 +134,10 @@ async function refresh($: EngineInterface) {
   await update($, rows, old => (JSON.stringify(old) === JSON.stringify(next) ? old : next))
 }
 
+// For a hook that cannot await the list: a failure becomes the list note.
+const refreshOrNote = ($: EngineInterface) =>
+  refresh($).catch(error => update($, note, () => `${LIST_FAILED}${reason(error)}`))
+
 const detail = (row: SwitchboardRow) =>
   [row.version.slice(0, 12), row.scope, row.marketplace].filter(part => part !== '').join(' · ')
 
@@ -135,37 +145,39 @@ async function toggle($: EngineInterface, row: SwitchboardRow) {
   if (isBusy) return
   isBusy = true
   const verb = row.isEnabled ? 'disable' : 'enable'
-  await update($, note, () => `${verb === 'enable' ? 'Enabling' : 'Disabling'} ${row.name}...`)
+  try {
+    await update($, note, () => `${verb === 'enable' ? 'Enabling' : 'Disabling'} ${row.name}...`)
 
-  let spawnError: string | undefined
-  const ran = await $.process
-    .run(['claude', 'plugin', verb, row.id, '--scope', row.scope], { timeoutMs: 60000 })
-    .catch(error => {
-      spawnError = reason(error)
+    let spawnError: string | undefined
+    const ran = await $.process
+      .run(['claude', 'plugin', verb, row.id, '--scope', row.scope], { timeoutMs: 60000 })
+      .catch(error => {
+        spawnError = reason(error)
 
-      return undefined
-    })
+        return undefined
+      })
 
-  if (ran === undefined || ran.exitCode !== 0) {
-    const why = (ran?.stderr || ran?.stdout || spawnError || 'the command did not run').trim().split(/\r?\n/)[0]
-    await update($, note, () => `Could not ${verb} ${row.name}: ${why}`)
+    if (ran === undefined || ran.exitCode !== 0) {
+      const why = (ran?.stderr || ran?.stdout || spawnError || 'the command did not run').trim().split(/\r?\n/)[0]
+      await update($, note, () => `Could not ${verb} ${row.name}: ${why}`)
+
+      return
+    }
+
+    await refresh($)
+    // A switch applies to the running session on a reload; ask for it, and say so if it cannot be.
+    const reloaded = await $.command.run({ command: 'reload-plugins' }).then(
+      () => true,
+      () => false,
+    )
+    await update(
+      $,
+      note,
+      () => `${row.name} ${verb}d.${reloaded ? '' : ' Run /reload-plugins to apply it to this session.'}`,
+    )
+  } finally {
     isBusy = false
-
-    return
   }
-
-  await refresh($)
-  // A switch applies to the running session on a reload; ask for it, and say so if it cannot be.
-  const reloaded = await $.command.run({ command: 'reload-plugins' }).then(
-    () => true,
-    () => false,
-  )
-  await update(
-    $,
-    note,
-    () => `${row.name} ${verb}d.${reloaded ? '' : ' Run /reload-plugins to apply it to this session.'}`,
-  )
-  isBusy = false
 }
 
 export const register: Register = on => {
@@ -174,7 +186,7 @@ export const register: Register = on => {
       name: 'mods',
       description: 'Open the switchboard: every installed mod, with an on/off toggle',
     })
-    void refresh($)
+    void refreshOrNote($)
     // Installs show up on their own: a cheap file check each period, the CLI only on a change.
     $.clock.every(POLL_MS, async () => {
       const home = await homeOf($)
@@ -187,7 +199,7 @@ export const register: Register = on => {
 
   on('command.run', { command: 'mods' }, async $ => {
     await $.ui.open({ id: PANE, title: 'Mods', focus: true, closeOnEscape: true })
-    void refresh($)
+    void refreshOrNote($)
 
     return { text: 'Switchboard opened.' }
   })
@@ -208,7 +220,7 @@ export const register: Register = on => {
             key={`${row.id}:${row.scope}`}
             label={`${row.isEnabled ? '[x]' : '[ ]'} ${row.name}  ${detail(row)}`}
             onPress={() => {
-              void toggle($, row)
+              void toggle($, row).catch(error => update($, note, () => `Could not switch ${row.name}: ${reason(error)}`))
             }}
           />
         ))}

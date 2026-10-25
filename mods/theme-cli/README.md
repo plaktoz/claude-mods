@@ -287,12 +287,17 @@ If `theme.json` is missing or invalid, the mod uses the built-in theme. The reas
 | `/theme-list` | List the built-in theme and the themes with a `theme.json`. | One name on each line. `*` marks the theme on show. A last line names the themes folder. |
 | `/theme-use <name>` | Load the theme. Write the name to `config.json`. A name that is not listed is refused. | `Theme: <name> (<status>). It stays your choice in new sessions.` Refused: `No theme "<name>". Themes: ….` |
 | `/theme-build` | Rebuild the theme in `config.json`, even when the stamp matches. | `Theme <name>: <status>`. For the built-in theme: `The built-in theme has no images to build.` |
-| `/theme-new <name>` | Write a template `theme.json` in a new theme folder. | `Wrote <path>. Put your images beside it, edit it, then /theme-use <name>.` Refused: `Theme "<name>" already exists: <path>`. A name with other characters, or `default`, gets `Give a name of letters, digits, - or _, such as /theme-new castle.` |
+| `/theme-new <name>` | Write a template `theme.json` in a new theme folder. | `Wrote <path>. Put your images beside it, edit it, then /theme-use <name>.` |
 | `/theme-hide` | Hide the strip. | `Strip hidden. /theme-show shows it again.` |
 | `/theme-show` | Show the strip. | `Strip shown.` |
 | `/theme-mute` | Silence every sound and stop the `working` loop. The setting lasts for the session and a hot reload. | `Sounds muted. /theme-unmute plays them again.` |
 | `/theme-unmute` | Play the sounds again. A turn in progress gets its loop back. | `Sounds on.` |
 | `/theme-dump` | Write `theme-cli-log.txt` in the current folder. | `Wrote <n> log lines and the strip to theme-cli-log.txt.` |
+
+The command `/theme-new` refuses in two cases:
+
+- A theme with that name exists. The reply is `Theme "<name>" already exists: <path>`.
+- The name has other characters, or is `default`. The reply is `Give a name of letters, digits, - or _, such as /theme-new castle.`
 
 The dump file has these parts:
 
@@ -431,7 +436,7 @@ These values are in the code. You change them by editing the file.
 
 ## 5. Install
 
-You install this mod by telling Claude Code where its folder is. You can also install it through the marketplace script in this repository.
+You install this mod by telling Claude Code where its folder is. You can also install it from the `claude-mods` marketplace.
 
 ### 5.1 Before you start
 
@@ -465,7 +470,7 @@ On Windows, `scripts\install-mods.ps1` installs the mods through the marketplace
 |--------|-------------|-----------|
 | A. Flag `--plugin-dir` | You want to try the mod. | One session |
 | B. Setting `CLAUDE_CODE_PLUGIN_DIRS` | You want the mod in every session. | All sessions, until you remove the setting |
-| C. Marketplace script | You want the install that this repository provides. | Until you uninstall. The default scope is `user`. |
+| C. Marketplace | You want the install that this repository provides. | Until you uninstall. The default scope is `user`. |
 
 ### 5.3 Method A: try it for one session
 
@@ -501,11 +506,44 @@ This check did not test whether Claude Code reloads the mod after a file changes
 
 To uninstall, delete the line and start a new session.
 
-### 5.5 Method C: marketplace install script
+### 5.5 Method C: marketplace install
 
-The repository has a marketplace file, `.claude-plugin/marketplace.json`. It lists `theme-cli`. The install scripts add this repository as a marketplace named `claude-mods`, and then install the mod.
+The repository has a marketplace file, `.claude-plugin/marketplace.json`. The marketplace is named `claude-mods`. It lists `theme-cli`.
 
-1. Open a terminal and go to the repository root (see 5.1).
+1. Open a terminal.
+2. Add the marketplace once:
+
+   ```bash
+   claude plugin marketplace add plaktoz/claude-mods
+   ```
+
+3. Install the mod:
+
+   ```bash
+   claude plugin install theme-cli@claude-mods
+   ```
+
+4. Start a new session. Do the check in 5.6.
+
+The `--scope` option sets where the mod applies:
+
+| Scope | Where the mod runs |
+|-------|--------------------|
+| `user` (default) | Every project, for you. |
+| `project` | The current project, for everyone who opens it. Saved in `.claude/settings.json`. |
+| `local` | The current project, for you only. Not shared. |
+
+Inside a Claude Code session, the same steps are `/plugin marketplace add plaktoz/claude-mods` and `/plugin install theme-cli@claude-mods`.
+
+To use your local copy of this repository, add the marketplace from its path:
+
+```bash
+claude plugin marketplace add /path/to/claude-mods
+```
+
+The install scripts do the same steps. They add this repository as the marketplace `claude-mods`, and then install the mod.
+
+1. Go to the repository root (see 5.1).
 2. Run the script for your system, and name the mod:
 
    ```bash
@@ -518,11 +556,9 @@ The repository has a marketplace file, `.claude-plugin/marketplace.json`. It lis
    scripts\install-mods.ps1 theme-cli
    ```
 
-3. Start a new session. Do the check in 5.6.
-
 The shell script accepts `--scope user`, `--scope project` or `--scope local`, `--list` and `--uninstall`. The PowerShell script accepts `-Scope user`, `-Scope project` or `-Scope local`, `-List` and `-Uninstall`. The default scope is `user`. `--scope project` installs into the folder where you run the script, not into this repository.
 
-This document check did not run the install script.
+This document check did not run the `claude plugin` commands or the install script.
 
 The validator suggests this install line for a marketplace on GitHub: `/plugin install theme-cli --marketplace <owner>/<repo>`. Replace `<owner>/<repo>` with the owner and the name of the repository. This line was not run.
 
@@ -588,7 +624,7 @@ The expected output contains messages that look like problems. They are not prob
 | `types … declares on $: nothing` | Correct. The mod adds nothing to `$`. |
 | `answers its own command` | Correct. Each of the 9 commands answers itself. |
 | `gating hook with .catch` | Correct. Three hooks pass the event on when they fail. |
-| `This README has no line that installs "theme-cli" from a marketplace` | Advice only. It does not change the result. Section 5.5 gives the install script. |
+| `This README has no line that installs "theme-cli" from a marketplace` | Advice only. It does not change the result. Section 5.5 gives the install steps. |
 
 The output also lists what the mod uses. Compare it with this list:
 
@@ -681,7 +717,7 @@ Each row names one test and the line where the test starts.
 | the strip stays out of the way until a turn starts | 77 | Before `turn.start`, the mod draws no `Raster`. The engine band shows. |
 | a turn draws one Raster of the band width and repaints it with blit | 87 | The `Raster` is 40 columns by 5 rows. In 1,000 ms the mod sends at least 8 blits. The first and last blit differ. |
 | the sprites move: a later frame differs from an earlier one | 106 | The cells at 1,000 ms differ from the cells at 500 ms. |
-| each running subagent adds one companion and its stop removes it | 119 | Each new agent changes the cells. A stop for an unknown id is ignored. The test checks that the strip still draws after the stops. |
+| each running subagent adds one companion and its stop removes it | 119 | Each new agent changes the cells. A stop for an unknown id is ignored. The strip still draws after the stops. |
 | each companion holds its own colour slot, and a stop frees the lowest one | 146 | 3 agents get `a1:0 a2:1 a3:2`. After `a2` stops, a new agent gets slot 1. |
 | a subagent turn does not end the main turn | 167 | A `turn.complete` with an `agentId` does not stop the blits. |
 | the finale plays once the turn is answered, then the strip clears and the timer stops | 181 | The strip shows 2,000 ms after the answer. It is gone 5,000 ms after the answer. No blit follows. |
@@ -731,9 +767,11 @@ Each row names one test and the line where the test starts.
 | The status says `skipped <frame>: <n> colours is more than one frame can hold (36)` | The frame has more than 36 colors. | Use fewer colors in the image. Or make the frame smaller. Type `/theme-build`. |
 | A drive-letter or UNC path fails on macOS or Linux | The build script reads the path as relative. | Use a `~/` path or a path relative to the theme folder. |
 | A frame has a colored box around the sprite | The sheet background is not clear. | Set `key` to the background color `[r, g, b]`. Type `/theme-build`. |
-| All companions have the same color | `cast.companion.frame` has no `recolor`, or `recolor.hue` does not match the base frame. | Add `recolor` with `hue` set to the body hue of the base frame. Or list one frame for each slot in `cast.companion.frames`. Raise `range` if needed. |
+| All companions have the same color | `cast.companion.frame` has no `recolor`, or `recolor.hue` does not match the base frame. | Add `recolor` with `hue` set to the body hue of the base frame. A second fix is below the table. |
 | No sound plays | The theme has no `sounds` block, the sounds are muted, or the engine has no player for the platform. | Type `/theme-dump`. Read the `sounds=` and `muted=` line. Section 7 lists the platform limits. |
 | You edited an image and nothing changed | The session loaded the theme before the edit. | Type `/theme-build`. |
+
+For the companion color row, list one frame for each slot in `cast.companion.frames`. Raise `range` if needed.
 
 ### 6.7 Type-check (optional)
 

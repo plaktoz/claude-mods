@@ -11,6 +11,7 @@ type Stubs = {
   choice?: string
   isCopyFailing?: boolean
   isForkFailing?: boolean
+  isForkThrowing?: boolean
 }
 
 // Stands for the engine beneath the mod. `$.ui.ask` is a tool.call of
@@ -34,6 +35,7 @@ const world = ($: any, on: any, stubs: Stubs = {}) => {
   })
   on('model.fork', (_: unknown, e: { prompt: string }) => {
     seen.forks.push(e.prompt)
+    if (stubs.isForkThrowing) throw new Error('fork exploded')
     if (stubs.isForkFailing) return { value: { isAnswered: false, reason: 'api-error', usage: {} } }
 
     return { value: { isAnswered: true, text: HANDOFF, usage: {} } }
@@ -96,6 +98,19 @@ test('/handover falls back to the facts when the fork fails, and prints the text
   expect(seen.copied[0]).toContain('Goal: fix the login flow')
   expect(result.text).toContain('Could not copy')
   expect(result.text).toContain(seen.copied[0])
+})
+
+test('/handover still copies the goal and the facts when the fork throws', async ($, on) => {
+  const { seen, submit } = world($, on, { isForkThrowing: true })
+
+  await submit('fix the login flow')
+  const result = await $.command.run({ command: 'handover' })
+
+  expect(seen.forks).toHaveLength(1)
+  expect(seen.copied).toHaveLength(1)
+  expect(seen.copied[0]).toContain('Goal: fix the login flow')
+  expect(seen.copied[0]).toContain('First request: fix the login flow')
+  expect(result.text).toContain('copied to the clipboard')
 })
 
 test('crossing 250k tokens toasts once and asks at the next prompt', async ($, on) => {
