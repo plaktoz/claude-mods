@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>reflect</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #fbfaf7;
+    --panel: #ffffff;
+    --fg: #1f2328;
+    --muted: #5b6470;
+    --line: #d9d6cc;
+    --accent: #b45f06;
+    --accent-bg: #fdf0dc;
+    --link: #1f5fbf;
+    --ok: #1a7f37;
+    --ok-bg: #e6f4ea;
+    --warn-bg: #fff4d6;
+    --code-bg: #f1efe8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #17181a;
+      --panel: #1f2124;
+      --fg: #e6e4de;
+      --muted: #a2a7ae;
+      --line: #3a3d42;
+      --accent: #f0a042;
+      --accent-bg: #3a2c14;
+      --link: #7fb0ff;
+      --ok: #5fcf80;
+      --ok-bg: #16301e;
+      --warn-bg: #3a3214;
+      --code-bg: #26282b;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #17181a;
+    --panel: #1f2124;
+    --fg: #e6e4de;
+    --muted: #a2a7ae;
+    --line: #3a3d42;
+    --accent: #f0a042;
+    --accent-bg: #3a2c14;
+    --link: #7fb0ff;
+    --ok: #5fcf80;
+    --ok-bg: #16301e;
+    --warn-bg: #3a3214;
+    --code-bg: #26282b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 60rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
+  h1 { font-size: 2rem; margin: 0 0 .25rem; }
+  h2 { font-size: 1.45rem; margin: 2.75rem 0 .75rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+  h3 { font-size: 1.1rem; margin: 1.75rem 0 .5rem; }
+  p, ul, ol { margin: .6rem 0; }
+  li { margin: .25rem 0; }
+  a { color: var(--link); }
+  code { font: .88em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code-bg); padding: .1em .35em; border-radius: 4px; }
+  pre { background: var(--code-bg); padding: .8rem 1rem; border-radius: 8px; overflow-x: auto; margin: .8rem 0; }
+  pre code { background: none; padding: 0; font-size: .85rem; }
+  .lede { color: var(--muted); margin: 0 0 1.25rem; }
+  .table-wrap { overflow-x: auto; margin: .8rem 0; }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); font-size: .92rem; }
+  th, td { border: 1px solid var(--line); padding: .45rem .65rem; text-align: left; vertical-align: top; }
+  th { background: var(--code-bg); font-weight: 600; }
+  nav.toc { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: .75rem 1.1rem; margin: 1rem 0 0; }
+  nav.toc ol { columns: 2 14rem; margin: 0; padding-left: 1.2rem; }
+  .callout { border-left: 4px solid var(--accent); background: var(--accent-bg); padding: .6rem .9rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+  .expected { border-left: 4px solid var(--ok); background: var(--ok-bg); padding: .6rem .9rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+  .warn { border-left: 4px solid var(--accent); background: var(--warn-bg); padding: .6rem .9rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+  figure { margin: 1.25rem 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: .75rem; }
+  figure svg { display: block; width: 100%; max-width: 100%; height: auto; color: var(--fg); }
+  figcaption { color: var(--muted); font-size: .9rem; margin-top: .5rem; }
+  .band { font: .85rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: .7rem .9rem; overflow-x: auto; white-space: pre; }
+  .band .w { color: var(--accent); font-weight: 700; }
+  .band .d { color: var(--muted); }
+  .band .s { color: var(--link); }
+  /* SVG parts, styled here so the drawings follow the theme */
+  .node { fill: var(--panel); stroke: currentColor; stroke-width: 1.5; }
+  .node-hot { fill: var(--accent-bg); stroke: var(--accent); stroke-width: 2; }
+  .edge { stroke: currentColor; stroke-width: 1.5; fill: none; }
+  .edge-hot { stroke: var(--accent); stroke-width: 2; fill: none; }
+  .edge-dash { stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 5 4; fill: none; }
+  .lbl { fill: currentColor; font: 12px -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .lbl-b { fill: currentColor; font: 600 13px -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .lbl-m { fill: var(--muted); font: 12px -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .lbl-hot { fill: var(--accent); font: 600 12px -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .arrow-fill { fill: currentColor; }
+  .arrow-hot { fill: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+<p># reflect</p>
+<p>A Claude Code mod. It finds a lasting rule in a prompt you type. After Claude replies, it asks where to save the rule.</p>
+<p>An HTML version of this document is in <code>README.html</code>. It has the same content and the same diagrams.</p>
+<p>To install the mod, go to section 5. To check that it works, go to section 6.</p>
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#purpose">Purpose</a></li>
+    <li><a href="#code">Where to find the code</a></li>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#settings">Settings</a></li>
+    <li><a href="#install">Install</a></li>
+    <li><a href="#validate">Validate</a></li>
+    <li><a href="#limits">Known limits</a></li>
+    <li><a href="#glossary">Glossary</a></li>
+  </ol>
+</nav>
+<h2 id="purpose">1. Purpose</h2>
+<p>A prompt can state a rule for all later work. For example: "never use m-dashes in your answers". You must save such a rule, or repeat it in each later session.</p>
+<p>This mod gives you a choice of where the rule is saved. It does the following:</p>
+<ol>
+  <li>It records a prompt that you type, when the prompt holds a cue word such as <code>always</code> or <code>never</code>.</li>
+  <li>It sends the prompt to Claude at once. The mod never holds a prompt.</li>
+  <li>After Claude's reply, it asks Haiku, a small model, for the lasting rule in the prompt. Haiku writes the rule in one line, or it writes NONE.</li>
+  <li>If there is a rule, it shows a pop-up that asks where to save the rule.</li>
+  <li>If you choose a destination, it writes the rule to that file. Skip, closing the pop-up and free text under Other write nothing.</li>
+</ol>
+<p>The pop-up asks <code>Save this rule for later?</code>, shows the rule, and offers the enabled destinations and <code>Skip</code>. The engine draws the pop-up.</p>
+<p>Two destinations are on by default: auto memory and the project <code>CLAUDE.md</code>. The global <code>~/.claude/CLAUDE.md</code> is off by default. A Second Brain destination is not built.</p>
+<h2 id="code">2. Where to find the code</h2>
+<p>The hooks and the detection are in <code>hooks/register.ts</code>. The writers are in <code>hooks/save.ts</code>. The line numbers apply to this version of the files. If a line number is different, search for the function name.</p>
+<div class="table-wrap"><table>
+  <thead><tr>
+<th>Item</th>
+<th>File</th>
+<th>Line</th>
+</tr></thead>
+  <tbody>
+<tr><td>Constants <code>MAX_PROMPT_CHARS</code>, <code>MAX_PENDING</code>, <code>MAX_HANDLED</code>, <code>MAX_RULE_CHARS</code></td><td><code>hooks/register.ts</code></td><td>10–13</td></tr>
+<tr><td>Instructions to Haiku, <code>RULE_SYSTEM</code></td><td><code>hooks/register.ts</code></td><td>15–21</td></tr>
+<tr><td><code>SKIP</code>, the label of the skip option</td><td><code>hooks/register.ts</code></td><td>23</td></tr>
+<tr><td><code>LABELS</code>, the pop-up label of each destination</td><td><code>hooks/register.ts</code></td><td>27–31</td></tr>
+<tr><td>Stored values <code>pending</code> and <code>handled</code></td><td><code>hooks/register.ts</code></td><td>39–40</td></tr>
+<tr><td><code>settingsFrom()</code> – reads the settings</td><td><code>hooks/register.ts</code></td><td>47–59</td></tr>
+<tr><td><code>isWatched()</code> – typed, short, from the prompt box</td><td><code>hooks/register.ts</code></td><td>63–68</td></tr>
+<tr><td><code>hasCue()</code> – finds a cue word as whole words</td><td><code>hooks/register.ts</code></td><td>71–77</td></tr>
+<tr><td><code>parseRule()</code> – reads the rule from the reply</td><td><code>hooks/register.ts</code></td><td>80–90</td></tr>
+<tr><td><code>ruleFrom()</code> – one Haiku call for one prompt</td><td><code>hooks/register.ts</code></td><td>93–108</td></tr>
+<tr><td><code>chooseDestination()</code> – the pop-up</td><td><code>hooks/register.ts</code></td><td>112–123</td></tr>
+<tr><td><code>keep()</code> – writes the rule and shows a toast</td><td><code>hooks/register.ts</code></td><td>126–139</td></tr>
+<tr><td><code>offerRules()</code> – checks each recorded prompt</td><td><code>hooks/register.ts</code></td><td>142–158</td></tr>
+<tr><td><code>register()</code> – adds the hooks</td><td><code>hooks/register.ts</code></td><td>160–193</td></tr>
+<tr><td>Hook <code>prompt.submit</code></td><td><code>hooks/register.ts</code></td><td>166–172</td></tr>
+<tr><td>Hook <code>turn.complete</code></td><td><code>hooks/register.ts</code></td><td>174–192</td></tr>
+<tr><td><code>addRule()</code> – adds a bullet under <code>## Rules</code></td><td><code>hooks/save.ts</code></td><td>30–55</td></tr>
+<tr><td><code>addIndexLine()</code> – adds one line to <code>MEMORY.md</code></td><td><code>hooks/save.ts</code></td><td>58–63</td></tr>
+<tr><td><code>memoryName()</code> – the name of a memory file</td><td><code>hooks/save.ts</code></td><td>74–82</td></tr>
+<tr><td><code>memoryFile()</code> – the text of a memory file</td><td><code>hooks/save.ts</code></td><td>90–107</td></tr>
+<tr><td><code>indexLine()</code> – the line in <code>MEMORY.md</code></td><td><code>hooks/save.ts</code></td><td>109–110</td></tr>
+<tr><td><code>projectFolder()</code> – the project folder name</td><td><code>hooks/save.ts</code></td><td>114</td></tr>
+<tr><td><code>join()</code> – joins a path with its own separator</td><td><code>hooks/save.ts</code></td><td>118–122</td></tr>
+<tr><td><code>configDir()</code> – the Claude Code config folder</td><td><code>hooks/save.ts</code></td><td>126–134</td></tr>
+<tr><td><code>saveToMarkdown()</code> – writes a <code>CLAUDE.md</code> file</td><td><code>hooks/save.ts</code></td><td>142–148</td></tr>
+<tr><td><code>saveToMemory()</code> – writes auto memory</td><td><code>hooks/save.ts</code></td><td>150–164</td></tr>
+<tr><td><code>saveRule()</code> – picks the file for a destination</td><td><code>hooks/save.ts</code></td><td>168–173</td></tr>
+<tr><td>Type of the stored values</td><td><code>types/index.d.ts</code></td><td>1–12</td></tr>
+<tr><td>Settings</td><td><code>.claude-plugin/plugin.json</code></td><td>11, 18, 25, 32, 39</td></tr>
+<tr><td>Entry in the marketplace</td><td><code>.claude-plugin/marketplace.json</code></td><td>28</td></tr>
+<tr><td>Tests: 20 in <code>register.test.ts</code>, 25 in <code>save.test.ts</code> (see 6.4)</td><td><code>hooks/register.test.ts</code>, <code>hooks/save.test.ts</code></td><td>Listed in 6.4</td></tr>
+  </tbody>
+</table></div>
+<p>Other files: <code>hooks/hooks.json</code> names the module on line 2. <code>tsconfig.json</code> extends the types config on line 2. See 6.6 for the type-check.</p>
+<h2 id="how">3. How it works</h2>
+<h3 id="h-3-1">3.1 The path of one prompt</h3>
+<figure>
+<svg viewBox="0 0 780 770" role="img" aria-label="Flowchart of one prompt. A typed prompt is checked: typed, 1000 characters or fewer, with a cue word. If it passes, the prompt is recorded and sent to Claude at once. After Claude replies in a main turn with reason answer, Haiku returns one rule or NONE. A rule is checked against the rules handled before. A rule not handled before opens a pop-up with the enabled destinations and Skip. A chosen destination writes the rule to the chosen file. A prompt that fails the check, NONE or an error, a handled rule, Skip, a closed pop-up and free text under Other all end with nothing saved and nothing asked.">
+    <defs>
+      <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-fill"/></marker>
+      <marker id="a1h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-hot"/></marker>
+    </defs>
+    <!-- nodes -->
+    <rect class="node" x="50" y="20" width="360" height="44" rx="8"/>
+    <text class="lbl-b" x="230" y="47" text-anchor="middle">Person types a prompt</text>
+    <rect class="node" x="50" y="100" width="360" height="74" rx="8"/>
+    <text class="lbl-b" x="230" y="126" text-anchor="middle">Watched?</text>
+    <text class="lbl" x="230" y="144" text-anchor="middle">Typed, 1000 characters or fewer,</text>
+    <text class="lbl" x="230" y="160" text-anchor="middle">with a cue word</text>
+    <rect class="node" x="50" y="214" width="360" height="56" rx="8"/>
+    <text class="lbl-b" x="230" y="240" text-anchor="middle">Record the prompt, and</text>
+    <text class="lbl-b" x="230" y="257" text-anchor="middle">send it to Claude at once</text>
+    <rect class="node" x="50" y="310" width="360" height="56" rx="8"/>
+    <text class="lbl-b" x="230" y="336" text-anchor="middle">Claude replies</text>
+    <text class="lbl" x="230" y="354" text-anchor="middle">main turn, reason answer</text>
+    <rect class="node" x="50" y="406" width="360" height="44" rx="8"/>
+    <text class="lbl-b" x="230" y="433" text-anchor="middle">Haiku: one rule, or NONE</text>
+    <rect class="node" x="50" y="490" width="360" height="56" rx="8"/>
+    <text class="lbl-b" x="230" y="516" text-anchor="middle">Handled before?</text>
+    <text class="lbl" x="230" y="534" text-anchor="middle">rule key in reflect.handled</text>
+    <rect class="node" x="50" y="586" width="360" height="44" rx="8"/>
+    <text class="lbl-b" x="230" y="613" text-anchor="middle">Pop-up: enabled destinations and Skip</text>
+    <rect class="node-hot" x="50" y="690" width="360" height="44" rx="8"/>
+    <text class="lbl-b" x="230" y="717" text-anchor="middle">Write the rule to the chosen file</text>
+    <rect class="node" x="520" y="300" width="200" height="56" rx="8"/>
+    <text class="lbl-b" x="620" y="326" text-anchor="middle">Nothing saved,</text>
+    <text class="lbl-b" x="620" y="343" text-anchor="middle">nothing asked</text>
+    <!-- main path, hot -->
+    <line class="edge-hot" x1="230" y1="64" x2="230" y2="98" marker-end="url(#a1h)"/>
+    <line class="edge-hot" x1="230" y1="174" x2="230" y2="212" marker-end="url(#a1h)"/>
+    <text class="lbl-hot" x="240" y="198">yes</text>
+    <line class="edge-hot" x1="230" y1="270" x2="230" y2="308" marker-end="url(#a1h)"/>
+    <line class="edge-hot" x1="230" y1="366" x2="230" y2="404" marker-end="url(#a1h)"/>
+    <line class="edge-hot" x1="230" y1="450" x2="230" y2="488" marker-end="url(#a1h)"/>
+    <text class="lbl-hot" x="240" y="474">rule</text>
+    <line class="edge-hot" x1="230" y1="546" x2="230" y2="584" marker-end="url(#a1h)"/>
+    <text class="lbl-hot" x="240" y="570">no</text>
+    <line class="edge-hot" x1="230" y1="630" x2="230" y2="688" marker-end="url(#a1h)"/>
+    <text class="lbl-hot" x="240" y="664">destination</text>
+    <!-- B to nothing -->
+    <polyline class="edge-dash" points="410,137 620,137 620,298" marker-end="url(#a1)"/>
+    <text class="lbl-m" x="500" y="130" text-anchor="middle">no</text>
+    <!-- E to nothing -->
+    <polyline class="edge-dash" points="410,428 580,428 580,358" marker-end="url(#a1)"/>
+    <text class="lbl-m" x="495" y="421" text-anchor="middle">NONE or error</text>
+    <!-- H to nothing -->
+    <polyline class="edge-dash" points="410,518 660,518 660,358" marker-end="url(#a1)"/>
+    <text class="lbl-m" x="535" y="511" text-anchor="middle">yes</text>
+    <!-- F to nothing -->
+    <polyline class="edge-dash" points="410,608 745,608 745,328 722,328" marker-end="url(#a1)"/>
+    <text class="lbl-m" x="575" y="601" text-anchor="middle">Skip, close, or Other</text>
+</svg>
+<figcaption><strong>Figure 1.</strong> The path of one prompt. The thick lines show the path to a saved rule. Each box is a check or an action.</figcaption>
+</figure>
+<p>The checks, in the order the code runs them:</p>
+<div class="table-wrap"><table>
+  <thead><tr>
+<th>Check</th>
+<th>Where</th>
+<th>When it fails</th>
+</tr></thead>
+  <tbody>
+<tr><td>Typed in the prompt box, with no command and no meta flag</td><td><code>hooks/register.ts</code> 63–68</td><td>Not recorded. Plugin, peer and SDK prompts also fail this check.</td></tr>
+<tr><td>Text is not empty, and has 1000 characters or fewer</td><td><code>hooks/register.ts</code> 63–68</td><td>Not recorded.</td></tr>
+<tr><td>A cue word, as whole words, in any case</td><td><code>hooks/register.ts</code> 71–77</td><td>Not recorded. No Haiku call is made.</td></tr>
+<tr><td>The turn is not a subagent turn</td><td><code>hooks/register.ts</code> 179</td><td>The turn is ignored. Recorded prompts stay for the main turn.</td></tr>
+<tr><td>The turn ended with reason <code>answer</code></td><td><code>hooks/register.ts</code> 180–181</td><td>Recorded prompts are dropped. Nothing is asked.</td></tr>
+<tr><td>Haiku returns a rule, not NONE, and not a failed call</td><td><code>hooks/register.ts</code> 80–90, 93–108</td><td>Silent. Nothing is asked.</td></tr>
+<tr><td>The rule is not handled before in this session</td><td><code>hooks/register.ts</code> 152</td><td>Not asked again.</td></tr>
+<tr><td>The pop-up returns a destination</td><td><code>hooks/register.ts</code> 112–123</td><td>Skip, a closed pop-up or free text under Other writes nothing.</td></tr>
+  </tbody>
+</table></div>
+<p>Haiku gets one call for each recorded prompt. The call uses <code>maxTokens</code> 120 (<code>hooks/register.ts</code> line 99), <code>effort</code> low (line 100) and a 20-second <code>timeoutMs</code> (line 101). The rule is the first line of the reply. Quotes are removed. A rule longer than 200 characters (<code>MAX_RULE_CHARS</code>, line 13) is dropped.</p>
+<h3 id="h-3-2">3.2 Timing of one turn</h3>
+<figure>
+<svg viewBox="0 0 680 470" role="img" aria-label="Sequence diagram of one turn. The person types a prompt with a cue word. Claude Code sends prompt.submit to reflect, and reflect records the prompt. Claude works, then replies. Claude Code sends turn.complete to reflect. reflect sends the prompt to Haiku, and Haiku returns a rule or NONE. reflect shows a pop-up that asks the person where to save the rule. The person answers Auto memory, Project CLAUDE.md or Skip. reflect writes the chosen file.">
+    <defs>
+      <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-fill"/></marker>
+      <marker id="a1h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-hot"/></marker>
+    </defs>
+    <!-- participants -->
+    <rect class="node" x="20" y="16" width="110" height="40" rx="8"/>
+    <text class="lbl-b" x="75" y="41" text-anchor="middle">Person</text>
+    <rect class="node" x="200" y="16" width="130" height="40" rx="8"/>
+    <text class="lbl-b" x="265" y="41" text-anchor="middle">Claude Code</text>
+    <rect class="node" x="400" y="16" width="110" height="40" rx="8"/>
+    <text class="lbl-b" x="455" y="41" text-anchor="middle">reflect</text>
+    <rect class="node" x="550" y="16" width="110" height="40" rx="8"/>
+    <text class="lbl-b" x="605" y="41" text-anchor="middle">Haiku</text>
+    <!-- lifelines -->
+    <line class="edge-dash" x1="75" y1="56" x2="75" y2="450"/>
+    <line class="edge-dash" x1="265" y1="56" x2="265" y2="450"/>
+    <line class="edge-dash" x1="455" y1="56" x2="455" y2="450"/>
+    <line class="edge-dash" x1="605" y1="56" x2="605" y2="450"/>
+    <!-- P to C -->
+    <line class="edge" x1="75" y1="96" x2="263" y2="96" marker-end="url(#a1)"/>
+    <text class="lbl" x="169" y="88" text-anchor="middle">Types a prompt with a cue word</text>
+    <!-- C to R -->
+    <line class="edge" x1="265" y1="134" x2="453" y2="134" marker-end="url(#a1)"/>
+    <text class="lbl" x="359" y="126" text-anchor="middle">prompt.submit</text>
+    <!-- R to C, dashed -->
+    <line class="edge-dash" x1="455" y1="170" x2="267" y2="170" marker-end="url(#a1)"/>
+    <text class="lbl-m" x="361" y="162" text-anchor="middle">Records the prompt</text>
+    <!-- note over C,R -->
+    <rect class="node" x="225" y="196" width="270" height="30" rx="6"/>
+    <text class="lbl" x="360" y="216" text-anchor="middle">Claude works, then replies</text>
+    <!-- C to R -->
+    <line class="edge" x1="265" y1="262" x2="453" y2="262" marker-end="url(#a1)"/>
+    <text class="lbl" x="359" y="254" text-anchor="middle">turn.complete</text>
+    <!-- R to H -->
+    <line class="edge" x1="455" y1="298" x2="603" y2="298" marker-end="url(#a1)"/>
+    <text class="lbl" x="529" y="290" text-anchor="middle">The prompt</text>
+    <!-- H to R -->
+    <line class="edge-dash" x1="605" y1="334" x2="457" y2="334" marker-end="url(#a1)"/>
+    <text class="lbl" x="531" y="326" text-anchor="middle">A rule, or NONE</text>
+    <!-- R to P -->
+    <line class="edge" x1="455" y1="370" x2="77" y2="370" marker-end="url(#a1)"/>
+    <text class="lbl" x="265" y="362" text-anchor="middle" style="paint-order:stroke;stroke:var(--panel);stroke-width:5px">Pop-up asks where to save the rule</text>
+    <!-- P to R, dashed -->
+    <line class="edge-dash" x1="75" y1="406" x2="453" y2="406" marker-end="url(#a1)"/>
+    <text class="lbl" x="265" y="398" text-anchor="middle" style="paint-order:stroke;stroke:var(--panel);stroke-width:5px">Auto memory, Project CLAUDE.md or Skip</text>
+    <!-- note over R -->
+    <rect class="node" x="370" y="426" width="170" height="30" rx="6"/>
+    <text class="lbl-b" x="455" y="446" text-anchor="middle">Writes the chosen file</text>
+</svg>
+<figcaption><strong>Figure 2.</strong> The calls for one turn with one rule. The prompt goes to Claude before the reply. The pop-up comes after the reply.</figcaption>
+</figure>
+<p>The <code>prompt.submit</code> hook returns the prompt unchanged (line 171). The mod never delays the prompt. The <code>turn.complete</code> hook calls <code>offerRules()</code> (line 186). That is where the pop-up appears. The pop-up never appears before the reply.</p>
+<p>Each recorded prompt gets its own check, and each rule that is found gets its own pop-up. A turn can record up to 5 prompts (<code>MAX_PENDING</code>, line 11).</p>
+<h3 id="h-3-3">3.3 Where a rule is saved</h3>
+<div class="table-wrap"><table>
+  <thead><tr>
+<th>Destination</th>
+<th>File written</th>
+<th>Default</th>
+</tr></thead>
+  <tbody>
+<tr><td>Auto memory</td><td><code>&lt;config folder&gt;/projects/&lt;project folder&gt;/memory/feedback-&lt;slug&gt;-&lt;hash&gt;.md</code>, plus one line in <code>MEMORY.md</code> in the same folder</td><td>On</td></tr>
+<tr><td>Project <code>CLAUDE.md</code></td><td><code>&lt;project root&gt;/CLAUDE.md</code></td><td>On</td></tr>
+<tr><td>Global <code>CLAUDE.md</code></td><td><code>&lt;config folder&gt;/CLAUDE.md</code></td><td>Off</td></tr>
+  </tbody>
+</table></div>
+<p>The config folder is the value of <code>CLAUDE_CONFIG_DIR</code>. If that is not set, it is <code>.claude</code> in the home folder. The project root comes from <code>$.session.root()</code>. The project folder is the project root with each character that is not a letter or a digit replaced by <code>-</code> (<code>hooks/save.ts</code> line 114). On macOS, <code>/Users/your-name/Developer/claude-mods</code> gives <code>-Users-your-name-Developer-claude-mods</code>.</p>
+<p>The writers follow these rules:</p>
+<ul>
+  <li>A writer reads the file first. It writes nothing when the file already holds the rule. The check ignores case, extra spaces and a bullet mark (<code>ruleKey</code>, line 12).</li>
+  <li>A <code>CLAUDE.md</code> rule is a bullet at the end of the <code>## Rules</code> section. The section is made at the end of the file when it is missing.</li>
+  <li>A <code>CLAUDE.md</code> file keeps its own line endings, CRLF or LF (<code>eolOf</code>, line 14).</li>
+  <li>A memory file has a front matter block, the rule, and a <code>Why</code> and <code>How to apply</code> line. Its name stays the same for the same rule.</li>
+  <li>A file that exists but cannot be read is never written over.</li>
+  <li>A saved rule shows a toast: <code>Saved to &lt;destination&gt;.</code>. A rule already there shows <code>Already in &lt;destination&gt;.</code>.</li>
+</ul>
+<h3 id="h-3-4">3.4 Stored values</h3>
+<div class="table-wrap"><table>
+  <thead><tr>
+<th>Name</th>
+<th>Type</th>
+<th>Meaning</th>
+<th>Changed by (line)</th>
+</tr></thead>
+  <tbody>
+<tr><td><code>reflect.pending</code></td><td>string list</td><td>Typed prompts with a cue word, for this turn. Holds up to 5.</td><td>Added to at line 168. Cleared at line 145, when the turn is checked, and at line 181, when the turn does not end with an answer.</td></tr>
+<tr><td><code>reflect.handled</code></td><td>string list</td><td>Rule keys asked about in this session. Holds up to 200.</td><td>Added to at line 153. The key is added before the pop-up, so a skipped rule counts too.</td></tr>
+  </tbody>
+</table></div>
+<p>The stored values belong to the session. A new session asks about a rule again.</p>
+<h2 id="settings">4. Settings</h2>
+<p>The settings are in <code>.claude-plugin/plugin.json</code>. The code reads them once, in <code>register()</code> (<code>hooks/register.ts</code> line 161).</p>
+<div class="table-wrap"><table>
+  <thead><tr>
+<th>Setting</th>
+<th>Values</th>
+<th>Default</th>
+<th>Effect</th>
+<th>Line</th>
+</tr></thead>
+  <tbody>
+<tr><td><code>toAutoMemory</code></td><td>true or false</td><td>true</td><td>Offers auto memory.</td><td>11</td></tr>
+<tr><td><code>toProjectClaudeMd</code></td><td>true or false</td><td>true</td><td>Offers the project <code>CLAUDE.md</code>.</td><td>18</td></tr>
+<tr><td><code>toGlobalClaudeMd</code></td><td>true or false</td><td>false</td><td>Offers <code>~/.claude/CLAUDE.md</code>.</td><td>25</td></tr>
+<tr><td><code>secondBrainPath</code></td><td>a folder path</td><td>empty</td><td>Not read by any code. A Second Brain destination is not built.</td><td>32</td></tr>
+<tr><td><code>cues</code></td><td>a comma-separated list</td><td>11 words and phrases</td><td>A prompt is checked only when it holds one of these as whole words.</td><td>39</td></tr>
+  </tbody>
+</table></div>
+<p>The default <code>cues</code> list has 11 entries. It is written in <code>.claude-plugin/plugin.json</code> line 44. It includes <code>do not</code> and its apostrophe form.</p>
+<p>With no destination on, <code>register()</code> returns before it adds a hook (<code>hooks/register.ts</code> line 164). Then the mod makes no Haiku call.</p>
+<p>The fixed constants are these:</p>
+<div class="table-wrap"><table>
+  <thead><tr>
+<th>Constant</th>
+<th>Value</th>
+<th>Line</th>
+<th>Effect</th>
+</tr></thead>
+  <tbody>
+<tr><td><code>MAX_PROMPT_CHARS</code></td><td>1000 characters</td><td>10</td><td>A longer prompt is a task, and it is not checked.</td></tr>
+<tr><td><code>MAX_PENDING</code></td><td>5</td><td>11</td><td>The most prompts recorded in one turn.</td></tr>
+<tr><td><code>MAX_HANDLED</code></td><td>200</td><td>12</td><td>The most rule keys kept in <code>reflect.handled</code>.</td></tr>
+<tr><td><code>MAX_RULE_CHARS</code></td><td>200 characters</td><td>13</td><td>A longer rule from Haiku is dropped.</td></tr>
+  </tbody>
+</table></div>
+<h2 id="install">5. Install</h2>
+<p>You install this mod for one session, for every session, or from the marketplace. Section 5.2 helps you choose.</p>
+<h3 id="h-5-1">5.1 Before you start</h3>
+<p>You need:</p>
+<ul>
+  <li>Claude Code. The version used to write and test this mod is 2.1.310. To see your version, run <code>claude --version</code>.</li>
+  <li>A copy of this repository on your computer.</li>
+  <li>A terminal. A terminal is a window where you type commands. On macOS, open the app named Terminal. On Windows, open PowerShell or Windows Terminal.</li>
+</ul>
+<p>In this document, the <strong>repository root</strong> is the top folder of the repository, named <code>claude-mods</code>. All commands in this document start from that folder. To go there, run <code>cd</code> and the path to the folder:</p>
+<pre><code class="language-bash">cd ~/Developer/claude-mods</code></pre>
+<p>On Windows PowerShell, run this command:</p>
+<pre><code class="language-powershell">cd $HOME\Developer\claude-mods</code></pre>
+<p>The Windows steps in this document are not tested.</p>
+<h3 id="h-5-2">5.2 Choose a method</h3>
+<div class="table-wrap"><table>
+  <thead><tr>
+<th>Method</th>
+<th>Use it when</th>
+<th>Lasts for</th>
+</tr></thead>
+  <tbody>
+<tr><td>A. Flag <code>--plugin-dir</code></td><td>You want to try the mod.</td><td>1 session</td></tr>
+<tr><td>B. Setting <code>CLAUDE_CODE_PLUGIN_DIRS</code></td><td>You want the mod in every session, from your copy of the repository.</td><td>Until you remove the setting</td></tr>
+<tr><td>C. Marketplace</td><td>You want to install the mod as you install other plugins.</td><td>Until you uninstall it</td></tr>
+  </tbody>
+</table></div>
+<h3 id="h-5-3">5.3 Method A: try it for one session</h3>
+<ol>
+  <li>Open a terminal. Go to the repository root (see 5.1).</li>
+  <li>Start Claude Code with the flag:</li>
+</ol>
+<p>   ```bash</p>
+<p>   claude --plugin-dir mods/reflect</p>
+<p>   ```</p>
+<ol>
+  <li>Do the check in 5.6.</li>
+</ol>
+<h3 id="h-5-4">5.4 Method B: load the mod in every session</h3>
+<ol>
+  <li>Open the file <code>~/.claude/settings.json</code> in a text editor.</li>
+  <li>Add an <code>env</code> block that names the full path of the mod folder. If the file already has an <code>env</code> block, add only the line inside it.</li>
+</ol>
+<p>   ```json</p>
+<p>   {</p>
+<p>     "env": {</p>
+<p>       "CLAUDE_CODE_PLUGIN_DIRS": "/Users/your-name/Developer/claude-mods/mods/reflect"</p>
+<p>     }</p>
+<p>   }</p>
+<p>   ```</p>
+<ol>
+  <li>Replace <code>/Users/your-name/Developer/claude-mods</code> with the real path to your repository. To print the path, run <code>pwd</code> in the repository root.</li>
+  <li>Save the file. Start a new Claude Code session.</li>
+  <li>Do the check in 5.6.</li>
+</ol>
+<p>On Windows, the settings file is <code>%USERPROFILE%\.claude\settings.json</code>. Use forward slashes in the path, for example <code>C:/Users/your-name/Developer/claude-mods/mods/reflect</code>. Or double each backslash in the JSON.</p>
+<p>To remove the mod from every session, delete the line and start a new session.</p>
+<h3 id="h-5-5">5.5 Method C: marketplace</h3>
+<p>The file <code>.claude-plugin/marketplace.json</code> at the repository root lists <code>reflect</code>. The marketplace is named <code>claude-mods</code>. This review did not run the <code>marketplace add</code> and <code>install</code> commands below. No person has done this check yet.</p>
+<p>This review did not check which branch the marketplace reads. The <code>reflect</code> entry is on this branch only, so check that it is on the branch the marketplace reads.</p>
+<ol>
+  <li>Add the marketplace once. Run:</li>
+</ol>
+<p>   ```bash</p>
+<p>   claude plugin marketplace add https://github.com/plaktoz/claude-mods</p>
+<p>   ```</p>
+<ol>
+  <li>Install the mod. Run:</li>
+</ol>
+<p>   ```bash</p>
+<p>   claude plugin install reflect@claude-mods</p>
+<p>   ```</p>
+<p>   The default scope is <code>user</code>, which applies the mod to every project. To change the scope, add <code>--scope project</code> or <code>--scope local</code>. See the root <code>README.md</code>.</p>
+<ol>
+  <li>Restart Claude Code. Do the check in 5.6.</li>
+</ol>
+<p>Add the marketplace with the repository URL. Do not use the GitHub link to <code>.claude-plugin/marketplace.json</code>: the command treats a link as a git repository and fails.</p>
+<p>To use your copy of the repository instead, run the install script from the repository root. Run one of these commands:</p>
+<ul>
+  <li>Linux, macOS, or Git Bash: <code>bash scripts/install-mods.sh reflect</code></li>
+  <li>Windows PowerShell: <code>powershell -ExecutionPolicy Bypass -File scripts\install-mods.ps1 reflect</code></li>
+</ul>
+<p>To remove the mod, run <code>bash scripts/install-mods.sh --uninstall reflect</code>. The Windows PowerShell script uses <code>-Uninstall</code>. Neither script was run for this review.</p>
+<h3 id="h-5-6">5.6 Check that the install worked</h3>
+<ol>
+  <li>Start a session after method A, B or C.</li>
+  <li>Send a prompt that holds a rule and a cue word, for example <code>never use m-dashes in your answers</code>.</li>
+  <li>Wait for the answer to finish.</li>
+  <li>Look for the pop-up. It asks where to save the rule.</li>
+</ol>
+<p><strong>Expected:</strong> the pop-up appears with the rule and the options. Choose Skip to save nothing.</p>
+<p>If the pop-up does not appear, see the table in 6.5.</p>
+<p>No person has done this check yet.</p>
+<h3 id="h-5-7">5.7 Change the settings</h3>
+<ol>
+  <li>In a session, type <code>/config</code>.</li>
+  <li>Find the rows for <code>reflect</code>: <code>toAutoMemory</code>, <code>toProjectClaudeMd</code>, <code>toGlobalClaudeMd</code>, <code>secondBrainPath</code> and <code>cues</code>.</li>
+  <li>Change a value, then start a new session. The code reads the settings once, when the mod loads (see section 4).</li>
+</ol>
+<p>This review did not run these steps. No person has done this check yet.</p>
+<h2 id="validate">6. Validate</h2>
+<p>To validate means to check that the mod works as this document says. There are three levels. Run levels 1 and 2 after each change to the code. Run level 3 once after you install the mod.</p>
+<div class="table-wrap"><table>
+  <thead><tr>
+<th>Level</th>
+<th>What it proves</th>
+<th>Time</th>
+<th>Needs an API request</th>
+</tr></thead>
+  <tbody>
+<tr><td>1. Validate</td><td>The files are correct, and the engine can read the mod.</td><td>Under 1 second</td><td>No</td></tr>
+<tr><td>2. Test</td><td>The logic is correct: detection, the pop-up, the writers and the limits.</td><td>Under 1 second</td><td>No</td></tr>
+<tr><td>3. Live check</td><td>The mod works in a real session.</td><td>5 minutes or more</td><td>Yes, a small one</td></tr>
+  </tbody>
+</table></div>
+<h3 id="h-6-1">6.1 Level 1: validate the files</h3>
+<ol>
+  <li>Go to the repository root (see 5.1).</li>
+  <li>Run:</li>
+</ol>
+<p>   ```bash</p>
+<p>   claude plugin validate mods/reflect</p>
+<p>   ```</p>
+<ol>
+  <li>Read the last line of the output.</li>
+</ol>
+<div class="table-wrap"><table>
+  <thead><tr>
+<th>Last line</th>
+<th>Meaning</th>
+<th>Action</th>
+</tr></thead>
+  <tbody>
+<tr><td><code>✔ Validation passed</code></td><td>The mod is correct.</td><td>None. This is the expected result.</td></tr>
+<tr><td><code>✘ Validation failed</code></td><td>The engine refuses the mod.</td><td>Read the lines under the <code>✘ Found</code> heading. Fix the file they name. Run the command again.</td></tr>
+  </tbody>
+</table></div>
+<p>The real output of the last run ended with these lines:</p>
+<pre><code class="language-text">  ❯ ./register.ts hooks: prompt.submit, turn.complete
+  ❯ ./register.ts gating hook without .catch: prompt.submit
+  ...
+  ⚠ Found 1 plugin directory warning:
+  ❯ .claude-plugin/plugin.json icon: No icon (ICON_MISSING).
+  ...
+✔ Validation passed</code></pre>
+<p>These messages do not change the result:</p>
+<div class="table-wrap"><table>
+  <thead><tr>
+<th>Message</th>
+<th>Why you can ignore it</th>
+</tr></thead>
+  <tbody>
+<tr><td><code>ICON_MISSING</code></td><td>Only a note for the plugin directory. The mod works without an icon.</td></tr>
+<tr><td><code>gating hook without .catch: prompt.submit</code></td><td>A note about the <code>prompt.submit</code> hook. The hook has no <code>.catch</code>. See section 7.</td></tr>
+  </tbody>
+</table></div>
+<p>The output also lists what the mod uses. Compare it with this list:</p>
+<ul>
+  <li>Hooks: <code>prompt.submit</code>, <code>turn.complete</code>.</li>
+  <li>Engine calls: <code>$.env.get</code>, <code>$.fs.exists</code>, <code>$.fs.read</code>, <code>$.fs.write</code>, <code>$.model.complete</code>, <code>$.session.root</code>, <code>$.state.get</code>, <code>$.state.set</code>, <code>$.ui.ask</code>, <code>$.ui.toast</code>.</li>
+  <li>Environment variables read: <code>CLAUDE_CONFIG_DIR</code>, <code>HOME</code>, <code>USERPROFILE</code>.</li>
+  <li>Stored values: <code>reflect.handled</code>, <code>reflect.pending</code>.</li>
+</ul>
+<p>If the output lists a hook or a call not in this list, the code and this document differ. Tell the owner of the mod.</p>
+<h3 id="h-6-2">6.2 Level 2: run the tests</h3>
+<ol>
+  <li>Go to the repository root.</li>
+  <li>Run:</li>
+</ol>
+<p>   ```bash</p>
+<p>   claude plugin test mods/reflect</p>
+<p>   ```</p>
+<ol>
+  <li>Check the last lines.</li>
+</ol>
+<p><strong>Expected result:</strong> the last lines are <code>45 pass</code> and <code>0 fail</code>. This review printed:</p>
+<pre><code class="language-text"> 45 pass
+ 0 fail
+Ran 45 tests across 2 files. [0.82s]</code></pre>
+<p>The time in brackets changes from run to run.</p>
+<p>The tests use a fake model, a fake pop-up and a fake file system. They do not call the API and they cost nothing. Section 6.4 lists each test.</p>
+<p>If a test fails, the output shows the test name and the reason. Find the test name in the table in 6.4.</p>
+<h3 id="h-6-3">6.3 Level 3: live check in a session</h3>
+<p>Do this once after you install. The steps need a person at the pop-up.</p>
+<div class="table-wrap"><table>
+  <thead><tr>
+<th>Step</th>
+<th>Action</th>
+<th>Expected result</th>
+</tr></thead>
+  <tbody>
+<tr><td>1</td><td>Send <code>never use m-dashes in your answers</code>. Wait for the answer.</td><td>The pop-up asks <code>Save this rule for later?</code>, with the rule and the options.</td></tr>
+<tr><td>2</td><td>Choose <code>Auto memory</code>.</td><td>A toast says <code>Saved to Auto memory.</code>. A <code>feedback-&lt;rule slug&gt;-&lt;hash&gt;.md</code> file is in the project's memory folder, and <code>MEMORY.md</code> has one new line.</td></tr>
+<tr><td>3</td><td>Send the same prompt again. Wait for the answer.</td><td>No pop-up. The rule is handled in this session.</td></tr>
+<tr><td>4</td><td>Send <code>from now on keep hooks under 12 words</code>. Wait for the answer. Choose <code>Project CLAUDE.md</code>.</td><td>A toast says <code>Saved to Project CLAUDE.md.</code>. The file <code>CLAUDE.md</code> in the project root has the bullet under <code>## Rules</code>.</td></tr>
+<tr><td>5</td><td>Send <code>never use m-dashes in your answers</code> in a new session. Choose <code>Skip</code>.</td><td>No file changes.</td></tr>
+  </tbody>
+</table></div>
+<p><strong>No person has done this check yet.</strong></p>
+<p>The auto-memory path in step 2 is the one the code builds. Claude Code has no API for that folder. The real write is not yet tested in a session.</p>
+<h3 id="h-6-4">6.4 What each test proves</h3>
+<p>Register tests, in <code>hooks/register.test.ts</code>:</p>
+<div class="table-wrap"><table>
+  <thead><tr>
+<th>Test</th>
+<th>Line</th>
+<th>Rule it proves</th>
+</tr></thead>
+  <tbody>
+<tr><td>settings: destinations follow the switches, cues are split and lowercased</td><td>11</td><td>The switches set the destinations. Cues split on commas and are lowercased.</td></tr>
+<tr><td>only a short prompt the person typed is watched</td><td>24</td><td>Only typed prompts of 1000 characters or fewer are recorded.</td></tr>
+<tr><td>a cue counts as whole words, in any case, with either apostrophe</td><td>35</td><td>A cue matches whole words, in any case, with either apostrophe.</td></tr>
+<tr><td>a rule is read from the first line of the reply; NONE and junk give nothing</td><td>44</td><td>The first line is the rule. NONE, empty and long replies give nothing.</td></tr>
+<tr><td>a prompt with a rule is offered after the reply, not before</td><td>105</td><td>No pop-up appears at prompt time. The options are the enabled destinations and Skip.</td></tr>
+<tr><td>the prompt itself is never held or changed</td><td>117</td><td>The prompt sent to Claude is the prompt typed.</td></tr>
+<tr><td>a one-off task, with no cue word, makes no model call</td><td>125</td><td>A prompt with no cue word makes no Haiku call.</td></tr>
+<tr><td>a cue word in a one-off task is dropped when haiku says NONE</td><td>135</td><td>A cue word with no rule gives no pop-up.</td></tr>
+<tr><td>a command, a meta message, a plugin, a peer and a long prompt are ignored</td><td>145</td><td>These prompts are not recorded and make no Haiku call.</td></tr>
+<tr><td>a rule already handled is not asked about again</td><td>159</td><td>A rule is asked about once in a session.</td></tr>
+<tr><td>the prompt is asked about once: a second turn end has nothing recorded</td><td>170</td><td>The recorded prompts are used once.</td></tr>
+<tr><td>a failed or throwing model call is silent and asks nothing</td><td>180</td><td>A failed Haiku reply gives no pop-up and no message.</td></tr>
+<tr><td>a throwing model call is silent</td><td>190</td><td>A thrown Haiku error gives no pop-up and no message.</td></tr>
+<tr><td>a dismissed dialog does not fail the turn</td><td>199</td><td>A closed pop-up does not stop the turn.</td></tr>
+<tr><td>an interrupted turn drops the recorded prompt</td><td>208</td><td>A turn that ends with reason other than <code>answer</code> drops the recorded prompts.</td></tr>
+<tr><td>a subagent's turn end does not use up the recorded prompt</td><td>219</td><td>A subagent turn leaves the recorded prompts for the main turn.</td></tr>
+<tr><td>the global file is not offered by default</td><td>230</td><td>The global option is absent by default.</td></tr>
+<tr><td>with every destination off the mod does nothing</td><td>239</td><td>With no destination, no hook runs and no Haiku call is made.</td></tr>
+<tr><td>with the global file on, all three destinations and Skip are offered</td><td>249</td><td>The global option is offered when it is on.</td></tr>
+<tr><td>two prompts typed in one turn are each checked</td><td>258</td><td>Each recorded prompt gets its own check.</td></tr>
+  </tbody>
+</table></div>
+<p>Writer tests, in <code>hooks/save.test.ts</code>:</p>
+<div class="table-wrap"><table>
+  <thead><tr>
+<th>Test</th>
+<th>Line</th>
+<th>Rule it proves</th>
+</tr></thead>
+  <tbody>
+<tr><td>a rule is added to a new file under a Rules heading</td><td>18</td><td>A new file gets a <code>## Rules</code> heading and the bullet.</td></tr>
+<tr><td>a file with no Rules section gets one at the end, after a blank line</td><td>22</td><td>A missing section is added at the end of the file.</td></tr>
+<tr><td>a rule goes to the end of an existing Rules section, before the next heading</td><td>26</td><td>The bullet goes after the last line of the section.</td></tr>
+<tr><td>an empty Rules section at the end of the file gets the bullet</td><td>32</td><td>An empty section gets the bullet.</td></tr>
+<tr><td>a rule that is already there is a duplicate, however it is bulleted or cased</td><td>37</td><td>A duplicate is found whatever its bullet or case.</td></tr>
+<tr><td>CRLF stays CRLF and LF stays LF; the file has one closing newline</td><td>43</td><td>The file keeps its line endings and ends with one newline.</td></tr>
+<tr><td>non-ASCII text is kept</td><td>51</td><td>Characters outside ASCII are kept.</td></tr>
+<tr><td>the memory index gets one line, once</td><td>57</td><td><code>MEMORY.md</code> gets one line for each memory file.</td></tr>
+<tr><td>a memory file is a feedback memory with a stable name</td><td>67</td><td>The memory file has the feedback type and the same name for the same rule.</td></tr>
+<tr><td>the project folder name follows the path; a Windows path and a path with spaces work</td><td>80</td><td>The folder name follows the path rule, for Windows paths too.</td></tr>
+<tr><td>join keeps the separator of the base path</td><td>85</td><td>A Windows path joins with a backslash.</td></tr>
+<tr><td>the project CLAUDE.md is created when it is missing</td><td>150</td><td>A missing <code>CLAUDE.md</code> is created with the section.</td></tr>
+<tr><td>the project CLAUDE.md keeps its content and its CRLF</td><td>158</td><td>Existing content and line endings are kept.</td></tr>
+<tr><td>a rule already in the file is not written twice</td><td>165</td><td>The file is not written when the rule is there.</td></tr>
+<tr><td>auto memory gets a feedback file and one index line</td><td>174</td><td>Auto memory writes the file and the index line.</td></tr>
+<tr><td>auto memory creates the index when there is none, and honours CLAUDE_CONFIG_DIR</td><td>184</td><td>The index is created when missing. <code>CLAUDE_CONFIG_DIR</code> sets the folder.</td></tr>
+<tr><td>auto memory is not written twice</td><td>191</td><td>A second save of the same rule writes nothing new.</td></tr>
+<tr><td>a memory file whose index line is missing gets the line</td><td>203</td><td>A memory file without its index line gets the line.</td></tr>
+<tr><td>the global CLAUDE.md is in the home folder, found by USERPROFILE on Windows</td><td>210</td><td>The home folder comes from <code>USERPROFILE</code> when <code>HOME</code> is not set.</td></tr>
+<tr><td>Skip writes nothing</td><td>221</td><td>Skip writes no file.</td></tr>
+<tr><td>a dismissed dialog writes nothing</td><td>229</td><td>A closed pop-up writes no file.</td></tr>
+<tr><td>free text under "Other" writes nothing</td><td>236</td><td>Free text writes no file.</td></tr>
+<tr><td>a file that cannot be read is never overwritten</td><td>243</td><td>A file that cannot be read is not written.</td></tr>
+<tr><td>a failed write is silent</td><td>253</td><td>A failed write shows no toast.</td></tr>
+<tr><td>no home folder: the global file is not written</td><td>261</td><td>No home folder means no global write.</td></tr>
+  </tbody>
+</table></div>
+<h3 id="h-6-5">6.5 Problems and solutions</h3>
+<div class="table-wrap"><table>
+  <thead><tr>
+<th>Problem</th>
+<th>Cause</th>
+<th>Solution</th>
+</tr></thead>
+  <tbody>
+<tr><td><code>claude: command not found</code></td><td>Claude Code is not installed, or the terminal cannot find it.</td><td>Install Claude Code. Open a new terminal.</td></tr>
+<tr><td><code>claude plugin validate</code> shows <code>File not found</code></td><td>You are not in the repository root.</td><td>Run <code>pwd</code>. Run <code>cd</code> to the repository root. Run the command again.</td></tr>
+<tr><td><code>✘ Validation failed</code></td><td>A file of the mod has an error.</td><td>Read the lines under the <code>✘ Found</code> heading. Fix the file they name.</td></tr>
+<tr><td>No pop-up after a prompt with a rule</td><td>The mod did not load.</td><td>Run <code>claude plugin validate mods/reflect</code> from the repository root. Read any <code>✘</code> line. Check that the path in the flag or the setting is correct.</td></tr>
+<tr><td>No pop-up after a prompt with a rule, and no error</td><td>The prompt has no cue word, or it is longer than 1000 characters. Or the turn did not end with an answer.</td><td>Use a cue word from the list in section 4. Keep the prompt short. Send a new prompt and wait for the full answer.</td></tr>
+<tr><td>No pop-up, and the cue word is in the prompt</td><td>Haiku said NONE, the call failed, or the rule was handled before in this session. The mod writes no log line for these cases.</td><td>Start a new session to ask again. Use a clearer rule, such as one that starts with <code>never</code> or <code>always</code>.</td></tr>
+<tr><td>The pop-up has no <code>Project CLAUDE.md</code> option</td><td><code>toProjectClaudeMd</code> is off.</td><td>Turn it on in <code>/config</code>, then start a new session.</td></tr>
+<tr><td>The pop-up has no <code>Auto memory</code> option</td><td><code>toAutoMemory</code> is off.</td><td>Turn it on in <code>/config</code>, then start a new session.</td></tr>
+<tr><td>A rule is saved in a different folder than expected</td><td><code>CLAUDE_CONFIG_DIR</code> is set, or the project root is not the folder you expect.</td><td>Run <code>echo $CLAUDE_CONFIG_DIR</code>. Compare the project root with the folder that Claude Code shows.</td></tr>
+<tr><td>The same rule is asked again in a new session</td><td>The handled list is for one session.</td><td>This is by design. Skip the rule again, or save it, to keep it.</td></tr>
+  </tbody>
+</table></div>
+<h3 id="h-6-6">6.6 Type-check (optional)</h3>
+<p>A type-check finds mistakes in the code types. It uses <code>tsc</code>, the TypeScript compiler. <code>tsc</code> was not installed when this review ran, so this check was <strong>not run</strong>.</p>
+<p>The file <code>tsconfig.json</code> extends <code>./.claude-plugin/types/tsconfig.json</code>. That folder did not exist in the repository when this review ran. The engine writes it once the mod has loaded. The check cannot run as written until that folder exists.</p>
+<h3 id="h-6-7">6.7 Cross-platform review</h3>
+<p>This review checked the code against the cross-platform checklist in <code>CLAUDE.md</code>. The tests ran on macOS only. Nothing ran on Windows or Linux. Each result below is marked by how it was checked.</p>
+<div class="table-wrap"><table>
+  <thead><tr>
+<th>Check</th>
+<th>Result</th>
+<th>How it was checked</th>
+</tr></thead>
+  <tbody>
+<tr><td>Hard-coded <code>/</code> path joins</td><td>No. Paths are built with <code>join()</code> (<code>hooks/save.ts</code> 118–122). It keeps the separator of the base path, so a Windows path uses <code>\</code>.</td><td>Verified by reading. The tests for <code>join</code> and the project folder name use Windows path strings (<code>hooks/save.test.ts</code> 80 and 85).</td></tr>
+<tr><td><code>HOME</code> without a <code>USERPROFILE</code> fallback</td><td>Handled. <code>configDir()</code> reads <code>HOME</code>, then <code>USERPROFILE</code> (<code>hooks/save.ts</code> 126–134). <code>CLAUDE_CONFIG_DIR</code> is read first.</td><td>Verified by test: <code>hooks/save.test.ts</code> 210 and 184. Not run on Windows.</td></tr>
+<tr><td>POSIX-only shell commands</td><td>None. The mod runs no shell command.</td><td>Verified by reading. A search of <code>hooks/</code> found no <code>exec</code>, <code>spawn</code> or <code>child_process</code>.</td></tr>
+<tr><td><code>python3</code>-only interpreter calls</td><td>None. The mod runs no interpreter.</td><td>Verified by reading.</td></tr>
+<tr><td>Missing <code>encoding="utf-8"</code></td><td>Not applicable. The mod does not open files itself. <code>$.fs.read</code> and <code>$.fs.write</code> work on UTF-8 text in the engine.</td><td>Verified by reading the engine types (<code>types/claude-code.d.ts</code>, the file system section). The non-ASCII test is <code>hooks/save.test.ts</code> 51.</td></tr>
+<tr><td>CRLF handling</td><td>Handled. The writer keeps the file's line endings (<code>eolOf</code>, <code>hooks/save.ts</code> 14).</td><td>Verified by test: <code>hooks/save.test.ts</code> 43 and 158. Not run on a Windows file.</td></tr>
+<tr><td>Windows memory folder name</td><td>Built with the same rule as macOS: each character that is not a letter or a digit becomes <code>-</code>. <code>C:\Users\me\app</code> gives <code>C--Users-me-app</code>.</td><td>Verified by reading and by test (<code>hooks/save.test.ts</code> 80). Not checked against a real Windows install.</td></tr>
+<tr><td>Engine path for the global file on Windows</td><td>Built from <code>configDir()</code>.</td><td>Verified by test with the <code>USERPROFILE</code> path (<code>hooks/save.test.ts</code> 210). Not run on Windows.</td></tr>
+  </tbody>
+</table></div>
+<p><strong>Result:</strong> no code change was needed for the checklist. The Windows and Linux paths are verified by reading only. Run the tests on Windows or Linux before you rely on them there.</p>
+<h2 id="limits">7. Known limits</h2>
+<ul>
+  <li><strong>Haiku can misjudge.</strong> A prompt with a rule can get NONE, and a prompt with no rule can get a rule. The pop-up always asks first, so a wrong rule saves nothing unless you choose a destination.</li>
+  <li><strong>The cue list is fixed text.</strong> A rule with no cue word is not checked. A cue word in a one-off task costs one Haiku call.</li>
+  <li><strong>Long prompts are ignored.</strong> A prompt of more than 1000 characters is treated as a task. A long rule in one prompt is not checked.</li>
+  <li><strong>Only typed prompts count.</strong> A prompt from a plugin, a peer, a command or the SDK is not checked (<code>hooks/register.ts</code> 63–68).</li>
+  <li><strong>A prompt is checked at the end of its turn.</strong> A prompt typed while Claude works is checked at the end of the turn that follows. A turn that ends with reason other than <code>answer</code> drops the recorded prompts.</li>
+  <li><strong>The handled list is per session.</strong> A rule is asked about once in a session. A new session asks again.</li>
+  <li><strong>Closing the pop-up saves nothing, and the rule is marked handled.</strong> The mod adds the rule key to <code>reflect.handled</code> before it shows the pop-up (<code>hooks/register.ts</code> 152–153).</li>
+  <li><strong>Free text under Other saves nothing.</strong> Only the listed options write a file.</li>
+  <li><strong>Failures are silent.</strong> A failed Haiku call, a failed write and a closed pop-up show no message. A saved or already-saved rule shows a toast.</li>
+  <li><strong>A failed write in <code>prompt.submit</code> is not caught.</strong> The <code>update()</code> call at <code>hooks/register.ts</code> line 168 has no <code>try</code>. The validator reports this as <code>gating hook without .catch</code>. The test kit cannot force this failure: the engine skips a <code>state.set</code> stub that throws, so the write still lands. No test covers it. How the engine treats the error in a real session was not checked.</li>
+  <li><strong>Auto memory is not tested in a session.</strong> Claude Code has no API for the memory folder. The path is built from the config folder and the project root. The real write is not yet tested. See 6.3.</li>
+  <li><strong>Second Brain is not built.</strong> The <code>secondBrainPath</code> setting is not read by any code.</li>
+  <li><strong>The global file is off by default.</strong> Turn it on in <code>/config</code>.</li>
+  <li><strong>Settings are read once.</strong> <code>register()</code> reads the settings when the mod loads (<code>hooks/register.ts</code> 161). A change to a setting can need a new session. This was not checked.</li>
+  <li><strong>Only the standard heading is matched.</strong> A <code>## Rules</code> heading with other case, such as <code>## rules</code>, is not matched. The code then adds a new <code>## Rules</code> section at the end of the file.</li>
+  <li><strong>One rule per prompt.</strong> The instructions ask Haiku for the most important rule only. A prompt with two rules gets one pop-up.</li>
+  <li><strong>Limit of 200 characters.</strong> A rule longer than 200 characters is dropped (<code>MAX_RULE_CHARS</code>, line 13).</li>
+  <li><strong>The reply format is fixed.</strong> The instructions to Haiku (lines 15–21) and the parser (lines 80–90) must change together.</li>
+  <li><strong>The marketplace entry needs a merge.</strong> The marketplace reads GitHub. The <code>reflect</code> entry works after this branch reaches <code>main</code>.</li>
+  <li><strong>Windows and Linux are not run.</strong> See 6.7. The paths are verified by reading.</li>
+  <li><strong>The type-check was not run.</strong> See 6.6.</li>
+  <li><strong>No live check has been done.</strong> See 6.3.</li>
+</ul>
+<h2 id="glossary">8. Glossary</h2>
+<div class="table-wrap"><table>
+  <thead><tr>
+<th>Term</th>
+<th>Meaning</th>
+</tr></thead>
+  <tbody>
+<tr><td>Auto memory</td><td>Claude Code's memory folder for a project. Each memory is a file, and <code>MEMORY.md</code> lists the files.</td></tr>
+<tr><td>Cue word</td><td>A word or phrase from the <code>cues</code> setting. A prompt with a cue word is recorded.</td></tr>
+<tr><td>Destination</td><td>A place a rule can be saved: auto memory, the project <code>CLAUDE.md</code> or the global <code>CLAUDE.md</code>.</td></tr>
+<tr><td>Engine</td><td>Claude Code. It loads the mod and calls its hooks.</td></tr>
+<tr><td>Haiku</td><td>A small Claude model. The mod uses it to find and write a rule.</td></tr>
+<tr><td>Hook</td><td>A function that the engine calls when an event happens, such as <code>turn.complete</code>.</td></tr>
+<tr><td>Mod</td><td>A plugin for Claude Code that adds hooks.</td></tr>
+<tr><td>Pop-up</td><td>The question that asks where to save a rule.</td></tr>
+<tr><td>Recorded prompt</td><td>A typed prompt with a cue word, kept until its turn ends.</td></tr>
+<tr><td>Rule</td><td>A lasting instruction about how to work, for later tasks and this one.</td></tr>
+<tr><td>Skip</td><td>The pop-up option that saves nothing.</td></tr>
+<tr><td>Subagent</td><td>A helper run that the main conversation starts. Its turns have an agent ID.</td></tr>
+<tr><td>Turn</td><td>One reply cycle: a prompt, then Claude's work, then the reply.</td></tr>
+  </tbody>
+</table></div>
+</main>
+</body>
+</html>
