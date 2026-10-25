@@ -163,12 +163,12 @@ Send the structured prompt?
     <tr><td><code>confirmDraft()</code> – shows the draft and asks for your choice</td><td><code>hooks/register.ts</code></td><td>101</td></tr>
     <tr><td><code>register()</code> – adds the hook</td><td><code>hooks/register.ts</code></td><td>116</td></tr>
     <tr><td>Hook <code>prompt.submit</code></td><td><code>hooks/register.ts</code></td><td>117</td></tr>
-    <tr><td>Plugin name and description</td><td><code>.claude-plugin/plugin.json</code></td><td>all</td></tr>
+    <tr><td>Plugin name, description, author and license</td><td><code>.claude-plugin/plugin.json</code></td><td>all</td></tr>
     <tr><td>Tests</td><td><code>hooks/register.test.ts</code></td><td>12–138</td></tr>
   </tbody>
 </table></div>
 
-<p>Other files: <code>hooks/hooks.json</code> names the module. <code>tsconfig.json</code> is for the type-check.</p>
+<p>Other files: <code>hooks/hooks.json</code> names the module. <code>tsconfig.json</code> is for the type-check. <code>LICENSE</code> holds the MIT license.</p>
 
 <h2 id="how">3. How it works</h2>
 <p>The mod has one hook, <code>prompt.submit</code>. The engine runs this hook each time a prompt is sent. The hook can hold the prompt, change its text, and then let it go.</p>
@@ -526,13 +526,11 @@ claude plugin install brain-dump@claude-mods</code></pre>
     <tr><td><code>✘ Validation failed</code></td><td>The engine refuses the mod.</td><td>Read the <code>✘</code> lines and the <code>❯</code> lines above the last line. Fix the file they name. Run the command again.</td></tr>
   </tbody>
 </table></div>
-<p>The real result on 2026-10-25 ends with <code>✔ Validation passed with warnings</code>. Its output has a warning for the author, a note about the hooks, and a block of plugin directory checks. The directory checks print a <code>✘</code> line for the license and a warning for the icon. Those checks do not change the result. The table below covers each message.</p>
+<p>The real result on 2026-10-25 ends with <code>✔ Validation passed</code>. Its output has a note about the hooks and a block of plugin directory checks. The directory checks print a warning for the icon. That warning does not change the result. The table below covers each message.</p>
 <p>The expected output contains messages that look like problems. They are not problems:</p>
 <div class="table-wrap"><table>
   <thead><tr><th>Message</th><th>Why you can ignore it</th></tr></thead>
   <tbody>
-    <tr><td><code>author: No author information provided</code></td><td>Only a note. The mod works without an author.</td></tr>
-    <tr><td><code>LICENSE: License missing</code></td><td>It appears under the heading about the public plugin directory, as a <code>✘</code> line. The heading says it does not change the result.</td></tr>
     <tr><td><code>ICON_MISSING</code></td><td>Only a warning about the plugin directory. It does not change the result.</td></tr>
     <tr><td><code>gating hook without .catch: prompt.submit</code></td><td>Only a note. The hook holds the prompt until it finishes. The functions <code>draftFrom()</code> and <code>confirmDraft()</code> catch their own errors and return the original prompt.</td></tr>
   </tbody>

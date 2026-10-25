@@ -55,10 +55,10 @@ All logic is in one file: `hooks/register.ts`. Search for the function name if a
 | `confirmDraft()` – shows the draft and asks for your choice | `hooks/register.ts` | 101 |
 | `register()` – adds the hook | `hooks/register.ts` | 116 |
 | Hook `prompt.submit` | `hooks/register.ts` | 117 |
-| Plugin name and description | `.claude-plugin/plugin.json` | all |
+| Plugin name, description, author and license | `.claude-plugin/plugin.json` | all |
 | Tests | `hooks/register.test.ts` | 12–138 |
 
-Other files: `hooks/hooks.json` names the module. `tsconfig.json` is for the type-check.
+Other files: `hooks/hooks.json` names the module. `tsconfig.json` is for the type-check. `LICENSE` holds the MIT license.
 
 ## 3. How it works
 
@@ -351,14 +351,12 @@ To validate means to prove that the mod works as this document says. There are t
 | `✔ Validation passed` | The mod is correct. | None. |
 | `✘ Validation failed` | The engine refuses the mod. | Read the `✘` lines and the `❯` lines above the last line. Fix the file they name. Run the command again. |
 
-The real result on 2026-10-25 ends with `✔ Validation passed with warnings`. Its output has a warning for the author, a note about the hooks, and a block of plugin directory checks. The directory checks print a `✘` line for the license and a warning for the icon. Those checks do not change the result. The table below covers each message.
+The real result on 2026-10-25 ends with `✔ Validation passed`. Its output has a note about the hooks and a block of plugin directory checks. The directory checks print a warning for the icon. That warning does not change the result. The table below covers each message.
 
 The expected output contains messages that look like problems. They are not problems:
 
 | Message | Why you can ignore it |
 |---------|----------------------|
-| `author: No author information provided` | Only a note. The mod works without an author. |
-| `LICENSE: License missing` | It appears under the heading about the public plugin directory, as a `✘` line. The heading says it does not change the result. |
 | `ICON_MISSING` | Only a warning about the plugin directory. It does not change the result. |
 | `gating hook without .catch: prompt.submit` | Only a note. The hook holds the prompt until it finishes. The functions `draftFrom()` and `confirmDraft()` catch their own errors and return the original prompt. |
 
