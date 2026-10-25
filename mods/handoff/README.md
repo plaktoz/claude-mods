@@ -45,18 +45,18 @@ All logic is in one file: `hooks/register.ts`. The line numbers match the file a
 | `addUnique()`: adds an item to a list and keeps the last 50 | `hooks/register.ts` | 33–34 |
 | `sameFile()`: compares two paths for the file lists | `hooks/register.ts` | 36–42 |
 | `describe()`: turns the inventory into text | `hooks/register.ts` | 44–59 |
-| `buildHandoff()`: asks the model and builds the handoff text | `hooks/register.ts` | 63–76 |
-| `deliver()`: copies the text and clears `pending` | `hooks/register.ts` | 78–85 |
-| `register()`: adds the hooks | `hooks/register.ts` | 87 |
-| Hook `session.start`: adds the command | `hooks/register.ts` | 88–95 |
-| Hook `command.run`: the `/handover` command | `hooks/register.ts` | 97–101 |
-| Hook `tool.call`: records the inventory | `hooks/register.ts` | 103–117 |
-| Hook `session.measure`: the 250k token offer | `hooks/register.ts` | 119–128 |
-| Hook `turn.complete`: stores the end time | `hooks/register.ts` | 130–137 |
-| Hook `prompt.submit`: the decision | `hooks/register.ts` | 139–176 |
-| The question to you: `$.ui.ask` | `hooks/register.ts` | 159–165 |
+| `buildHandoff()`: asks the model and builds the handoff text | `hooks/register.ts` | 63–82 |
+| `deliver()`: copies the text and clears `pending` | `hooks/register.ts` | 84–91 |
+| `register()`: adds the hooks | `hooks/register.ts` | 93 |
+| Hook `session.start`: adds the command | `hooks/register.ts` | 94–101 |
+| Hook `command.run`: the `/handover` command | `hooks/register.ts` | 103–107 |
+| Hook `tool.call`: records the inventory | `hooks/register.ts` | 109–123 |
+| Hook `session.measure`: the 250k token offer | `hooks/register.ts` | 125–134 |
+| Hook `turn.complete`: stores the end time | `hooks/register.ts` | 136–143 |
+| Hook `prompt.submit`: the decision | `hooks/register.ts` | 145–182 |
+| The question to you: `$.ui.ask` | `hooks/register.ts` | 165–171 |
 | Type of the stored values | `types/index.d.ts` | all |
-| Tests | `hooks/register.test.ts` | 63–190 |
+| Tests | `hooks/register.test.ts` | 65–205 |
 
 Other files: `hooks/hooks.json` names the module. `tsconfig.json` is for the type check. `.claude-plugin/plugin.json` has the name and the version. The mod has no settings.
 
@@ -78,13 +78,13 @@ flowchart LR
     T["Token offer<br/>250k tokens"] --> B
     K["Cold-cache offer<br/>idle over 5 min"] --> B
     B -->|"facts + prompt"| F["$.model.fork"]
-    F -->|"summary, or no reply"| B
+    F -->|"summary, or no reply or error"| B
     B -->|"handoff text"| D["deliver()"]
     D -->|"copy"| CB[("Clipboard")]
     D -.->|"if copy fails"| X["Text in chat"]
 ```
 
-Figure 1. Three starts lead to one path. The model summary returns to `buildHandoff()`. `deliver()` copies the text. If the copy fails, the text shows in the chat.
+Figure 1. Three starts lead to one path. The model summary, or the goal and the facts, returns to `buildHandoff()`. `deliver()` copies the text. If the copy fails, the text shows in the chat.
 
 ### 3.2 What happens at each prompt
 
@@ -113,7 +113,7 @@ These are the rules for each decision:
 - **Your choice.** If you close the question without an answer, the mod uses `Continue here`.
 - **After the question.** The mod clears `pending` for every answer. This includes a dismissed question.
 - **Choice `Make a handoff`.** The mod adds your prompt to the handoff as the next request. The mod does not send your prompt to the model.
-- **Build fails.** The mod shows the toast `Handoff failed; your prompt was sent here instead.` It sends your prompt in this session. The `try` block covers `buildHandoff()` and `deliver()`, so either call that throws leads here.
+- **Build fails.** The mod shows the toast `Handoff failed; your prompt was sent here instead.` It sends your prompt in this session. The `try` block covers `buildHandoff()` and `deliver()`. An error from `$.model.fork` does not get here, because `buildHandoff()` catches it (see 3.6). Other errors in either call do.
 
 ### 3.3 The token offer
 
@@ -184,13 +184,13 @@ When the mod writes the handoff, it does not list an edited file as read. An edi
 flowchart LR
     I["Facts from the inventory<br/>first request, files edited, files read,<br/>skills, links, tools"] -->|"+ prompt"| F["$.model.fork<br/>under 400 words"]
     F -->|"summary"| B["Body"]
-    I -.->|"if no reply: the goal and the facts"| B
+    I -.->|"if no reply or error: the goal and the facts"| B
     B -->|"body"| H["Handoff text"]
     L1["Line 1: fixed sentence"] --> H
     N["Next request: your prompt<br/>offers only"] -.-> H
 ```
 
-Figure 4. How the handoff text is built. The model summary becomes the body. If there is no reply, the body is the goal and the facts. An offer adds your prompt as the next request.
+Figure 4. How the handoff text is built. The model summary becomes the body. If there is no reply, or the request throws an error, the body is the goal and the facts. An offer adds your prompt as the next request.
 
 Line 1 is always: `Continue the work described in this handoff from a previous session.`
 
@@ -198,7 +198,7 @@ Line 1 is always: `Continue the work described in this handoff from a previous s
 |--------|--------|
 | The model answers (`isAnswered` is true) | The body is the reply text. |
 | The model does not answer (`isAnswered` is false) | The body is the goal and the facts. The body has no summary. |
-| The model request throws an error | `/handover` fails, and no copy is made. In the test harness the call raised a `HooksError`. The live engine was not checked. An offer shows the toast in 3.2 and sends your prompt. |
+| The model request throws an error | `buildHandoff()` catches the error. The body is the goal and the facts, as when the model does not answer. `/handover` and an offer both copy this text. The mod shows no message about the error. |
 | The copy works | The message is `Handoff copied to the clipboard. Start a fresh chat (/clear or a new session) and paste it.` |
 | The copy fails | The message is `Could not copy the handoff.` The full text follows. Copy the text by hand. |
 
@@ -393,12 +393,12 @@ If the output lists a hook or a call that is not in this list, the code and this
    claude plugin test mods/handoff
    ```
 
-3. **Expected result:** the last lines are `9 pass` and `0 fail`. The time in brackets varies.
+3. **Expected result:** the last lines are `10 pass` and `0 fail`. The time in brackets varies.
 
    ```text
-    9 pass
+    10 pass
     0 fail
-   Ran 9 tests across 1 file. [0.53s]
+   Ran 10 tests across 1 file. [0.57s]
    ```
 
 The tests use a fake clock, a fake clipboard and a fake model request. They do not call the API. They do not cost money. Section 6.4 describes each test.
@@ -428,20 +428,20 @@ No person has done this check yet.
 
 | Test (in `hooks/register.test.ts`) | Line | Rule it proves |
 |-------------------------------------|------|----------------|
-| the first prompt is recorded as the goal and sent untouched | 63 | The first prompt is sent unchanged. The request to the model contains `First request: fix the login flow`. |
-| /handover copies a handoff built from the session, tools included | 73 | One copy is made. The copy has the summary and no `Next request`. An edited file is shown one time, as edited. The reply says `copied to the clipboard`. |
-| /handover falls back to the facts when the fork fails, and prints the text if the copy fails | 90 | With no model answer, the text has the `Goal:` line. With a failed copy, the reply says `Could not copy` and shows the full text. |
-| crossing 250k tokens toasts once and asks at the next prompt | 101 | No toast at 100k. One toast at 260k. No second toast at 270k. One question at the next prompt. No second question after you decline. |
-| accepting the offer copies a handoff that carries the prompt, and drops it here | 123 | Your prompt is not sent. The copy has the summary and `Next request:` with your prompt. |
-| a dismissed question sends the prompt on as typed | 136 | A dismissed question makes no copy. Your prompt is sent unchanged. |
-| a prompt after a cold cache is asked about; a warm one is not | 147 | No question after 4 minutes. One question after 7 minutes, with the text `idle 7 minutes`. |
-| a subagent finishing does not reset the idle clock | 164 | A subagent reply after 7 minutes does not stop the question. |
-| prompts that are not the person's own are never asked about | 176 | A peer prompt, a hidden prompt and `/compact` get no question. All three are sent unchanged. |
+| the first prompt is recorded as the goal and sent untouched | 65 | The first prompt is sent unchanged. The request to the model contains `First request: fix the login flow`. |
+| /handover copies a handoff built from the session, tools included | 75 | One copy is made. The copy has the summary and no `Next request`. An edited file is shown one time, as edited. The reply says `copied to the clipboard`. |
+| /handover falls back to the facts when the fork fails, and prints the text if the copy fails | 92 | With no model answer, the text has the `Goal:` line. With a failed copy, the reply says `Could not copy` and shows the full text. |
+| /handover still copies the goal and the facts when the fork throws | 103 | The fork throws an error. The command does not throw. One copy is made, with the `Goal:` line and the `First request:` line. The reply says `copied to the clipboard`. |
+| crossing 250k tokens toasts once and asks at the next prompt | 116 | No toast at 100k. One toast at 260k. No second toast at 270k. One question at the next prompt. No second question after you decline. |
+| accepting the offer copies a handoff that carries the prompt, and drops it here | 138 | Your prompt is not sent. The copy has the summary and `Next request:` with your prompt. |
+| a dismissed question sends the prompt on as typed | 151 | A dismissed question makes no copy. Your prompt is sent unchanged. |
+| a prompt after a cold cache is asked about; a warm one is not | 162 | No question after 4 minutes. One question after 7 minutes, with the text `idle 7 minutes`. |
+| a subagent finishing does not reset the idle clock | 179 | A subagent reply after 7 minutes does not stop the question. |
+| prompts that are not the person's own are never asked about | 191 | A peer prompt, a hidden prompt and `/compact` get no question. All three are sent unchanged. |
 
 The tests do not cover these cases:
 
-- The model request throws an error. The test at line 90 covers a model request that gives no answer.
-- An offer when the model request fails.
+- An offer when the model request fails or throws an error. Line 92 covers a request with no answer, and line 103 covers a throw. Both cover `/handover` only.
 - The Windows path comparison in `sameFile()`.
 - A second prompt after a handoff is made. Section 7 describes this case.
 
@@ -456,8 +456,8 @@ The tests do not cover these cases:
 | No question at a prompt you expect | The prompt is your first prompt, a slash command, or a prompt that is not typed by you. Or you did not wait for the full answer first. Or the idle time is 5 minutes or less. | Send a normal typed prompt. Wait for the full answer. Wait more than 5 minutes. Send another prompt. |
 | No question after the toast | The question shows at your next typed prompt that is not the first. Or the question was already answered. | Send a normal typed prompt. Or run `/handover`. |
 | The reply says `Could not copy the handoff.` | The clipboard is not available. | Select the text in the reply. Copy it by hand. |
-| The toast says `Handoff failed; your prompt was sent here instead.` | The model request or the copy step threw an error. | Your prompt was sent in this session. Run `/handover` to try again. |
-| `/handover` fails with an error and no copy is made | The model request threw an error. The mod has no fallback on this path. | Run `/handover` again. Tell the owner of the mod if it fails again. |
+| The toast says `Handoff failed; your prompt was sent here instead.` | An error in the offer, outside the model request, such as the copy step. | Your prompt was sent in this session. Run `/handover` to try again. |
+| `/handover` fails with an error and no copy is made | A step after the summary threw an error, such as the copy step. The mod has no fallback there. | Run `/handover` again. Tell the owner of the mod if it fails again. |
 
 ### 6.6 Type check (optional)
 
@@ -480,7 +480,7 @@ To run the check, install TypeScript. Load the mod in a session one time. The en
 - **Five tools have their own lists.** The mod records `Read`, `Edit`, `Write`, `WebFetch` and `Skill`. Other tools only add to the count. A file that changes through `Bash` is not listed.
 - **Tool counts include every call the hook gets.** The `tool.call` hook does not check `agentId`. A subagent tool call is counted if the engine sends it to the hook. The test harness models the question as an `AskUserQuestion` call, so the mod's own question is counted there. A live session did not confirm either case.
 - **Windows paths.** The hook runtime has no platform flag, so `sameFile()` keys on path shape. `sameFile()` is used only to remove edited files from `Files read`. `addUnique()` does not fold paths. So one Windows file written in two spellings appears twice in `Files read`. POSIX paths compare exactly, so `/Repo/x.ts` and `/repo/x.ts` are two entries. A probe in a `/tmp` copy of the mod confirmed both results. No repository test covers the Windows case. This review did not run on Windows.
-- **Model request errors.** `buildHandoff()` has no `catch`. If `$.model.fork` throws, `/handover` fails and no copy is made. In a probe with a fake error, the test harness raised a `HooksError`. The live engine was not checked. The repository tests do not cover this path.
+- **Model request errors.** `buildHandoff()` catches an error from `$.model.fork`. It then uses the goal and the facts, as for no answer. The mod shows no message about the error. A repository test covers `/handover` with a fake error. The offer path has no test for this case. The live engine was not checked.
 - **Summary length.** The prompt asks for under 400 words. The code does not check the length.
 - **List size.** Each list holds the last 50 items. Older items are removed. The tool counts have no limit.
 - **Cost of the summary.** The model request uses the conversation as the main thread last sent it. If the cache is cold, this request costs full price one time.

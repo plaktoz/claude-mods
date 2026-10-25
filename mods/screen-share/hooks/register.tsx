@@ -84,6 +84,34 @@ function deepMask(value: unknown, fn: (s: string) => string): unknown {
   return value
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+// True when masking would change any string inside the value.
+function masks(value: unknown, list: readonly string[]) {
+  return JSON.stringify(deepMask(value, s => mask(s, list))) !== JSON.stringify(value)
+}
+
+// Masks every string of an object except the keys in `keep`, which stay as they are.
+function maskExcept(value: Record<string, unknown>, keep: readonly string[], fn: (s: string) => string) {
+  return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, keep.includes(k) ? v : deepMask(v, fn)]))
+}
+
+// The header, option descriptions and previews are masked. The question and the option
+// labels stay: the answer the person gives is the label they chose, keyed by the question.
+function maskAsk(questions: unknown[], list: readonly string[]) {
+  const fn = (s: string) => mask(s, list)
+
+  return questions.map(q => {
+    if (!isRecord(q)) return q
+    const out = maskExcept(q, ['question', 'options'], fn)
+    if (!Array.isArray(q.options)) return out
+
+    return { ...out, options: q.options.map(o => (isRecord(o) ? maskExcept(o, ['label'], fn) : o)) }
+  })
+}
+
 // A full name and each capitalised part of it, so "Jane" alone is masked too.
 function expand(found: readonly string[]) {
   const out: string[] = []
@@ -286,6 +314,31 @@ export const register: Register = on => {
     return next({ ...e, props: { ...e.props, output: deepMask(e.props.output, s => mask(s, list)) } })
   })
 
+  // A folded group shows a count, and a rewrite of its calls is not drawn. So a group whose
+  // calls hold a match unfolds, and each row it unfolds into draws masked through ToolUse.
+  on('ui.render', { component: 'ToolGroup' }, async ($, e, next) => {
+    if (!(await read($, isOn))) return next(e)
+    const list = await read($, names)
+    const hit = e.props.calls.some(c => masks({ input: c.input, output: c.output }, list))
+
+    return hit && !e.props.isExpanded ? next({ ...e, props: { ...e.props, isExpanded: true } }) : next(e)
+  })
+
+  // The ask dialog: the question and the option labels stay, since the answer is keyed on them.
+  on('ui.render', { component: 'AskUserQuestion' }, async ($, e, next) => {
+    if (!(await read($, isOn))) return next(e)
+    const questions = maskAsk(e.props.questions, await read($, names))
+
+    return next({ ...e, props: { ...e.props, questions } })
+  })
+
+  on('ui.render', { component: 'InfoNotice' }, async ($, e, next) => {
+    if (!(await read($, isOn))) return next(e)
+    const text = mask(e.props.text, await read($, names))
+
+    return text === e.props.text ? next(e) : next({ ...e, props: { ...e.props, text } })
+  })
+
   // The band sits under any other plugin's band, so theirs still shows.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey || !(await read($, isOn))) return next(e)
@@ -300,7 +353,15 @@ export const register: Register = on => {
             <Text bold>Screen-share mode: </Text>
             <Text dimColor>emails, phones, amounts and names hidden on screen</Text>
           </Text>
-          <Button key="off" label="Turn off" onPress={() => setMode($, false)} />
+          <Button
+            key="off"
+            label="Turn off"
+            onPress={() =>
+              setMode($, false).catch(() =>
+                $.ui.toast('Screen-share is off now, but the change was not saved. It may return in a new session.'),
+              )
+            }
+          />
         </Box>
       </Box>
     )

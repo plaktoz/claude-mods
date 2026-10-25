@@ -10,9 +10,9 @@ const BAND = {
 
 const usage = { input_tokens: 10, output_tokens: 1, cache_read_input_tokens: 200_000, cache_creation_input_tokens: 0 }
 
-const world = ($: any, on: any, reply: any = { isAnswered: true, text: 'ok', usage }) => {
+const world = ($: any, on: any, reply: any = { isAnswered: true, text: 'ok', usage }, hold: Promise<void> = Promise.resolve()) => {
   const clock = mock.clock(on, { now: 1_000_000 })
-  const seen = { forks: 0, toasts: [] as string[] }
+  const seen = { forks: 0, logs: [] as { text: string; to?: string }[], toasts: [] as string[] }
 
   on('turn.start', (_: unknown, e: { turnId: string }) => ({ turnId: e.turnId }))
   on('turn.complete', (_: unknown, e: { answer: string }) => ({ text: e.answer }))
@@ -29,8 +29,14 @@ const world = ($: any, on: any, reply: any = { isAnswered: true, text: 'ok', usa
 
     return <Text>engine</Text>
   })
-  on('model.fork', () => {
+  on('ui.log', (_: unknown, e: { text: string; to?: string }) => {
+    seen.logs.push(e)
+
+    return { value: undefined }
+  })
+  on('model.fork', async () => {
     seen.forks += 1
+    await hold
 
     return { value: reply }
   })
@@ -97,6 +103,47 @@ test('a failed ping stops keeping warm and says so', async ($, on) => {
 
   expect(seen.toasts[0]).toContain('stopped')
   expect(await text()).toBe('engine')
+})
+
+const PINGING = 'Pinging to keep the cache warm'
+
+test('a turn that starts during a ping and ends without usage clears isPinging', async ($, on) => {
+  let release = () => {}
+  const hold = new Promise<void>(resolve => {
+    release = resolve
+  })
+  const { clock, endTurn, text } = world($, on, undefined, hold)
+
+  await endTurn()
+  await clock.advance(4 * MIN + 15_000)
+  expect(await text()).toContain(PINGING)
+
+  await $.turn.start({ text: 'next', turnId: 't2' })
+  release()
+  await clock.settle()
+  await $.turn.complete({ answer: 'done', durationMs: 1, isAborted: false, reason: 'answer', turnId: 't2' })
+
+  const shown = await text()
+  expect(shown).toContain('Cache warm')
+  expect(shown).toContain('Keeping warm ·')
+  expect(shown).not.toContain(PINGING)
+})
+
+test('a ping that rejects clears isPinging, logs to the debug log and raises no rejection', async ($, on) => {
+  // The reply has no usage. ModelCompleteResult does not allow that, so this
+  // forces the one rejection ping() can raise after it sets isPinging. The
+  // kit fails the file on any unhandled rejection, so a missing catch fails it.
+  const { clock, seen, endTurn, text } = world($, on, { isAnswered: true, text: 'ok' })
+
+  await endTurn()
+  await clock.advance(4 * MIN + 15_000)
+  await clock.settle()
+
+  expect(seen.forks).toBe(1)
+  const shown = await text()
+  expect(shown).toBe('engine')
+  expect(shown).not.toContain(PINGING)
+  expect(seen.logs.some(l => l.to === 'debug' && l.text.includes('ping'))).toBe(true)
 })
 
 test('Stop keeping warm cancels the pings and the cache is left to expire', async ($, on) => {

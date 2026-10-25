@@ -40,6 +40,11 @@ const disarm = () => {
   tickTimer = null
 }
 
+// The engine log, not the transcript: an error here is a fault, not a reply.
+const logError = ($: Engine, what: string, error: unknown) => {
+  $.ui.log(`cache-warm ${what} failed: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+}
+
 const tick = async ($: Engine) => {
   const t = await $.clock.now()
   const c = await read($, cache)
@@ -82,6 +87,14 @@ async function ping($: Engine) {
   await arm($)
 }
 
+// A ping that throws after it set isPinging. It stops keeping warm, as a ping
+// with no reply does. It does not re-arm: the ping time has already passed.
+const pingFailed = async ($: Engine, error: unknown) => {
+  logError($, 'ping', error)
+  disarm()
+  await update($, cache, () => EMPTY)
+}
+
 async function arm($: Engine) {
   disarm()
   const c = await read($, cache)
@@ -92,9 +105,9 @@ async function arm($: Engine) {
   }
 
   await update($, now, () => t)
-  tickTimer = $.clock.every(TICK_MS, () => void tick($))
+  tickTimer = $.clock.every(TICK_MS, () => void tick($).catch(error => logError($, 'tick', error)))
   if ((await read($, isOn)) && c.pings < maxPings) {
-    pingTimer = $.clock.after(Math.max(0, c.expiresAt - LEAD_MS - t), () => void ping($))
+    pingTimer = $.clock.after(Math.max(0, c.expiresAt - LEAD_MS - t), () => void ping($).catch(error => pingFailed($, error)))
   }
 }
 
@@ -134,6 +147,9 @@ export const register: Register = (on, options) => {
         const t = await $.clock.now()
         await update($, now, () => t)
         await update($, cache, () => ({ expiresAt: t + ttlMs, tokens, pings: 0, isPinging: false }))
+      } else {
+        // A turn that ends without usage keeps the old expiry, but it must not keep a ping marked as running.
+        await update($, cache, c => ({ ...c, isPinging: false }))
       }
       await arm($)
     }

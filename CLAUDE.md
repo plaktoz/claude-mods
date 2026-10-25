@@ -11,9 +11,16 @@ This repo is a framework for defining and deploying Claude behaviors and evolvin
 - Don't commit unless asked.
 - Do not read into agent-ignore folder
 
+## Requirements
+
+- Always clarify the requirements first, and wait for the user's go-ahead before you start implementing. A request to plan, review or answer a question is not a go-ahead to change files.
+- State the requirements concisely and in plain words: no filler, no padding, no restating the request.
+- Give enough detail that the user can see what they are deciding on: the options, what each one changes, and your recommendation.
+- Ask only about what the user must decide. Pick the obvious default for the rest, and say which default you picked.
+
 ## Documentation
 
-- Use the `ste-docs` skill to write or rewrite any module README (`README.md` and `README.html`), and any other technical document about a mod, skill, agent or hook.
+- Use the `ste-docs` skill with its technical profile to write or rewrite any module README (`README.md` and `README.html`), and any other technical document about a mod, skill, agent or hook.
 - Use `mods/cache-warm/README.md` and `mods/handoff/README.md` as the structure reference, as the skill says.
 
 ## Documentation sync
@@ -36,5 +43,5 @@ This repo is a framework for defining and deploying Claude behaviors and evolvin
 
 ## Subagents
 
-- When tasks are independent and can run in parallel, propose using subagents, one per task, before starting the work.
-- Do not propose them for small tasks or tasks that depend on each other's output.
+- If a task or subtask is independent, send it to a subagent to complete the work. Give each independent task or subtask its own subagent, and start them in one message so they run in parallel.
+- Do not send a task or subtask to a subagent when it is small or when it depends on another task's output.

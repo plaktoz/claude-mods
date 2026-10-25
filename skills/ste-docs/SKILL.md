@@ -1,40 +1,31 @@
 ---
 name: ste-docs
-description: Write a technical document about any subject in controlled plain English (ASD-STE100 style) with diagrams, as a README.md and a matching README.html. Use when asked to document a mod, skill, agent, hook, library doc or other subject in this style.
+description: Write a document about one subject in controlled plain English (ASD-STE100 style) with diagrams, as a Markdown file and a matching HTML file. Has a technical profile (fixed 8-section layout) for a mod, skill, agent, hook or other code. Use when asked to document a subject in this style.
 ---
 
 # ste-docs
 
-Writes one document about one subject. The output is two files in the subject's folder: `README.md` and `README.html`. The two files have the same content, the same headings and the same diagrams.
+Writes one document about one subject. The output is two files in the subject's folder: a `.md` file and a matching `.html` file. The two files have the same content, the same headings and the same diagrams.
 
-The subject decides the content. The layout, the writing rules and the checks stay the same for every subject.
+The subject decides the content. The writing rules, the diagram rules and the checks stay the same for every subject. A profile adds a layout and extra checks for one kind of subject.
 
-Worked examples in this repo: `mods/cache-warm/README.md` and `mods/handoff/README.md`. Read them before the first use. Copy their structure. Do not copy their facts.
+## 1. Profiles
 
-## 1. Inputs
+Choose the profile from the subject:
+
+| Profile | Use for | File |
+|---------|---------|------|
+| Technical | A mod, skill, agent, hook, script or library. Any subject that is code or a tool. | `technical.md` in this folder |
+| General | Any other subject. For example a guide, a policy or a proposal. | None. Use this file only. |
+
+- For the technical profile, read `technical.md` before you write. It sets the fixed layout, the file names (`README.md` and `README.html`) and the code checks.
+- For the general profile, agree the outline with the user before you write. Name the files after the document, in the folder the user names. Use `README.md` and `README.html` only if the document is the README of a folder.
+- If the profile is not clear, ask the user. Do not guess.
+
+## 2. Inputs
 
 - The subject folder, or the file that the user names. Ask only if the subject cannot be found.
-- Read every source file that defines behavior: code, tests, manifests, type files and config. Do not write from memory.
-- If the subject has a validate or test command, run it. Quote its real output. Copy test names and counts exactly.
-
-## 2. Fixed layout
-
-Use eight sections, in this order, with these numbers:
-
-| No. | Section | Content |
-|-----|---------|---------|
-| 1 | Purpose | What the subject does, and the problem it solves. |
-| 2 | Where to find the code | A table of items, the file for each item, and the line number. |
-| 3 | How it works | Flows, states, decisions and stored values. Subsections are named by topic. |
-| 4 | Settings | Each setting or fixed constant, with its value and effect. |
-| 5 | Install | Before you start, the install methods, the install check, and changing settings. |
-| 6 | Validate | The validation levels, the expected results, what each test proves, and problems and solutions. |
-| 7 | Known limits | Real limits found in the code. |
-| 8 | Glossary | Each term that the document uses, with one meaning. |
-
-Keep a section that does not apply. Write one sentence that says why, for example "This subject has no settings." Do not delete the section.
-
-Sections 5 and 6 follow the pattern in the worked examples. Adapt the names to the subject. Keep the order.
+- Read every source that defines the content. Do not write from memory.
 
 ## 3. Writing rules (controlled English)
 
@@ -50,7 +41,7 @@ Sections 5 and 6 follow the pattern in the worked examples. Adapt the names to t
 10. Write each list item in the same grammatical form.
 11. Check every word against `banned-words.md` in this folder. Replace each hit with the word in its right-hand column. Then reread the sentence.
 
-Use the glossary for every domain term. Define each term once.
+Use a glossary for every domain term. Define each term once.
 
 ## 4. Diagrams
 
@@ -60,8 +51,9 @@ Use the glossary for every domain term. Define each term once.
   - State diagram for states and transitions.
   - Sequence diagram for calls between parts.
 - Each diagram appears in both files, with the same nodes and labels.
-  - `README.md`: a Mermaid code fence.
-  - `README.html`: an inline SVG, hand-drawn to match the Mermaid.
+  - The `.md` file: a Mermaid code fence.
+  - The `.html` file: an inline SVG, hand-drawn to match the Mermaid.
+- A picture that has no Mermaid form must be redrawn as Mermaid, or left out of both files. Do not put it in one file only.
 - Put each diagram under the section it explains. Number the figures in order: `Figure 1.`, `Figure 2.` and so on.
 - Highlight at most one path per diagram with the `-hot` classes. The highlighted path is the one the reader must notice.
 - Each SVG needs:
@@ -73,50 +65,42 @@ Use the glossary for every domain term. Define each term once.
 
 ## 5. The HTML file
 
-- Always write `README.html`.
-- Copy the `<head>` and the `<style>` block from `mods/cache-warm/README.html`. Do not change the theme tokens. They support light and dark themes.
+- Always write the `.html` file.
+- Copy the `<head>` and the `<style>` block from `mods/cache-warm/README.html`. Do not change the theme tokens. They support light and dark themes. Change only the `<title>`.
 - Give every heading an `id`. Link the table of contents to those ids.
-- Use the same heading text, the same tables and the same order as `README.md`.
+- Use the same heading text, the same tables and the same order as the `.md` file.
 
-## 6. Facts and line numbers
-
-- Check every file path, function name and line number against the source. Use `grep -n` to find each name.
-- Give a file and line for each item in section 2.
-- Do not state a behavior that the code does not show.
-- Copy test names, test counts and command output exactly from the real run.
-
-## 7. Honesty
+## 6. Honesty
 
 - Say what was not run. If a check was not run, write that in the document.
 - For a step that only a person can do, write: "No person has done this check yet."
 - Write "passed" only when a command printed it.
-- List every limit that the code shows, including the cases the code does not handle.
+- Do not state a fact that the sources do not show.
 
-## 8. Verification (required before the report)
+## 7. Verification (required before the report)
 
-Run each check. Report the real output.
+Run each check. Report the real output. For the technical profile, also run the checks in `technical.md`.
 
 1. Parse each `<svg>` block with `python3 -I` and `xml.dom.minidom`. Check that the HTML tags are balanced with `html.parser`.
 2. For each `href="#name"` in the HTML, check that an `id="name"` exists.
-3. Count the `^## ` and `^### ` headings in `README.md`. Compare the counts with `<h2` and `<h3` in `README.html`. Compare the heading text too.
-4. Run the subject's validate command and test command, if it has them. Quote the last lines.
-5. Search both files for each banned word, as a whole word, case-insensitive. Expect zero hits.
-6. Check each cited line number. Confirm that the name appears on that line.
-7. Render the page with headless Chrome:
+3. Count the `^## ` and `^### ` headings in the `.md` file. Compare the counts with `<h2` and `<h3` in the `.html` file. Compare the heading text too.
+4. Search both files for each banned word, as a whole word, case-insensitive. Expect zero hits.
+5. Count the Mermaid blocks in the `.md` file and the `<svg>` blocks in the `.html` file. The counts must match.
+6. Render the page with headless Chrome:
 
    ```bash
    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu \
-     --screenshot=/tmp/<name>-readme.png --window-size=1000,<height> "file://<absolute path>/README.html"
+     --screenshot=/tmp/<name>-readme.png --window-size=1000,<height> "file://<absolute path>/<file>.html"
    ```
 
    Use a window height that covers the full page. Crop the image with `sips -c <height> <width> --cropOffset <top> 0` and view each part. Check that no label overflows its box and that every figure is complete.
 
-## 9. Report
+## 8. Report
 
 Report these items:
 
 - The paths of the two files.
-- The real output of each check in section 8.
+- The real output of each check in section 7.
 - Each check that was not run, and why.
 - Open questions for the user.
 

@@ -225,12 +225,50 @@ Each task states its acceptance criteria (AC). "Verified by test" means an autom
 - [x] Confirm nothing outside the listed files changed (`git status`). Extra files, all deliberate: `mods/theme-cli/hooks/theme.test.tsx` (its fake `process.run` counted the new `--version` probe as a build), `mods/theme-cli/hooks/register.tsx` (the `HOME (or USERPROFILE)` message), and `README.md` (the `docs/` layout row). `CLAUDE.md` gained the cross-platform, task-list and subagent rules in this session, not in this task.
 - [x] Windows behaviour is not verified on a Windows machine. Recorded in the final summary.
 
-### Not in this task (non-Windows follow-ups)
+### Parked (KIV)
 
-- Stale marketplace claims in README (handoff, cache-warm, brain-dump).
-- cache-warm `isPinging` stuck state; handoff `/handover` error handling.
-- screen-share privacy gap (`ToolGroup` input unmasked) and latency.
-- theme-cli README counts and mute persistence contradiction.
-- theme-desk typecheck errors (TS2345), `reconcile` on session start only, `frame` never written.
-- Unguarded fire-and-forget async across mods.
-- `bun test` module resolution in theme-cli.
+Parked by the user on 2026-10-25. Do not raise again unless the user asks.
+
+- **theme-desk docs and fix pass.** Typecheck errors (TS2345), `reconcile` on session end only, `frame` never written, no README. The mod is not in the marketplace.
+
+### Non-Windows fixes
+
+Started 2026-10-25, one agent per mod, in parallel. Each agent first confirms its finding in the code. If the code does not show the finding, the agent marks the task `[-]` and says why. Each agent also checks the module README and `README.html` against its change, runs `claude plugin test` and `claude plugin validate`, and records the result next to each task. Nothing here has run on Windows or Linux.
+
+- [x] **cache-warm** (`mods/cache-warm/hooks/`) — all subtasks below checked
+  - [x] `isPinging` can stay true after a turn ends without usage. AC: a new test shows `isPinging` false after such a turn. The 5 existing tests still pass.
+    - Result: the no-usage branch of `turn.complete` clears `isPinging` (`hooks/register.tsx` line 152). Test "a turn that starts during a ping and ends without usage clears isPinging" fails on the old code and passes now. `claude plugin test mods/cache-warm`: 7 pass, 0 fail (5 before), re-run by me.
+  - [x] A rejected `void tick($)` or `void ping($)` is unhandled. AC: a new test with a rejecting ping raises no unhandled rejection and leaves `isPinging` false.
+    - Result: `tick` and `ping` have `.catch` handlers (lines 108 and 110) that write to the debug log with `$.ui.log`. A failed ping clears `isPinging`, cancels the timers and clears the cache. Test "a ping that rejects clears isPinging, logs to the debug log and raises no rejection" passes. The test forces the rejection with a reply that has no `usage`. Validate passes with warnings.
+  - [x] Restore the timeline diagram to the README. AC: `README.md` has it as Mermaid, `README.html` has the matching SVG, both as the same Figure number with the same labels. The SVG parses and renders in headless Chrome without overflow.
+    - Result: Figure 2 is a Mermaid `gantt` in `README.md` and a hand-drawn SVG in `README.html`, with the same three intervals. The SVG shows the `0:00 to 4:15` text inside each bar, but the Mermaid gantt does not. The SVG parses and renders in headless Chrome with no overflow. `mmdc` is not installed, so the Mermaid syntax has not been rendered. The ping figure is now Figure 3 in both files. Verified by reading for Windows and Linux.
+- [x] **handoff** (`mods/handoff/hooks/`) — all subtasks below checked
+  - [x] `/handover` has no error handling when `$.model.fork` fails. AC: a new test where the fork throws still copies a fallback handoff and does not throw.
+    - Result: `buildHandoff` in `hooks/register.ts` now wraps the fork in `try`/`catch` and falls back to the goal and the facts. This covers `/handover` and the offer path. New test "/handover still copies the goal and the facts when the fork throws". `claude plugin test mods/handoff`: 10 pass, 0 fail (9 before). Without the fix the new test fails (run in a temp copy by the agent). Validate passes with warnings. README pair updated (test count, line numbers, Figures 1 and 4, Known limits). The offer path has no test of its own. A real engine fork failure was not run, and Windows and Linux were not run: verified by reading.
+- [x] **screen-share** (`mods/screen-share/hooks/`) — all subtasks below checked
+  - [x] `ToolGroup` input, `AskUserQuestion` and `InfoNotice` text are not masked. AC: new tests show a known name and email replaced by bars in each. If the engine API does not allow it, the agent says why and leaves the task `[-]`.
+    - Result: all three were unmasked before the change, and the new tests failed on the old code. `ToolGroup`: the engine ignores a rewrite of `calls`, so the mod sets `isExpanded: true` on a match, and the rows draw masked. `AskUserQuestion`: the header, option descriptions and previews are masked, but `question` and option `label` stay unmasked, since the answer is keyed on them. This is a new documented limit. `InfoNotice`: masked. README pair updated. `claude plugin test mods/screen-share`: 8 pass, 0 fail (3 before), re-run by me. Validate passes with warnings. The live engine path is not run. Verified by reading for Windows and Linux.
+  - [x] The button `onPress` has no `.catch`. AC: a new test with a failing `setMode` raises no unhandled rejection.
+    - Result: a `.catch` now shows a toast. The new test fails without the `.catch` (`screen-share: $.store.set: the store refused the write`) and passes with it.
+- [x] **switchboard** (`mods/switchboard/hooks/`) — all subtasks below checked
+  - [x] `isBusy` can stay true if `update` throws in `toggle`. AC: a new test shows the next press works after a failed one.
+    - Result: `toggle()` resets `isBusy` in a `finally`. Test "the next press works after a switch failed" fails on the old code and passes now.
+  - [x] A non-array result from `claude plugin list --json` is not checked. AC: a new test shows a note and no throw.
+    - Result: `refresh()` checks `Array.isArray` and shows "Could not list mods: the output is not a list". Test "output that is not a list shows a note and does not throw" passes.
+  - [x] A rejected `void refresh($)` is unhandled. AC: a new test with a rejecting `refresh` raises no unhandled rejection.
+    - Result: `refreshOrNote()` catches it and shows the note. The poll interval still has no `catch`, and is recorded as a known limit. `claude plugin test mods/switchboard`: 5 pass, 0 fail (2 before), re-run by me. Validate passes with warnings. Live pane check: no person has done this check yet. Verified by reading for Windows and Linux.
+
+Each agent must keep to the Cross-platform rules in `CLAUDE.md`.
+
+### Needs a decision (not started)
+
+- screen-share latency: scanning waits up to 8 seconds for Haiku in `prompt.submit`, `turn.complete` and `tool.call`.
+- screen-share: restore learned names on resume.
+- cache-warm: a timeout on the ping request.
+- handoff: stop counting the mod's own tool calls.
+- brain-dump license (`LICENSE_MISSING`).
+- theme-cli: marketplace install line and long table cells.
+
+### Not in this task (earlier, for reference)
+
+- `bun test` module resolution in theme-cli (documented in its README).

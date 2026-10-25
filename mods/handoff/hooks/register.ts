@@ -63,8 +63,14 @@ type Engine = EngineInterfaceBuilt
 async function buildHandoff($: Engine, nextRequest?: string) {
   const inv = await read($, inventory)
   const facts = describe(inv)
-  const reply = await $.model.fork({ prompt: `${HANDOFF_PROMPT}\n\n${facts}` })
-  const body = reply.isAnswered ? reply.text.trim() : `Goal: ${inv.goal ?? 'unknown'}\n\n${facts}`
+  const fallback = `Goal: ${inv.goal ?? 'unknown'}\n\n${facts}`
+  let body = fallback
+  try {
+    const reply = await $.model.fork({ prompt: `${HANDOFF_PROMPT}\n\n${facts}` })
+    if (reply.isAnswered) body = reply.text.trim()
+  } catch {
+    // The fork threw: use the goal and the facts, as for an unanswered fork.
+  }
 
   return [
     'Continue the work described in this handoff from a previous session.',
