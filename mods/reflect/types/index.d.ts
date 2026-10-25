@@ -1,5 +1,5 @@
-// A typed prompt that had a cue word, kept until the turn ends.
-export type Pending = string | null
+// Typed prompts that had a cue word, kept until the turn ends.
+export type Pending = string[]
 
 declare module 'claude-code' {
   interface PluginState {
