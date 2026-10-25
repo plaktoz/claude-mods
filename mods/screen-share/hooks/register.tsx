@@ -13,6 +13,9 @@ const names = atom({ plugin: 'screen-share', key: 'names' } as const, [] as Scre
 })
 
 const STORE_KEY = 'isOn'
+// Each session's names are saved under its id, so a resumed session gets them back.
+const NAMES_KEY = 'names'
+const MAX_SESSIONS = 20
 const TOOL_PREFIX = 'mcp__screen-share__'
 const HIDE_NAMES = `${TOOL_PREFIX}hide_names`
 const MAX_NAMES = 500
@@ -131,6 +134,32 @@ export async function addNames($: EngineInterface, found: readonly string[]) {
   const more = expand(found)
   if (more.length === 0) return
   await update($, names, list => [...new Set([...list, ...more])].slice(-MAX_NAMES))
+  // A failed save loses the names on resume only: masking goes on from the session atom.
+  await saveNames($).catch(() => undefined)
+}
+
+type SavedNames = Record<string, readonly string[]>
+
+async function readSaved($: EngineInterface): Promise<SavedNames> {
+  const value = await $.store.get(NAMES_KEY)
+
+  return value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as SavedNames) : {}
+}
+
+// Saves this session's list last, so the oldest sessions drop out past MAX_SESSIONS.
+async function saveNames($: EngineInterface) {
+  const id = await $.session.id()
+  const { [id]: _, ...others } = await readSaved($)
+  const kept = Object.entries(others).slice(-(MAX_SESSIONS - 1))
+  await $.store.set(NAMES_KEY, Object.fromEntries([...kept, [id, await read($, names)]]))
+}
+
+// Puts back the names this session saved before it was resumed.
+async function restoreNames($: EngineInterface) {
+  const list = (await readSaved($))[await $.session.id()]
+  if (!Array.isArray(list) || list.length === 0) return
+  const saved = list.filter((n): n is string => typeof n === 'string')
+  await update($, names, now => [...new Set([...saved, ...now])].slice(-MAX_NAMES))
 }
 
 const NAME_SYSTEM = `You find people's names in text for a screen-share privacy filter.
@@ -218,6 +247,7 @@ export const register: Register = on => {
     })
     // The mode outlives the session, so a new session mid-call starts masked.
     if ((await $.store.get(STORE_KEY)) === true) await update($, isOn, () => true)
+    await restoreNames($).catch(() => undefined)
 
     return next(e)
   })

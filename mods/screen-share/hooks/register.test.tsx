@@ -28,11 +28,13 @@ const BAND = {
 // that finds "Jane Doe", and a transcript that draws a row's text as given.
 // `fail.on` makes the store refuse every write. `drawn` keeps the props the
 // engine receives for each component, after every hook above it has run.
-const world = (on: any, fail = { on: false }) => {
-  const stored = new Map<string, unknown>()
+// `options.stored` is the store a later session shares; `options.id` is this session's id.
+const world = (on: any, fail = { on: false }, options: { id?: string; stored?: Map<string, unknown> } = {}) => {
+  const stored = options.stored ?? new Map<string, unknown>()
   const drawn = new Map<string, any>()
   on('command.register', () => ({ value: { command: 'screen-share' } }))
   on('tool.register', () => ({ value: { tool: 'mcp__screen-share__set_mode' } }))
+  on('session.id', () => ({ value: options.id ?? 'session-a' }))
   on('session.start', (_: unknown, e: { cwd: string }) => ({ cwd: e.cwd }))
   on('store.get', (_: unknown, e: { key: string }) => ({ value: stored.get(e.key) }))
   on('store.set', (_: unknown, e: { key: string; value: unknown }) => {
@@ -250,4 +252,71 @@ test('a failed Turn off is caught: the press still resolves', async ($, on) => {
   expect(stored.get('isOn')).toBe(true)
   expect(await ui.find({ type: 'Text', text: /hidden on screen/ })).toBeUndefined()
   await ui.unmount()
+})
+
+const HIDE = 'mcp__screen-share__hide_names'
+
+// A UserMessage row that names Ada Lovelace, drawn after the session starts.
+const adaRow = async ($: any, requestId: string) => {
+  const ui = await $.ui.mount({
+    plugin: 'screen-share',
+    surface: 'terminal',
+    component: 'UserMessage',
+    requestId,
+    props: { text: 'Ada Lovelace wrote it.', origin: { kind: 'composer' }, isExpanded: false },
+  })
+  const text = (await ui.find({ type: 'Text' }))?.text
+  await ui.unmount()
+
+  return text
+}
+
+test('names that hide_names adds are saved under the session id', async ($, on) => {
+  const { stored } = world(on, { on: false }, { id: 'session-a' })
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.tool.call({ tool: HIDE, names: ['Ada Lovelace'] })
+
+  expect(stored.get('names')).toEqual({ 'session-a': expect.arrayContaining(['Ada Lovelace']) })
+})
+
+test('a resumed session gets its saved names back and draws them masked', async ($, on) => {
+  const stored = new Map<string, unknown>([['names', { 'session-a': ['Ada Lovelace', 'Ada', 'Lovelace'] }]])
+  world(on, { on: false }, { id: 'session-a', stored })
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.command.run(ON)
+
+  expect(await adaRow($, 'm2')).toBe('░░░ ░░░░░░░░ wrote it.')
+})
+
+test('a session does not get the names another session saved', async ($, on) => {
+  const stored = new Map<string, unknown>([['names', { 'session-a': ['Ada Lovelace', 'Ada', 'Lovelace'] }]])
+  world(on, { on: false }, { id: 'session-b', stored })
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.command.run(ON)
+
+  // The stand-in model finds only Jane Doe, so Ada Lovelace stays readable.
+  expect(await adaRow($, 'm3')).toBe('Ada Lovelace wrote it.')
+})
+
+test('only the last 20 sessions keep their names', async ($, on) => {
+  const old = Object.fromEntries(Array.from({ length: 20 }, (_, i) => [`session-${i}`, [`Person ${i}`]]))
+  const stored = new Map<string, unknown>([['names', old]])
+  world(on, { on: false }, { id: 'session-new', stored })
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  await $.tool.call({ tool: HIDE, names: ['Ada Lovelace'] })
+
+  const saved = stored.get('names') as Record<string, unknown>
+  expect(Object.keys(saved)).toHaveLength(20)
+  expect(saved['session-0']).toBeUndefined()
+  expect(saved['session-1']).toEqual(['Person 1'])
+  expect(saved['session-new']).toEqual(expect.arrayContaining(['Ada Lovelace']))
+})
+
+test('a refused save does not stop the names from masking', async ($, on) => {
+  const fail = { on: true }
+  world(on, fail, { id: 'session-a' })
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const result = await $.tool.call({ tool: HIDE, names: ['Ada Lovelace'] })
+
+  expect(JSON.stringify(result)).toContain('Masking')
 })
