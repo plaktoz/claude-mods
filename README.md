@@ -43,6 +43,7 @@ Scaling happens once. When the session starts, the mod stamps `theme.json`, its 
 | `/theme-hide`, `/theme-show` | Turn the strip off and on |
 | `/theme-mute`, `/theme-unmute` | Silence the theme sounds, and play them again |
 | `/theme-dump` | Write `theme-cli-log.txt` in the working directory, for debugging |
+| `/theme-sound-test` | Play a short test tone through the Windows player (on other systems it says the engine plays sound itself) |
 
 Images you use may be copyrighted. Keep them in your own folder, never in this repository.
 

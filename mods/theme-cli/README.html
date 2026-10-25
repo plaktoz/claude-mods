@@ -105,7 +105,7 @@
 
 <h1>theme-cli</h1>
 <p class="lede">A Claude Code mod. Pixel characters from your own images run along a strip above the prompt while Claude works.</p>
-<p>An HTML version of this document is in <code>README.html</code>. It has the same content and the same diagrams.</p>
+<p>An HTML version of this document is in <code>README.html</code>. It has the same content as this file.</p>
 <p>To install the mod, go to <a href="#install">section 5</a>. To prove that it works, go to <a href="#validate">section 6</a>.</p>
 <nav class="toc" aria-label="Contents">
   <ol>
@@ -131,41 +131,51 @@
 <p>The characters come from a theme. A theme is a folder of your own images and one file, <code>theme.json</code>. Themes live in <code>~/.claude/theme-cli/themes</code>, outside every project. Switch themes with <code>/theme-use</code>.</p>
 <p>Without a theme, the mod draws built-in placeholder shapes. The strip works before you set anything up.</p>
 <p>When a theme loads, the mod scales its images if the stamp has changed. It stores the scaled sprites in a cache. Drawing a frame never scales an image.</p>
-<p>The mod can also play a sound at four moments of a turn. Section 3.10 explains the sounds.</p>
+<p>The mod can also play a sound at four moments of a turn. On Windows, the mod plays the WAV sounds itself, because the engine has no Windows player. Section 3.10 explains the sounds.</p>
 <p>The strip uses half-block characters, so each terminal row shows 2 pixels. This sketch shows the layout. It is not real output.</p>
 <pre><code> lead      companion 1   companion 2                       pole   goal
   ▀█▄          ▀█▄           ▀█▄                            │     ▐█▌
 ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄</code></pre>
-<p>The strip works in the terminal only. The checks in this document ran on macOS. No Windows run has happened.</p>
+<p>The strip works in the terminal only. The checks in this document ran on macOS. The Windows sound path is verified by reading only. Task T5 in <code>docs/win-audio-merge-2026-10-25.md</code>, the Windows check by the user, is pending. Section 7 lists what is unverified.</p>
 
 <h2 id="code">2. Where to find the code</h2>
-<p>The logic is in four files in <code>hooks/</code> and two scripts in <code>scripts/</code>. The line numbers match the files at the time of the check. Search for the name if a line number is different.</p>
+<p>The logic is in six files in <code>hooks/</code> and two scripts in <code>scripts/</code>. The line numbers match the files at the time of the check. Search for the name if a line number is different.</p>
 <div class="table-wrap"><table>
   <thead><tr><th>Item</th><th>File</th><th>Line</th></tr></thead>
   <tbody>
-    <tr><td>Constants: frame time, finale time, strip width limits, strip key</td><td><code>hooks/register.tsx</code></td><td>11–15</td></tr>
-    <tr><td>Stored values</td><td><code>hooks/register.tsx</code></td><td>17–31</td></tr>
-    <tr><td>Module variables: <code>scene</code>, <code>sounds</code>, <code>loop</code>, <code>timer</code>, <code>isTicking</code>, <code>stats</code></td><td><code>hooks/register.tsx</code></td><td>35–42</td></tr>
-    <tr><td><code>isActive()</code> – decides if the strip shows</td><td><code>hooks/register.tsx</code></td><td>48</td></tr>
-    <tr><td><code>readView()</code> – reads the values that a frame needs</td><td><code>hooks/register.tsx</code></td><td>54</td></tr>
-    <tr><td><code>note()</code> – writes a line to the log</td><td><code>hooks/register.tsx</code></td><td>65</td></tr>
-    <tr><td><code>useTheme()</code> – loads a theme and tells the band to redraw</td><td><code>hooks/register.tsx</code></td><td>71</td></tr>
-    <tr><td><code>play()</code>, <code>startLoop()</code>, <code>stopLoop()</code>, <code>finish()</code> – the sound cues</td><td><code>hooks/register.tsx</code></td><td>86, 96, 107, 113</td></tr>
-    <tr><td><code>tick()</code> – draws one frame and sends it with <code>blit</code></td><td><code>hooks/register.tsx</code></td><td>120</td></tr>
-    <tr><td><code>startTimer()</code> and <code>stopTimer()</code></td><td><code>hooks/register.tsx</code></td><td>158, 164</td></tr>
-    <tr><td><code>addAgent()</code> and <code>freeSlot()</code> – give a companion its color slot</td><td><code>hooks/register.tsx</code></td><td>170, 176</td></tr>
-    <tr><td><code>reconcile()</code> – drops agents that the engine no longer lists. It keeps the crew when the list cannot be read.</td><td><code>hooks/register.tsx</code></td><td>184</td></tr>
-    <tr><td><code>register()</code> – adds all hooks</td><td><code>hooks/register.tsx</code></td><td>201</td></tr>
-    <tr><td>Hook <code>session.start</code> (registers 9 commands, loads the theme)</td><td><code>hooks/register.tsx</code></td><td>202</td></tr>
-    <tr><td>Commands <code>theme-hide</code>, <code>theme-show</code></td><td><code>hooks/register.tsx</code></td><td>226, 232</td></tr>
-    <tr><td>Commands <code>theme-mute</code>, <code>theme-unmute</code></td><td><code>hooks/register.tsx</code></td><td>238, 245</td></tr>
-    <tr><td>Commands <code>theme-list</code>, <code>theme-use</code>, <code>theme-build</code>, <code>theme-new</code></td><td><code>hooks/register.tsx</code></td><td>253, 267, 278, 285</td></tr>
-    <tr><td>Command <code>theme-dump</code></td><td><code>hooks/register.tsx</code></td><td>299</td></tr>
-    <tr><td>Hooks <code>turn.start</code>, <code>turn.complete</code></td><td><code>hooks/register.tsx</code></td><td>332, 352</td></tr>
-    <tr><td>Hooks <code>classic.SubagentStart</code>, <code>classic.SubagentStop</code></td><td><code>hooks/register.tsx</code></td><td>377, 396</td></tr>
-    <tr><td>Hooks <code>tool.call</code>, <code>turn.step</code>, <code>session.measure</code></td><td><code>hooks/register.tsx</code></td><td>418, 433, 450</td></tr>
-    <tr><td>Hook <code>session.end</code></td><td><code>hooks/register.tsx</code></td><td>456</td></tr>
-    <tr><td>Hook <code>ui.render</code> (the strip)</td><td><code>hooks/register.tsx</code></td><td>465</td></tr>
+    <tr><td>Constants: frame time, finale time, strip width limits, strip key</td><td><code>hooks/register.tsx</code></td><td>13–17</td></tr>
+    <tr><td>Stored values</td><td><code>hooks/register.tsx</code></td><td>19–33</td></tr>
+    <tr><td>Module variables: <code>scene</code>, <code>sounds</code>, <code>loop</code>, <code>timer</code>, <code>isTicking</code>, <code>stats</code></td><td><code>hooks/register.tsx</code></td><td>37–44</td></tr>
+    <tr><td><code>isActive()</code> – decides if the strip shows</td><td><code>hooks/register.tsx</code></td><td>50</td></tr>
+    <tr><td><code>readView()</code> – reads the values that a frame needs</td><td><code>hooks/register.tsx</code></td><td>56</td></tr>
+    <tr><td><code>note()</code> – writes a line to the log</td><td><code>hooks/register.tsx</code></td><td>67</td></tr>
+    <tr><td><code>useTheme()</code> – loads a theme and tells the band to redraw</td><td><code>hooks/register.tsx</code></td><td>73</td></tr>
+    <tr><td><code>play()</code>, <code>startLoop()</code>, <code>stopLoop()</code>, <code>finish()</code> – the sound cues</td><td><code>hooks/register.tsx</code></td><td>88, 98, 109, 117</td></tr>
+    <tr><td><code>stopLoop()</code> calls <code>stopWindowsLoops()</code></td><td><code>hooks/register.tsx</code></td><td>113</td></tr>
+    <tr><td><code>tick()</code> – draws one frame and sends it with <code>blit</code></td><td><code>hooks/register.tsx</code></td><td>124</td></tr>
+    <tr><td><code>startTimer()</code> and <code>stopTimer()</code></td><td><code>hooks/register.tsx</code></td><td>162, 168</td></tr>
+    <tr><td><code>addAgent()</code> and <code>freeSlot()</code> – give a companion its color slot</td><td><code>hooks/register.tsx</code></td><td>174, 180</td></tr>
+    <tr><td><code>reconcile()</code> – drops agents that the engine no longer lists. It keeps the crew when the list cannot be read.</td><td><code>hooks/register.tsx</code></td><td>188</td></tr>
+    <tr><td><code>register()</code> – adds all hooks. It calls <code>winAudio(on)</code> first.</td><td><code>hooks/register.tsx</code></td><td>205, 206</td></tr>
+    <tr><td>Hook <code>session.start</code> (registers 10 commands, calls <code>readPlatform()</code>, loads the theme)</td><td><code>hooks/register.tsx</code></td><td>208, 223</td></tr>
+    <tr><td>Commands <code>theme-hide</code>, <code>theme-show</code></td><td><code>hooks/register.tsx</code></td><td>234, 240</td></tr>
+    <tr><td>Commands <code>theme-mute</code>, <code>theme-unmute</code></td><td><code>hooks/register.tsx</code></td><td>246, 253</td></tr>
+    <tr><td>Commands <code>theme-list</code>, <code>theme-use</code>, <code>theme-build</code>, <code>theme-new</code></td><td><code>hooks/register.tsx</code></td><td>261, 275, 286, 293</td></tr>
+    <tr><td>Command <code>theme-sound-test</code></td><td><code>hooks/register.tsx</code></td><td>307</td></tr>
+    <tr><td>Command <code>theme-dump</code></td><td><code>hooks/register.tsx</code></td><td>319</td></tr>
+    <tr><td>Hooks <code>turn.start</code>, <code>turn.complete</code></td><td><code>hooks/register.tsx</code></td><td>352, 372</td></tr>
+    <tr><td>Hooks <code>classic.SubagentStart</code>, <code>classic.SubagentStop</code></td><td><code>hooks/register.tsx</code></td><td>397, 416</td></tr>
+    <tr><td>Hooks <code>tool.call</code>, <code>turn.step</code>, <code>session.measure</code></td><td><code>hooks/register.tsx</code></td><td>438, 453, 470</td></tr>
+    <tr><td>Hook <code>session.end</code></td><td><code>hooks/register.tsx</code></td><td>476</td></tr>
+    <tr><td>Hook <code>ui.render</code> (the strip)</td><td><code>hooks/register.tsx</code></td><td>485</td></tr>
+    <tr><td>Module variables <code>windows</code> (is this Windows) and <code>loops</code> (looped clips now playing)</td><td><code>hooks/winaudio.ts</code></td><td>66, 20</td></tr>
+    <tr><td>Constants <code>WAV_MIME</code>, <code>READ</code>, <code>PLAY_ONCE</code>, <code>PLAY_LOOP</code> – the WAV type and the PowerShell scripts</td><td><code>hooks/winaudio.ts</code></td><td>11, 14–16</td></tr>
+    <tr><td><code>stopWindowsLoops()</code> – ends every Windows loop</td><td><code>hooks/winaudio.ts</code></td><td>22</td></tr>
+    <tr><td><code>playWav()</code> – plays one clip with PowerShell, or loops it. Rejects with the cause.</td><td><code>hooks/winaudio.ts</code></td><td>30</td></tr>
+    <tr><td><code>readPlatform()</code> – reads <code>OS</code> once, at session start</td><td><code>hooks/winaudio.ts</code></td><td>68</td></tr>
+    <tr><td><code>winAudio()</code> – adds the <code>audio.play</code> hook</td><td><code>hooks/winaudio.ts</code></td><td>76</td></tr>
+    <tr><td>Hook <code>audio.play</code> (Windows, WAV clips only)</td><td><code>hooks/winaudio.ts</code></td><td>77</td></tr>
+    <tr><td><code>decode()</code>, <code>encode()</code>, <code>isWav()</code>, <code>withGain()</code>, <code>tone()</code></td><td><code>hooks/wav.ts</code></td><td>8, 23, 42, 48, 82</td></tr>
     <tr><td>Types <code>Frame</code>, <code>Pix</code>, <code>CUES</code>, <code>ThemeSpec</code>, <code>Scene</code></td><td><code>hooks/theme.ts</code></td><td>5, 7, 11, 18, 37</td></tr>
     <tr><td><code>BUILT_IN</code> – the theme with no files</td><td><code>hooks/theme.ts</code></td><td>59</td></tr>
     <tr><td><code>heightOf()</code> – rounds and limits the sprite height</td><td><code>hooks/theme.ts</code></td><td>71</td></tr>
@@ -195,9 +205,10 @@
     <tr><td>Type of the stored values</td><td><code>types/index.d.ts</code></td><td>28–43</td></tr>
     <tr><td>Tests for the strip (13 tests)</td><td><code>hooks/register.test.tsx</code></td><td>77–271</td></tr>
     <tr><td>Tests for themes and sounds (18 tests)</td><td><code>hooks/theme.test.tsx</code></td><td>98–319</td></tr>
+    <tr><td>Tests for the Windows player (8 tests)</td><td><code>hooks/winaudio.test.tsx</code></td><td>9–156</td></tr>
   </tbody>
 </table></div>
-<p>Other files: <code>hooks/hooks.json</code> names the module. <code>.claude-plugin/plugin.json</code> is the manifest. <code>.claude-plugin/marketplace.json</code> at the repository root lists the mod. <code>tsconfig.json</code> is for the type-check.</p>
+<p>Other files: <code>hooks/hooks.json</code> names one hooks module, <code>./register.tsx</code>. <code>hooks/winaudio.ts</code> and <code>hooks/wav.ts</code> are imported by <code>register.tsx</code>. A test copy with a second entry in <code>modules</code> fails with <code>Found 1 error</code>, so the validator allows one module. <code>.claude-plugin/plugin.json</code> is the manifest. <code>.claude-plugin/marketplace.json</code> at the repository root lists the mod. <code>tsconfig.json</code> is for the type-check.</p>
 
 <h2 id="how">3. How it works</h2>
 <h3 id="3-1-beats">3.1 Beats</h3>
@@ -231,7 +242,7 @@
     <path class="edge-hot" d="M545 34 L545 18 L90 18 L90 108" marker-end="url(#a1h)"/>
     <text class="lbl-hot" x="318" y="12" text-anchor="middle">4200 ms after the answer</text>
   </svg>
-  <figcaption>Figure 1. The five beats. A <code>turn.start</code> sets the beat to working from any beat. The highlighted path leads to the finale.</figcaption>
+  <figcaption>Figure 1. The five beats. The diagram draws the <code>turn.start</code> edge from <code>idle</code> only. A <code>turn.start</code> sets the beat to <code>working</code> from any beat. The highlighted path is the finale path.</figcaption>
 </figure>
 <div class="table-wrap"><table>
   <thead><tr><th>Beat</th><th>Meaning</th><th>Strip</th></tr></thead>
@@ -250,8 +261,9 @@
 <div class="table-wrap"><table>
   <thead><tr><th>Event</th><th>Condition</th><th>Action</th></tr></thead>
   <tbody>
-    <tr><td><code>session.start</code></td><td>Always</td><td>Register 9 commands. Load the chosen theme. Drop stale agents. Start the timer if the strip is active.</td></tr>
-    <tr><td><code>turn.start</code></td><td>Main loop only</td><td>Store the start time. Set the beat to <code>working</code>. Play the <code>start</code> cue, then loop the <code>working</code> cue. Start the timer.</td></tr>
+    <tr><td><code>session.start</code></td><td>Always</td><td>Register 10 commands. Read the platform. Load the chosen theme. Drop stale agents. Start the timer if the strip is active.</td></tr>
+    <tr><td><code>audio.play</code></td><td>Windows, and the clip is a WAV in base64</td><td>Play the clip with PowerShell, at the gain given. Return <code>deny</code> with the cause when PowerShell fails. Other clips go on to the engine.</td></tr>
+    <tr><td><code>turn.start</code></td><td>Main loop only</td><td>Store the start time. Set the beat to <code>working</code>. Stop any loop. Play the <code>start</code> cue, then loop the <code>working</code> cue. Start the timer.</td></tr>
     <tr><td><code>turn.complete</code></td><td>Main loop only, a subagent runs</td><td>Keep the beat at <code>working</code>.</td></tr>
     <tr><td><code>turn.complete</code></td><td>Main loop only, reason <code>answer</code></td><td>Store the finale start. Set the beat to <code>complete</code>. Play the <code>success</code> cue.</td></tr>
     <tr><td><code>turn.complete</code></td><td>Main loop only, other reason</td><td>Set the beat to <code>aborted</code> or <code>error</code>. Stop the loop, or play the <code>error</code> cue.</td></tr>
@@ -260,7 +272,7 @@
     <tr><td><code>tool.call</code></td><td>Subagent only</td><td>Record the tool name. Keep the last 2 names.</td></tr>
     <tr><td><code>turn.step</code></td><td>Subagent only</td><td>Add 1 to the step count. Store the token count.</td></tr>
     <tr><td><code>session.measure</code></td><td>Cost present</td><td>Store the session cost for <code>/theme-dump</code>.</td></tr>
-    <tr><td><code>session.end</code></td><td>Always</td><td>Stop the timer and the <code>working</code> loop. Drop stale agents. If the engine cannot list agents, keep the crew as it is.</td></tr>
+    <tr><td><code>session.end</code></td><td>Always</td><td>Stop the timer, the <code>working</code> loop and the Windows loop. Drop stale agents. If the engine cannot list agents, keep the crew as it is.</td></tr>
     <tr><td><code>ui.render</code> (<code>AbovePrompt</code>)</td><td>Terminal, no survey, strip not hidden, strip active</td><td>Draw the strip as one <code>Raster</code>.</td></tr>
   </tbody>
 </table></div>
@@ -418,12 +430,13 @@
   <tbody>
     <tr><td><code>/theme-list</code></td><td>List the built-in theme and the themes with a <code>theme.json</code>.</td><td>One name on each line. <code>*</code> marks the theme on show. A last line names the themes folder.</td></tr>
     <tr><td><code>/theme-use &lt;name&gt;</code></td><td>Load the theme. Write the name to <code>config.json</code>. A name that is not listed is refused.</td><td><code>Theme: &lt;name&gt; (&lt;status&gt;). It stays your choice in new sessions.</code> Refused: <code>No theme "&lt;name&gt;". Themes: ….</code></td></tr>
-    <tr><td><code>/theme-build</code></td><td>Rebuild the theme in <code>config.json</code>, even when the stamp matches.</td><td><code>Theme &lt;name&gt;: &lt;status&gt;</code>. For the built-in theme: <code>The built-in theme has no images to build.</code></td></tr>
+    <tr><td><code>/theme-build</code></td><td>Rebuild the theme in <code>config.json</code>, even when the stamp matches.</td><td><code>Theme &lt;name&gt;: &lt;status&gt;</code>. For the built-in theme: <code>The built-in theme has no images to build. /theme-new &lt;name&gt; starts one.</code></td></tr>
     <tr><td><code>/theme-new &lt;name&gt;</code></td><td>Write a template <code>theme.json</code> in a new theme folder.</td><td><code>Wrote &lt;path&gt;. Put your images beside it, edit it, then /theme-use &lt;name&gt;.</code></td></tr>
     <tr><td><code>/theme-hide</code></td><td>Hide the strip.</td><td><code>Strip hidden. /theme-show shows it again.</code></td></tr>
     <tr><td><code>/theme-show</code></td><td>Show the strip.</td><td><code>Strip shown.</code></td></tr>
     <tr><td><code>/theme-mute</code></td><td>Silence every sound and stop the <code>working</code> loop. The setting lasts for the session and a hot reload.</td><td><code>Sounds muted. /theme-unmute plays them again.</code></td></tr>
     <tr><td><code>/theme-unmute</code></td><td>Play the sounds again. A turn in progress gets its loop back.</td><td><code>Sounds on.</code></td></tr>
+    <tr><td><code>/theme-sound-test</code></td><td>Play a 0.3 s test tone through the mod's Windows player.</td><td>On Windows: <code>Played a 0.3 s test tone. Heard nothing? Check the volume mixer for this terminal.</code> If PowerShell fails: <code>Could not play the tone: &lt;cause&gt;</code>. Elsewhere: <code>Not Windows: the engine plays sound itself here.</code></td></tr>
     <tr><td><code>/theme-dump</code></td><td>Write <code>theme-cli-log.txt</code> in the current folder.</td><td><code>Wrote &lt;n&gt; log lines and the strip to theme-cli-log.txt.</code></td></tr>
   </tbody>
 </table></div>
@@ -453,7 +466,7 @@
     <tr><td><code>beat</code></td><td>text</td><td>The beat of the main turn.</td><td><code>turn.start</code>, <code>turn.complete</code>, <code>SubagentStop</code>, <code>tick()</code></td></tr>
     <tr><td><code>isWorking</code></td><td>boolean</td><td>The main turn is in progress.</td><td><code>turn.start</code>, <code>turn.complete</code></td></tr>
     <tr><td><code>turnStart</code></td><td>number</td><td>Time of the last <code>turn.start</code>. The lead position depends on it.</td><td><code>turn.start</code></td></tr>
-    <tr><td><code>turnEnd</code></td><td>number</td><td>Time of the last <code>turn.complete</code>. No code reads it.</td><td><code>turn.complete</code></td></tr>
+    <tr><td><code>turnEnd</code></td><td>number</td><td>Time of the last <code>turn.complete</code>. No code displays it.</td><td><code>turn.complete</code></td></tr>
     <tr><td><code>finaleStart</code></td><td>number</td><td>Time that the finale started.</td><td><code>turn.complete</code>, <code>SubagentStop</code></td></tr>
     <tr><td><code>cost</code></td><td>number</td><td>Session cost in US dollars. Only <code>/theme-dump</code> shows it.</td><td><code>session.measure</code></td></tr>
     <tr><td><code>isHidden</code></td><td>boolean</td><td>The strip is hidden.</td><td><code>/theme-hide</code>, <code>/theme-show</code></td></tr>
@@ -463,8 +476,8 @@
     <tr><td><code>log</code></td><td>list</td><td>The last 300 log lines.</td><td><code>note()</code></td></tr>
   </tbody>
 </table></div>
-<p>The engine keeps these values for the session. They stay through a hot reload. Engine documentation says that a new session starts with the default values. This was not tested in a second session.</p>
-<p>The module variables <code>scene</code>, <code>sounds</code>, <code>loop</code>, <code>timer</code>, <code>isTicking</code> and <code>stats</code> are plain variables. A hot reload resets them. <code>session.start</code> loads the theme and starts the timer again. The handle <code>loop</code> is lost on a hot reload. Section 7 explains the effect.</p>
+<p>The engine keeps these values for the session and through a hot reload. The engine documentation says so. How a new session starts was not tested.</p>
+<p>The module variables <code>scene</code>, <code>sounds</code>, <code>loop</code>, <code>timer</code>, <code>isTicking</code> and <code>stats</code> in <code>hooks/register.tsx</code> are plain variables. The variables <code>windows</code> and <code>loops</code> in <code>hooks/winaudio.ts</code> are plain variables too. A hot reload resets them. <code>session.start</code> loads the theme and starts the timer again. The handle <code>loop</code> is lost on a hot reload. Section 7 explains the effect.</p>
 <h3 id="3-10-sounds">3.10 Sounds</h3>
 <p>A theme can play a sound at four moments. The sounds are optional. A theme with no <code>sounds</code> block is silent. <code>/theme-mute</code> silences all four cues without editing the theme. The mute holds for the session and a hot reload.</p>
 <div class="table-wrap"><table>
@@ -478,7 +491,15 @@
 </table></div>
 <p>An aborted turn stops the <code>working</code> loop and plays no other clip.</p>
 <p>The mod reads each audio file as bytes when the theme loads (<code>loadSounds()</code> in <code>hooks/library.ts</code>). It passes the bytes to <code>$.audio.play</code>. A file is left out when it is missing, or when its extension is not supported. The supported extensions are <code>wav</code>, <code>mp3</code>, <code>m4a</code>, <code>aac</code>, <code>aiff</code>, <code>aif</code> or <code>ogg</code>. The load status names it (<code>missing sounds: working</code>), and the other cues still play. A cue that cannot play is written to the log. It is never thrown. A <code>sounds</code> entry with no <code>file</code> path, or a <code>gain</code> outside 0 to 4, sends the whole theme to placeholders.</p>
-<p>The engine plays sound through <code>afplay</code> on macOS. This check did not play a sound, so playback is not verified here. The mod supplies no player of its own for Linux or Windows. Section 7 covers this.</p>
+<p>Each platform plays the clips in a different way:</p>
+<ul>
+  <li>macOS: the engine plays the clip. The engine documentation names <code>afplay</code> as the macOS player. This check did not play a sound, so playback is not verified here.</li>
+  <li>Windows: the mod plays a WAV clip itself, in <code>hooks/winaudio.ts</code>. It starts <code>powershell.exe</code>, which uses the .NET class <code>System.Media.SoundPlayer</code>. The engine has no Windows player. Its <code>$.audio.play</code> plays nothing and resolves. Other clips (mp3, m4a, aac, aiff, ogg, <code>{ asset }</code> and URLs) go to the engine. The engine's documentation says a terminal with no player plays nothing.</li>
+  <li>Linux: the engine's documentation says a Linux terminal with no player plays nothing, and the call resolves. The mod adds no player for Linux. This was not tested.</li>
+</ul>
+<p>On Windows, <code>gain</code> changes only 16-bit PCM WAV clips, because <code>SoundPlayer</code> has no volume control. Other WAV clips play at their own level.</p>
+<p>A looped WAV clip on Windows starts PowerShell with <code>PlayLooping()</code>. The child runs until it is stopped. The engine does not pass its signal to a hook. So <code>stopLoop()</code> also calls <code>stopWindowsLoops()</code>, which ends the child. <code>stopLoop()</code> runs at the start of a turn, at the end of a turn, at <code>/theme-mute</code>, at a theme switch and at <code>session.end</code>. The Windows stop is not verified. The tests use a fake child that ends only when the engine kills it. Section 7 lists the open points.</p>
+<p>A failed PowerShell call returns its cause. <code>/theme-sound-test</code> shows that cause in its reply.</p>
 <p>The <code>make-mario-sounds.py</code> script writes four clips in the style of a Mario game. Each clip is built from square-wave notes made in the script. The clips are:</p>
 <ul>
   <li><code>start</code>: a coin.</li>
@@ -521,7 +542,7 @@ error.wav 1.44s</code></pre>
     <tr><td><code>colors.ground</code></td><td>2 colors <code>#rrggbb</code></td><td>The two colors of the ground bricks.</td></tr>
     <tr><td><code>colors.dirt</code>, <code>colors.pole</code>, <code>colors.flag</code></td><td>color <code>#rrggbb</code></td><td>The dirt row, the flagpole and the flag.</td></tr>
     <tr><td><code>sounds.&lt;cue&gt;.file</code></td><td>path</td><td>An audio file for the cue. The cues are <code>start</code>, <code>working</code>, <code>success</code> and <code>error</code> (section 3.10).</td></tr>
-    <tr><td><code>sounds.&lt;cue&gt;.gain</code></td><td>number</td><td>Linear volume, 0 to 4. Default 1.</td></tr>
+    <tr><td><code>sounds.&lt;cue&gt;.gain</code></td><td>number</td><td>Linear volume, 0 to 4. Default 1. On Windows, only 16-bit PCM WAV clips are scaled.</td></tr>
   </tbody>
 </table></div>
 <p>The fields <code>name</code> and <code>note</code> have no effect. The theme name is the name of its folder.</p>
@@ -530,10 +551,11 @@ error.wav 1.44s</code></pre>
 <div class="table-wrap"><table>
   <thead><tr><th>Constant</th><th>Value</th><th>File and line</th><th>Effect</th></tr></thead>
   <tbody>
-    <tr><td><code>FRAME_MS</code></td><td>100</td><td><code>hooks/register.tsx</code> 11</td><td>Time between ticks, in ms.</td></tr>
-    <tr><td><code>FINALE_MS</code></td><td>4200</td><td><code>hooks/register.tsx</code> 12</td><td>Length of the finale, in ms.</td></tr>
-    <tr><td><code>MIN_COLS</code>, <code>MAX_COLS</code></td><td>32, 240</td><td><code>hooks/register.tsx</code> 13–14</td><td>Limits of the strip width.</td></tr>
-    <tr><td>Log lines</td><td>300</td><td><code>hooks/register.tsx</code> 67</td><td>The last log lines that <code>/theme-dump</code> keeps.</td></tr>
+    <tr><td><code>FRAME_MS</code></td><td>100</td><td><code>hooks/register.tsx</code> 13</td><td>Time between ticks, in ms.</td></tr>
+    <tr><td><code>FINALE_MS</code></td><td>4200</td><td><code>hooks/register.tsx</code> 14</td><td>Length of the finale, in ms.</td></tr>
+    <tr><td><code>MIN_COLS</code>, <code>MAX_COLS</code></td><td>32, 240</td><td><code>hooks/register.tsx</code> 15–16</td><td>Limits of the strip width.</td></tr>
+    <tr><td>Log lines</td><td>300</td><td><code>hooks/register.tsx</code> 69</td><td>The last log lines that <code>/theme-dump</code> keeps.</td></tr>
+    <tr><td>Test tone</td><td>880 Hz, 300 ms, 22,050 samples per second</td><td><code>hooks/register.tsx</code> 311; <code>hooks/wav.ts</code> 82</td><td>The tone that <code>/theme-sound-test</code> plays on Windows.</td></tr>
     <tr><td><code>SPEED</code></td><td>0.03</td><td><code>hooks/draw.ts</code> 8</td><td>Lead speed, in pixels for each ms.</td></tr>
     <tr><td><code>GROUND</code></td><td>2</td><td><code>hooks/draw.ts</code> 9</td><td>Ground height, in pixels.</td></tr>
     <tr><td>Frame step</td><td>110</td><td><code>hooks/draw.ts</code> 37</td><td>Time for each frame of a run cycle, in ms.</td></tr>
@@ -563,7 +585,7 @@ error.wav 1.44s</code></pre>
   <li>A terminal. A terminal is a window where you type commands. On macOS, open the app named Terminal. On Windows, open PowerShell or Windows Terminal.</li>
   <li>Images for a theme. The script reads PNG files. It reads 8-bit, non-interlaced PNG files itself. Another PNG format needs Pillow, and without Pillow that format stops the whole build. A file that is not a PNG is skipped. Section 7 explains.</li>
 </ul>
-<p>This repository holds no theme images. Use only images that you are allowed to use. Do not commit or publish images that you do not own.</p>
+<p>This mod folder holds no theme images. Use only images that you are allowed to use. Do not commit or publish images that you do not own.</p>
 <p>In this document, the <strong>repository root</strong> is the top folder of the repository. All commands in this document start from that folder. To go there, type <code>cd</code> and the path to the folder. Example:</p>
 <pre><code>cd ~/Developer/claude-mods</code></pre>
 <p>On Windows PowerShell, the same step is:</p>
@@ -601,7 +623,7 @@ error.wav 1.44s</code></pre>
   <li>Save the file. Start a new Claude Code session.</li>
   <li>Do the check in 5.6.</li>
 </ol>
-<p>To uninstall, delete the line and start a new session.</p>
+<p>To uninstall, delete the line and start a new session. This check did not test the setting <code>CLAUDE_CODE_PLUGIN_DIRS</code>.</p>
 <h3 id="5-5-method-c-marketplace-install">5.5 Method C: marketplace install</h3>
 <p>The repository has a marketplace file, <code>.claude-plugin/marketplace.json</code>. The marketplace is named <code>claude-mods</code>. It lists <code>theme-cli</code>.</p>
 <ol>
@@ -612,17 +634,18 @@ error.wav 1.44s</code></pre>
 <pre><code>claude plugin install theme-cli@claude-mods</code></pre></li>
   <li>Start a new session. Do the check in 5.6.</li>
 </ol>
-<p>The <code>--scope</code> option sets where the mod applies:</p>
+<p>The <code>--scope</code> option sets the scope of the install. The scope names and the default come from the help text of <code>claude plugin install</code>:</p>
 <div class="table-wrap"><table>
-  <thead><tr><th>Scope</th><th>Where the mod runs</th></tr></thead>
+  <thead><tr><th>Scope</th><th>Meaning in the help text</th></tr></thead>
   <tbody>
-    <tr><td><code>user</code> (default)</td><td>Every project, for you.</td></tr>
-    <tr><td><code>project</code></td><td>The current project, for everyone who opens it. Saved in <code>.claude/settings.json</code>.</td></tr>
-    <tr><td><code>local</code></td><td>The current project, for you only. Not shared.</td></tr>
+    <tr><td><code>user</code> (default)</td><td>User scope.</td></tr>
+    <tr><td><code>project</code></td><td>Project scope.</td></tr>
+    <tr><td><code>local</code></td><td>Local scope.</td></tr>
   </tbody>
 </table></div>
+<p>This check did not test where each scope writes its setting.</p>
 <p>Inside a Claude Code session, the same steps are <code>/plugin marketplace add https://github.com/plaktoz/claude-mods</code> and <code>/plugin install theme-cli@claude-mods</code>. Then run <code>/reload-plugins</code>, or start a new session.</p>
-<p>Add the marketplace with the repository URL. Do not use the GitHub link to <code>.claude-plugin/marketplace.json</code>: the command treats a link as a git repository and fails with <code>repository ... not found</code>.</p>
+<p>Add the marketplace with the repository URL. Use the repository URL, not the link to <code>.claude-plugin/marketplace.json</code>. This check did not run the command with the link.</p>
 <p>To use your local copy of this repository, add the marketplace from its path:</p>
 <pre><code>claude plugin marketplace add /path/to/claude-mods</code></pre>
 <p>The install scripts do the same steps. They add this repository as the marketplace <code>claude-mods</code>, and then install the mod.</p>
@@ -635,7 +658,7 @@ error.wav 1.44s</code></pre>
 </ol>
 <p>The shell script accepts <code>--scope user</code>, <code>--scope project</code> or <code>--scope local</code>, <code>--list</code> and <code>--uninstall</code>. The PowerShell script accepts <code>-Scope user</code>, <code>-Scope project</code> or <code>-Scope local</code>, <code>-List</code> and <code>-Uninstall</code>. The default scope is <code>user</code>. <code>--scope project</code> installs into the folder where you run the script, not into this repository.</p>
 <p>This document check did not run the <code>claude plugin</code> commands or the install script.</p>
-<p>The validator suggests a different install line, with an <code>&lt;owner&gt;/&lt;repo&gt;</code> shorthand. This document does not use that form. Use the marketplace URL in section 5.5. The validator's line was not run.</p>
+<p>The validator printed no install line in this check. Use the marketplace URL in section 5.5.</p>
 <h3 id="5-6-check-that-the-install-worked">5.6 Check that the install worked</h3>
 <ol>
   <li>Start a session with method A or method B.</li>
@@ -667,7 +690,7 @@ error.wav 1.44s</code></pre>
   <thead><tr><th>Level</th><th>What it proves</th><th>Time</th><th>Needs an API request</th></tr></thead>
   <tbody>
     <tr><td>1. Validate</td><td>The files are correct, and the engine can read the mod.</td><td>Short. Not timed.</td><td>No</td></tr>
-    <tr><td>2. Test</td><td>The logic is correct (beats, companions, finale, themes, sounds).</td><td>About 1 second in this check.</td><td>No</td></tr>
+    <tr><td>2. Test</td><td>The logic is correct (beats, companions, finale, themes, sounds, the Windows player).</td><td>1.2 to 1.5 seconds in the runs of this check.</td><td>No</td></tr>
     <tr><td>3. Build check</td><td>The script scales your images.</td><td>Short. Not timed.</td><td>No</td></tr>
     <tr><td>4. Live check</td><td>The mod works in a real session.</td><td>Several minutes.</td><td>Yes</td></tr>
   </tbody>
@@ -692,17 +715,19 @@ error.wav 1.44s</code></pre>
   <thead><tr><th>Message</th><th>Why you can ignore it</th></tr></thead>
   <tbody>
     <tr><td><code>types … declares on $: nothing</code></td><td>Correct. The mod adds nothing to <code>$</code>.</td></tr>
-    <tr><td><code>answers its own command</code></td><td>Correct. Each of the 9 commands answers itself.</td></tr>
+    <tr><td><code>answers its own command</code></td><td>Correct. Each of the 10 commands answers itself.</td></tr>
     <tr><td><code>gating hook with .catch</code></td><td>Correct. Three hooks pass the event on when they fail.</td></tr>
-    <tr><td><code>This README has no line that installs "theme-cli" from a marketplace</code></td><td>Advice only. It does not change the result. Section 5.5 gives the install steps.</td></tr>
+    <tr><td><code>gating hook without .catch</code></td><td>Correct. <code>audio.play</code> and <code>theme-sound-test</code> catch their own PowerShell error and return a reply, so they do not throw.</td></tr>
+    <tr><td><code>hooks/hooks.json names a hooks module</code></td><td>Not a failure. The plugin directory applies its own rules to a code module, and this command does not. The directory's own validation decides whether it accepts the plugin.</td></tr>
   </tbody>
 </table></div>
+<p>The output ends with a note. It says that the plugin directory's own rules were not applied, so passing this command does not mean the directory accepts the plugin. The output also says that the directory runs a safety scan and a policy review that this command does not.</p>
 <p>The output also lists what the mod uses. Compare it with this list:</p>
 <ul>
-  <li>Hooks: <code>session.start</code>, 9 <code>command.run</code> hooks (<code>theme-hide</code>, <code>theme-show</code>, <code>theme-mute</code>, <code>theme-unmute</code>, <code>theme-list</code>, <code>theme-use</code>, <code>theme-build</code>, <code>theme-new</code>, <code>theme-dump</code>), <code>turn.start</code>, <code>turn.complete</code>, <code>classic.SubagentStart</code>, <code>classic.SubagentStop</code>, <code>tool.call</code>, <code>turn.step</code>, <code>session.measure</code>, <code>session.end</code>, <code>ui.render{component=AbovePrompt}</code>.</li>
+  <li>Hooks: <code>audio.play</code>, <code>session.start</code>, 10 <code>command.run</code> hooks (<code>theme-hide</code>, <code>theme-show</code>, <code>theme-mute</code>, <code>theme-unmute</code>, <code>theme-list</code>, <code>theme-use</code>, <code>theme-build</code>, <code>theme-new</code>, <code>theme-sound-test</code>, <code>theme-dump</code>), <code>turn.start</code>, <code>turn.complete</code>, <code>classic.SubagentStart</code>, <code>classic.SubagentStop</code>, <code>tool.call</code>, <code>turn.step</code>, <code>session.measure</code>, <code>session.end</code>, <code>ui.render{component=AbovePrompt}</code>.</li>
   <li>Stored values: the 13 names in section 3.9.</li>
-  <li>Environment reads: <code>HOME</code>, <code>USERPROFILE</code>. Environment writes: none.</li>
-  <li>Engine calls: <code>$.agent.list</code>, <code>$.audio.play</code>, <code>$.clock.after</code>, <code>$.clock.every</code>, <code>$.clock.now</code>, <code>$.command.register</code>, <code>$.env.get</code>, <code>$.fs.exists</code>, <code>$.fs.list</code>, <code>$.fs.read</code>, <code>$.fs.stat</code>, <code>$.fs.write</code>, <code>$.process.run</code>, <code>$.state.get</code>, <code>$.state.set</code>, <code>$.ui.blit</code>, <code>$.ui.resolve</code>.</li>
+  <li>Environment reads: <code>HOME</code>, <code>OS</code>, <code>USERPROFILE</code>. Environment writes: none.</li>
+  <li>Engine calls: <code>$.agent.list</code>, <code>$.audio.play</code>, <code>$.clock.after</code>, <code>$.clock.every</code>, <code>$.clock.now</code>, <code>$.command.register</code>, <code>$.env.get</code>, <code>$.fs.exists</code>, <code>$.fs.list</code>, <code>$.fs.read</code>, <code>$.fs.stat</code>, <code>$.fs.write</code>, <code>$.process.run</code>, <code>$.process.spawn</code>, <code>$.state.get</code>, <code>$.state.set</code>, <code>$.ui.blit</code>, <code>$.ui.resolve</code>.</li>
 </ul>
 <p>If the output lists a hook or call that is not in this list, the code and this document differ. Tell the owner of the mod.</p>
 <h3 id="6-2-level-2-run-the-tests">6.2 Level 2: run the tests</h3>
@@ -710,19 +735,19 @@ error.wav 1.44s</code></pre>
   <li>Go to the repository root.</li>
   <li>Run:
 <pre><code>claude plugin test mods/theme-cli</code></pre></li>
-  <li><strong>Expected result:</strong> the last lines are <code>31 pass</code> and <code>0 fail</code>.</li>
+  <li><strong>Expected result:</strong> the last lines are <code>39 pass</code> and <code>0 fail</code>. The runner reports 13 tests in <code>register.test.tsx</code>, 18 in <code>theme.test.tsx</code> and 8 in <code>winaudio.test.tsx</code>.</li>
 </ol>
 <p>In this check, the output ended with these lines, and the exit code was 0:</p>
-<pre><code> 31 pass
+<pre><code> 39 pass
  0 fail
-Ran 31 tests across 2 files. [1.02s]</code></pre>
+Ran 39 tests across 3 files. [1.19s]</code></pre>
 <p>Do not use <code>bun test</code> for these tests. In this check, <code>bun test</code> in <code>mods/theme-cli</code> printed this error: <code>error: Cannot find module 'claude-code/testing'</code>. The output then ended with these lines, and the exit code was 1:</p>
 <pre><code> 0 pass
- 2 fail
- 2 errors
-Ran 2 tests across 2 files. [5.00ms]</code></pre>
+ 3 fail
+ 3 errors
+Ran 3 tests across 3 files. [6.00ms]</code></pre>
 <p>The <code>claude plugin test</code> runner runs the tests.</p>
-<p>The tests use a fake clock, a fake disk and a fake build script. They do not call the API and they cost nothing. No test runs <code>scripts/build-theme.py</code>. Level 3 covers the script. Section 6.5 explains each test.</p>
+<p>The tests use a fake clock, a fake disk and a fake build script. The Windows tests use a fake engine and a fake PowerShell child. They do not call the API and they cost nothing. No test runs PowerShell or <code>scripts/build-theme.py</code>. Level 3 covers the script. Section 6.5 explains each test.</p>
 <p>If a test fails, the output shows the test name and the reason. Find the test name in the table in 6.5. It shows which rule is broken.</p>
 <h3 id="6-3-level-3-check-the-build-script">6.3 Level 3: check the build script</h3>
 <ol>
@@ -735,7 +760,7 @@ Ran 2 tests across 2 files. [5.00ms]</code></pre>
 <p>On Windows there is no <code>/tmp</code>. Write the output to the current folder instead, and use <code>py -3</code> if <code>python3</code> is not installed. In PowerShell:</p>
 <pre><code>py -3 -I mods\theme-cli\scripts\build-theme.py --theme "$HOME\.claude\theme-cli\themes\castle" --out theme-check.json --height 8</code></pre>
 <p>The expected output is <code>built N frames to theme-check.json</code>. Delete <code>theme-check.json</code> when you are done. This command was not run on Windows.</p>
-<p>In this check, a test sheet with 2 frames printed <code>built 2 frames to &lt;path&gt;</code> and exited with 0. A file that is not a PNG printed <code>skipped lead-1: not a PNG</code>. The run then printed <code>built 0 frames to &lt;path&gt;</code> and exited with 1. A 16-bit PNG without Pillow stopped the build with <code>needs an 8-bit, non-interlaced PNG (or install Pillow)</code>. The script exited with 1 and wrote no cache.</p>
+<p>In this check, a test theme with 2 frames from an 8-bit PNG printed <code>built 2 frames to &lt;path&gt;</code> and exited with 0. A frame whose file is not a PNG printed <code>skipped lead-1: not a PNG</code> on the same run, and the build still exited with 0. A theme whose only frame is a 16-bit PNG, without Pillow, printed <code>needs an 8-bit, non-interlaced PNG (or install Pillow)</code>. That run exited with 1 and wrote no cache.</p>
 <h3 id="6-4-level-4-live-check-in-a-session">6.4 Level 4: live check in a session</h3>
 <p>Do this once after you install.</p>
 <div class="table-wrap"><table>
@@ -748,9 +773,11 @@ Ran 2 tests across 2 files. [5.00ms]</code></pre>
     <tr><td>5</td><td>Type <code>/theme-dump</code>. Open <code>theme-cli-log.txt</code>.</td><td>The <code>theme=</code> line names your theme. The line <code>band requestId=</code> does not say <code>unknown</code>.</td></tr>
     <tr><td>6</td><td>Edit an image. Type <code>/theme-build</code>.</td><td><code>Theme &lt;name&gt;: built: built N frames to &lt;path&gt;</code>.</td></tr>
     <tr><td>7</td><td>Type <code>/theme-hide</code>, then <code>/theme-show</code>.</td><td>The strip hides, then shows again on the next turn.</td></tr>
+    <tr><td>8</td><td>Windows only. Type <code>/theme-sound-test</code>.</td><td><code>Played a 0.3 s test tone. …</code>. A short tone is heard.</td></tr>
+    <tr><td>9</td><td>Windows only. Send a prompt, and wait for the answer.</td><td>The <code>working</code> sound stops when the answer arrives.</td></tr>
   </tbody>
 </table></div>
-<p>The owner ran steps 2, 3 and 4 live on 2026-10-24. This document check did not run steps 1 to 7 in a live session. No person has done step 5 yet. No person has seen the strip hide and show in step 7.</p>
+<p>This document check did not run steps 1 to 9 in a live session. No record in the repository shows a live run of these steps by a person.</p>
 <h3 id="6-5-what-each-test-proves">6.5 What each test proves</h3>
 <p>Each row names one test and the line where the test starts.</p>
 <div class="table-wrap"><table>
@@ -758,7 +785,7 @@ Ran 2 tests across 2 files. [5.00ms]</code></pre>
   <tbody>
     <tr><td>the strip stays out of the way until a turn starts</td><td>77</td><td>Before <code>turn.start</code>, the mod draws no <code>Raster</code>. The engine band shows.</td></tr>
     <tr><td>a turn draws one Raster of the band width and repaints it with blit</td><td>87</td><td>The <code>Raster</code> is 40 columns by 5 rows. In 1,000 ms the mod sends at least 8 blits. The first and last blit differ.</td></tr>
-    <tr><td>the sprites move: a later frame differs from an earlier one</td><td>106</td><td>The cells at 1,000 ms differ from the cells at 500 ms.</td></tr>
+    <tr><td>the sprites move: a later frame differs from an earlier one</td><td>106</td><td>The last blit at 1,000 ms differs from the last blit at 500 ms.</td></tr>
     <tr><td>each running subagent adds one companion and its stop removes it</td><td>119</td><td>Each new agent changes the cells. A stop for an unknown id is ignored. The strip still draws after the stops.</td></tr>
     <tr><td>each companion holds its own colour slot, and a stop frees the lowest one</td><td>146</td><td>3 agents get <code>a1:0 a2:1 a3:2</code>. After <code>a2</code> stops, a new agent gets slot 1.</td></tr>
     <tr><td>a subagent turn does not end the main turn</td><td>167</td><td>A <code>turn.complete</code> with an <code>agentId</code> does not stop the blits.</td></tr>
@@ -794,6 +821,19 @@ Ran 2 tests across 2 files. [5.00ms]</code></pre>
     <tr><td>theme.json paths: drive letters, UNC and ~\ are handled as Windows paths</td><td>319</td><td>The TypeScript path rule treats <code>C:\</code>, <code>C:/</code>, UNC paths and <code>~\</code> as Windows paths.</td></tr>
   </tbody>
 </table></div>
+<div class="table-wrap"><table>
+  <thead><tr><th>Test (in <code>hooks/winaudio.test.tsx</code>)</th><th>Line</th><th>Rule it proves</th></tr></thead>
+  <tbody>
+    <tr><td>base64 round-trips bytes of every length</td><td>9</td><td><code>encode()</code> and <code>decode()</code> in <code>hooks/wav.ts</code> return the same bytes for lengths 0 to 5 and 255. <code>TWFu</code> and <code>TQ==</code> are the expected encodings.</td></tr>
+    <tr><td>a generated tone is a WAV, and gain scales and clips its samples</td><td>18</td><td><code>tone()</code> makes a WAV. Gain 0.5 halves a sample, gain 1 returns the same bytes, and gain 4 keeps each sample in the 16-bit range.</td></tr>
+    <tr><td>on Windows a WAV clip is played by PowerShell, not handed to the engine</td><td>93</td><td>On Windows, a WAV clip starts one <code>powershell.exe</code> child with <code>PlaySync</code>. The engine's player is not called.</td></tr>
+    <tr><td>a looped clip uses PlayLooping</td><td>108</td><td>A looped clip starts the child with <code>PlayLooping</code>.</td></tr>
+    <tr><td>off Windows, the clip goes on to the engine</td><td>119</td><td>On macOS, the engine's player gets the clip. No child starts.</td></tr>
+    <tr><td>a non-WAV or asset clip on Windows goes on to the engine</td><td>131</td><td>An mp3 clip and an asset clip reach the engine on Windows. No child starts.</td></tr>
+    <tr><td>a PowerShell failure rejects, so the caller can log it</td><td>144</td><td>A child that exits with code 1 makes the command reply name <code>powershell exited 1</code>.</td></tr>
+    <tr><td>theme-cli stopping its loop ends the Windows loop</td><td>156</td><td><code>/theme-mute</code> calls <code>stopLoop()</code>, which ends a looped child, and the command returns. The child is a fake. The test does not show that PowerShell stops on Windows.</td></tr>
+  </tbody>
+</table></div>
 <h3 id="6-6-problems-and-solutions">6.6 Problems and solutions</h3>
 <div class="table-wrap"><table>
   <thead><tr><th>Problem</th><th>Cause</th><th>Solution</th></tr></thead>
@@ -813,15 +853,16 @@ Ran 2 tests across 2 files. [5.00ms]</code></pre>
     <tr><td>A drive-letter or UNC path fails on macOS or Linux</td><td>The build script reads the path as relative.</td><td>Use a <code>~/</code> path or a path relative to the theme folder.</td></tr>
     <tr><td>A frame has a colored box around the sprite</td><td>The sheet background is not clear.</td><td>Set <code>key</code> to the background color <code>[r, g, b]</code>. Type <code>/theme-build</code>.</td></tr>
     <tr><td>All companions have the same color</td><td><code>cast.companion.frame</code> has no <code>recolor</code>, or <code>recolor.hue</code> does not match the base frame.</td><td>Add <code>recolor</code> with <code>hue</code> set to the body hue of the base frame. A second fix is below the table.</td></tr>
-    <tr><td>No sound plays</td><td>The theme has no <code>sounds</code> block, the sounds are muted, or the engine has no player for the platform.</td><td>Type <code>/theme-dump</code>. Read the <code>sounds=</code> and <code>muted=</code> line. Section 7 lists the platform limits.</td></tr>
+    <tr><td>No sound plays on Windows</td><td>The PowerShell player failed. Or the clip is not a WAV, and the engine plays nothing on Windows.</td><td>Type <code>/theme-sound-test</code>. If it fails, the reply says why, as <code>Could not play the tone: &lt;cause&gt;</code>. Type <code>/theme-dump</code>. Read the <code>sounds=</code> line. Section 7 lists the Windows limits.</td></tr>
+    <tr><td>No sound plays</td><td>The theme has no <code>sounds</code> block, the sounds are muted, or the platform has no player (Linux).</td><td>Type <code>/theme-dump</code>. Read the <code>sounds=</code> and <code>muted=</code> line. Section 7 lists the platform limits.</td></tr>
     <tr><td>You edited an image and nothing changed</td><td>The session loaded the theme before the edit.</td><td>Type <code>/theme-build</code>.</td></tr>
   </tbody>
 </table></div>
 <p>For the companion color row, list one frame for each slot in <code>cast.companion.frames</code>. Raise <code>range</code> if needed.</p>
 <h3 id="6-7-type-check-optional">6.7 Type-check (optional)</h3>
-<p>A type-check finds mistakes in the code types. It needs <code>tsc</code>, the TypeScript compiler. The file <code>tsconfig.json</code> extends <code>.claude-plugin/types/tsconfig.json</code>. The repository ignores the folder <code>.claude-plugin/types/</code>. Its header says that Claude Code writes it at each mod load. The folder existed in this check. Its creation at load was not tested.</p>
+<p>A type-check finds mistakes in the code types. It needs <code>tsc</code>, the TypeScript compiler. The file <code>tsconfig.json</code> extends <code>.claude-plugin/types/tsconfig.json</code>. The repository ignores the folder <code>mods/*/.claude-plugin/types/</code> (see <code>.gitignore</code>). The folder existed in this check. Who creates it was not checked.</p>
 <p>Run <code>npx -y -p typescript@5.6 tsc -p mods/theme-cli</code>. <strong>Expected result:</strong> no output and exit code 0.</p>
-<p>In this check, the command printed nothing and exited with 0.</p>
+<p>In this check, that command printed nothing and exited with 0, run from the repository root. A second run with <code>typescript@5.6.3</code> inside <code>mods/theme-cli</code>, using <code>tsconfig.json</code>, also printed nothing and exited with 0. Both runs were on macOS.</p>
 
 <h2 id="limits">7. Known limits</h2>
 <ul>
@@ -829,7 +870,7 @@ Ran 2 tests across 2 files. [5.00ms]</code></pre>
   <li><strong>Python is needed to build.</strong> The mod cannot read images itself. Without a working launcher, a new or changed theme uses the older cache or placeholders.</li>
   <li><strong>PNG format.</strong> Without Pillow, the script reads 8-bit, non-interlaced PNG files only. A file in another PNG format stops the whole build, and no cache is written. Pillow reads other formats. Pillow was not installed for this check, so that path did not run.</li>
   <li><strong>36 colors for each frame.</strong> A frame with more colors is skipped. The script prints <code>skipped</code> and the reason.</li>
-  <li><strong>Cache size.</strong> The mod does not limit the cache size. Engine strings mention a 4 MiB limit, but this check did not verify that the file read has that limit. If the read fails, the stamp never matches, so the mod rebuilds at every load.</li>
+  <li><strong>Cache size.</strong> The mod does not limit the cache size. The engine documentation says a file read over 4 MiB rejects. This check did not test a cache that large. A failed read returns no cache, so the mod rebuilds at every load.</li>
   <li><strong>No enlarging.</strong> The script scales an image down only. An image that is not taller than its target height keeps its size.</li>
   <li><strong>Height.</strong> The mod rounds the height up to an even number and limits it to 4 to 32 pixels. A strip of 8 pixels needs 5 rows.</li>
   <li><strong>Width.</strong> The strip is 32 to 240 columns wide, whatever the terminal width.</li>
@@ -840,16 +881,18 @@ Ran 2 tests across 2 files. [5.00ms]</code></pre>
   <li><strong><code>/theme-build</code> uses the saved choice.</strong> It rebuilds the theme in <code>config.json</code>. It does not read the theme on show.</li>
   <li><strong>Reserved name.</strong> <code>/theme-new default</code> is refused. The mod never loads a folder named <code>default</code>, because the name always means the built-in theme.</li>
   <li><strong>A failed frame is not retried.</strong> The script writes the cache even when frames fail. The stamp still matches, so the mod does not retry until an image or <code>theme.json</code> changes, or until <code>/theme-build</code>.</li>
-  <li><strong>Drive letters and UNC paths on macOS and Linux.</strong> The mod treats <code>C:\art\a.png</code> and <code>\\server\share\a.png</code> as absolute. The build script reads them as relative, so the build fails. Checked on macOS with <code>C:\art\a.png</code>: the build printed <code>No such file or directory</code> and exited with 1.</li>
+  <li><strong>Drive letters and UNC paths on macOS and Linux.</strong> The mod treats <code>C:\art\a.png</code> and <code>\\server\share\a.png</code> as absolute. The build script reads them as relative, so the build fails. Checked on macOS with <code>C:\art\a.png</code>: the build printed <code>skipped a: [Errno 2] No such file or directory</code>, built 0 frames, and exited with 1.</li>
   <li><strong>Root-relative paths on Windows.</strong> A path such as <code>\art\a.png</code> has no drive letter. The mod and the build script can read it differently. A Python check with <code>PureWindowsPath</code> on macOS reports <code>\art\a.png</code> as not absolute. No Windows run has happened. Use <code>~/</code>, a drive letter or a path relative to the theme folder.</li>
   <li><strong>No first frame without a band.</strong> A tick does nothing until <code>ui.render</code> records the band. The first frame comes from the render.</li>
   <li><strong>No survey.</strong> The strip does not show while the engine shows a survey.</li>
-  <li><strong>Mute scope.</strong> The mute holds for the session and a hot reload. Engine documentation says that a new session starts unmuted. This was not tested in a second session.</li>
-  <li><strong>Sound on Linux and Windows.</strong> The mod supplies no player. The engine uses <code>afplay</code> on macOS. Playback on Linux and Windows was not tested, so sound there is unverified.</li>
+  <li><strong>Mute scope.</strong> The mute holds for the session and a hot reload. Whether a new session starts unmuted was not tested.</li>
+  <li><strong>Sound on Linux.</strong> The engine has no player on Linux, and the mod adds none. Playback on Linux was not tested.</li>
+  <li><strong>Sound on Windows.</strong> The mod plays WAV clips itself, with PowerShell, in <code>hooks/winaudio.ts</code>. Other formats go to the engine, which plays nothing on Windows. The fake-engine tests ran on macOS. Real playback on Windows is unverified. Task T5 in <code>docs/win-audio-merge-2026-10-25.md</code> is the Windows check, and it is pending. When the engine ships a Windows player, remove <code>hooks/winaudio.ts</code>, the <code>winAudio(on)</code> call and the <code>/theme-sound-test</code> command in <code>register.tsx</code>, and <code>hooks/wav.ts</code> if nothing else imports it.</li>
+  <li><strong>Windows loop stop.</strong> Unverified on Windows. <code>stopLoop()</code> ends the child through <code>stopWindowsLoops()</code>. The mod then calls <code>return()</code> on the child's stream. The engine's documentation says <code>return()</code> kills the child. The child's stream is read in a separate task at the same time, so whether <code>return()</code> ends a child that writes no output is unverified. A hot reload resets the <code>loops</code> set, so <code>stopWindowsLoops()</code> cannot stop a child that started before the reload.</li>
   <li><strong>Hot reload and the working loop.</strong> A hot reload drops the handle <code>loop</code>. The working clip can keep playing, and the mod cannot stop it. This is open question Q4 in <code>library/theme-mod-spec.md</code>.</li>
-  <li><strong>Windows.</strong> No Windows run has happened. The code has Windows paths for the home folder, the Python launcher, drive-letter paths and UTF-8 files. Half-block characters and truecolor can render wrongly on a legacy Windows console. This is unverified.</li>
+  <li><strong>Windows.</strong> No Windows run has happened. The code has Windows paths for the home folder, the Python launcher, drive-letter paths and UTF-8 files. Half-block characters and truecolor can render wrongly on a legacy Windows console. This is unverified. The Windows sound path is in the two items above.</li>
   <li><strong>Build time.</strong> The build stops after 120,000 ms. The mod then uses the older cache or placeholders.</li>
-  <li><strong>Test coverage.</strong> No automated test runs <code>scripts/build-theme.py</code> or <code>scripts/make-mario-sounds.py</code>, or reads a real image. The theme tests use a fake build script and fake audio.</li>
+  <li><strong>Test coverage.</strong> No automated test runs <code>scripts/build-theme.py</code> or <code>scripts/make-mario-sounds.py</code>, or reads a real image. The theme tests use a fake build script and fake audio. The Windows tests use a fake engine and a fake PowerShell child.</li>
   <li><strong>Copyright.</strong> The mod does not check who owns an image. Use only images that you are allowed to use.</li>
 </ul>
 
@@ -881,6 +924,8 @@ Ran 2 tests across 2 files. [5.00ms]</code></pre>
     <tr><td>Beat</td><td>The state of the main turn: <code>idle</code>, <code>working</code>, <code>complete</code>, <code>aborted</code> or <code>error</code>.</td></tr>
     <tr><td>Cue</td><td>One moment of a turn that can play a sound: <code>start</code>, <code>working</code>, <code>success</code> or <code>error</code>.</td></tr>
     <tr><td>Mute</td><td>The state that silences every cue. Set by <code>/theme-mute</code>.</td></tr>
+    <tr><td>Player</td><td>The part that plays a clip: the engine's player on macOS, or the mod's PowerShell child on Windows.</td></tr>
+    <tr><td>Child</td><td>The PowerShell process that the mod starts to play one clip on Windows.</td></tr>
     <tr><td>Hot reload</td><td>Claude Code reloads a mod's code while a session runs. Module variables reset.</td></tr>
     <tr><td>Finale</td><td>The scene at the end of a turn: pole, flag and goal.</td></tr>
     <tr><td>Turn</td><td>One model run, from your prompt to the final answer.</td></tr>
