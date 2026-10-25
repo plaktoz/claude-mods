@@ -7,6 +7,8 @@ import type { View } from './draw'
 import { DEFAULT_THEME, isThemeName, listThemes, loadTheme, readChoice, rootOf, templateFor, writeChoice } from './library'
 import { BUILT_IN, resolveScene } from './theme'
 import type { Cue, Sounds } from './theme'
+import { playWav, readPlatform, stopWindowsLoops, winAudio } from './winaudio'
+import { tone } from './wav'
 
 const FRAME_MS = 100
 const FINALE_MS = 4200
@@ -107,6 +109,8 @@ async function startLoop($: EngineInterface) {
 function stopLoop() {
   loop?.abort()
   loop = null
+  // The engine does not hand the hook this signal, so the Windows player is stopped by name.
+  stopWindowsLoops()
 }
 
 // The turn's closing cue: ends the loop, then plays the finish.
@@ -199,6 +203,8 @@ async function reconcile($: EngineInterface) {
 }
 
 export const register: Register = on => {
+  winAudio(on)
+
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'theme-dump', description: 'Write the theme-cli log to a file' })
     await $.command.register({ name: 'theme-hide', description: 'Hide the strip above the prompt' })
@@ -213,6 +219,8 @@ export const register: Register = on => {
     })
     await $.command.register({ name: 'theme-build', description: 'Rebuild the current theme from its images' })
     await $.command.register({ name: 'theme-new', description: 'Make a theme folder to fill in', argumentHint: '<name>' })
+    await $.command.register({ name: 'theme-sound-test', description: 'Play a short test tone through the Windows player' })
+    await readPlatform($)
     await useTheme($, await readChoice($))
     await reconcile($)
     await note($, `session.start surface=${e.surface}`)
@@ -294,6 +302,18 @@ export const register: Register = on => {
     await $.fs.write(file, templateFor(name))
 
     return { text: `Wrote ${file}. Put your images beside it, edit it, then /theme-use ${name}.` }
+  })
+
+  on('command.run', { command: 'theme-sound-test' }, async ($, _e, next) => {
+    if (!(await readPlatform($))) return { text: 'Not Windows: the engine plays sound itself here.' }
+
+    try {
+      await playWav($, tone(880, 300), false, next.signal)
+
+      return { text: 'Played a 0.3 s test tone. Heard nothing? Check the volume mixer for this terminal.' }
+    } catch (error) {
+      return { text: `Could not play the tone: ${String(error)}` }
+    }
   })
 
   on('command.run', { command: 'theme-dump' }, async $ => {
