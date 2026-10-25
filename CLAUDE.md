@@ -51,10 +51,14 @@ The session can stop at any time: tokens run out, or an endpoint fails. Another 
 
 ## Documentation
 
+How documents are written, and how they are kept true to the code.
+
+### Write
+
 - Use the `ste-docs` skill with its technical profile to write or rewrite any module README (`README.md` and `README.html`), and any other technical document about a mod, skill, agent or hook.
 - Use `mods/cache-warm/README.md` and `mods/handoff/README.md` as the structure reference, as the skill says.
 
-## Documentation sync
+### Keep in sync
 
 - After every change, check the README of the module you changed, then each README above it up to the root `README.md`, and confirm they still match the code.
 - Look for stale claims: commands, install steps, file paths, line numbers, test counts, feature lists, platform support, and marketplace status.
