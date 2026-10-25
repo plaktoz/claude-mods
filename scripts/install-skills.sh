@@ -43,6 +43,9 @@ for name in "${names[@]}"; do
   if [ "$mode" = list ]; then
     if [ -L "$to" ] && [ "$(readlink "$to")" = "$from" ]; then
       echo "installed  $name"
+    elif [ -L "$to" ] && [ ! -e "$to" ]; then
+      # A symlink whose target is gone is dangling: -L is true, -e is false.
+      echo "broken     $name"
     else
       echo "missing    $name"
     fi
@@ -72,6 +75,9 @@ for name in "${names[@]}"; do
       rm -rf "$to"
       ln -s "$from" "$to"
       echo "replaced   $name"
+    elif [ -L "$to" ] && [ ! -e "$to" ]; then
+      echo "broken     $name (link target $(readlink "$to") is missing; use --force to replace)" >&2
+      status=1
     else
       echo "skipped    $name (already exists at $to; use --force to replace)" >&2
       status=1
