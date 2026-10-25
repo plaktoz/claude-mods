@@ -1,5 +1,7 @@
 import { expect, mock, test } from 'claude-code/testing'
 
+import { resolvePath } from './library'
+
 const HOME = '/home/u'
 const ROOT = `${HOME}/.claude/theme-cli`
 const THEME = {
@@ -12,9 +14,16 @@ const THEME = {
 const FRAME = { w: 2, h: 2, palette: ['#ff0000'], rows: ['00', '00'] }
 
 // A library on a fake disk: files by path, a process.run that builds the cache, and a count of builds.
-const library = ($: any, on: any, files: Record<string, string>, mtime = { s: 1 }) => {
+// `env` replaces the environment; `installed` names the Python launchers that exist (default: all).
+const library = (
+  $: any,
+  on: any,
+  files: Record<string, string>,
+  mtime = { s: 1 },
+  { env = { HOME }, installed = ['python3', 'python', 'py'] }: { env?: Record<string, string>; installed?: string[] } = {},
+) => {
   const seen = { builds: 0, argv: [] as string[], written: {} as Record<string, string>, played: [] as any[], aborted: 0 }
-  mock.env(on, { HOME })
+  mock.env(on, env)
   const clock = mock.clock(on, { now: 1_000_000 })
 
   on('session.start', (_: unknown, e: { cwd: string }) => ({ cwd: e.cwd }))
@@ -54,7 +63,10 @@ const library = ($: any, on: any, files: Record<string, string>, mtime = { s: 1 
     ],
   }))
   // The build script: records the stamp it was given and leaves a cache behind.
+  // Other runs (the Python launcher's `--version` probe) answer 0 and count as nothing.
   on('process.run', (_: unknown, e: { argv: string[] }) => {
+    if (!installed.includes(e.argv[0]!)) throw new Error('not found')
+    if (!e.argv.some(arg => arg.endsWith('build-theme.py'))) return { value: { exitCode: 0, stdout: 'Python 3', stderr: '' } }
     seen.builds += 1
     seen.argv = e.argv
     const stamp = e.argv[e.argv.indexOf('--stamp') + 1]!
@@ -270,4 +282,44 @@ test('/theme-mute silences every cue and the loop, and /theme-unmute brings them
   expect(clipsOf(seen).at(-1)).toBe('V09SSw==')
   await turnEnd()
   expect(clipsOf(seen).at(-1)).toBe('V0lO')
+})
+
+test('the build runs under the first Python launcher that answers', async ($, on) => {
+  // Only the Windows launcher is installed here.
+  const { seen, start } = library($, on, files, { s: 1 }, { installed: ['py'] })
+  await start()
+
+  expect(seen.builds).toBe(1)
+  expect(seen.argv.slice(0, 2)).toEqual(['py', '-3'])
+})
+
+test('with no Python at all the status says so and the older cache or placeholders stand', async ($, on) => {
+  const { seen, start, run } = library($, on, files, { s: 1 }, { installed: [] })
+  await start()
+  await run('theme-dump')
+
+  expect(seen.builds).toBe(0)
+  expect(dump(seen)).toContain('no Python found')
+})
+
+test('with HOME unset, the library is found under USERPROFILE', async ($, on) => {
+  // A drive-letter path is relative on a POSIX test host, so the profile folder here is POSIX-shaped.
+  const WIN = '/Users/u'
+  const winFiles = {
+    [`${WIN}/.claude/theme-cli/config.json`]: JSON.stringify({ theme: 'tall' }),
+    [`${WIN}/.claude/theme-cli/themes/tall/theme.json`]: JSON.stringify(THEME),
+  }
+  const { seen, start } = library($, on, winFiles, { s: 1 }, { env: { USERPROFILE: WIN } })
+  await start()
+
+  expect(seen.builds).toBe(1)
+  expect(seen.argv[seen.argv.indexOf('--home') + 1]).toBe(WIN)
+})
+
+test('theme.json paths: drive letters, UNC and ~\\ are handled as Windows paths', async () => {
+  expect(resolvePath('C:\\art\\a.png', '/h', '/d')).toBe('C:\\art\\a.png')
+  expect(resolvePath('D:/art/a.png', '/h', '/d')).toBe('D:/art/a.png')
+  expect(resolvePath('\\\\server\\share\\a.png', '/h', '/d')).toBe('\\\\server\\share\\a.png')
+  expect(resolvePath('~\\art\\a.png', '/h', '/d')).toBe('/h/art\\a.png')
+  expect(resolvePath('assets/a.png', '/h', '/d')).toBe('/d/assets/a.png')
 })

@@ -16,23 +16,25 @@ A long session has two problems:
 A fresh chat solves both problems. A fresh chat does not know your work. This mod gives the fresh chat the information it needs. The mod does the following:
 
 1. It records the work of the session. The record contains the first request, the files, the skills, the links and the tools.
-2. It asks if you want to start a fresh chat. It asks when the session passes 250k tokens, or when the cache has likely expired.
+2. It asks whether you want to start a fresh chat. It asks when the session passes 250k tokens, or when the cache has likely expired.
 3. If you agree, it asks the model for a summary. This summary is the handoff. The mod copies the handoff to the clipboard.
 4. You start a fresh chat and paste the handoff.
 
 You can also run the command `/handover` at any time. The mod name is `handoff`. The command name is `handover`.
 
-The question has this text:
+The question has this text, for an idle time of 7 minutes:
 
 ```text
+Handoff
 This session was idle 7 minutes, so its cache has likely gone cold. Move to a fresh chat with a handoff?
+[Make a handoff]  [Continue here]
 ```
 
 The question has the header `Handoff`. It has two options: `Make a handoff` and `Continue here`.
 
 ## 2. Where to find the code
 
-All logic is in one file: `hooks/register.ts`. If a line number is different, search for the function name.
+All logic is in one file: `hooks/register.ts`. The line numbers match the file as it was when this document was written. If a line number is different, search for the function name.
 
 | Item | File | Line |
 |------|------|------|
@@ -40,20 +42,21 @@ All logic is in one file: `hooks/register.ts`. If a line number is different, se
 | `EMPTY`: the inventory at the start | `hooks/register.ts` | 12 |
 | Stored values `inventory`, `pending`, `lastTurnEnd`, `hasOfferedTokens` | `hooks/register.ts` | 14–20 |
 | `HANDOFF_PROMPT`: the request to the model | `hooks/register.ts` | 22–31 |
-| `addUnique()`: adds an item to a list and keeps the last 50 | `hooks/register.ts` | 33 |
-| `describe()`: turns the inventory into text | `hooks/register.ts` | 36 |
-| `buildHandoff()`: asks the model and builds the handoff text | `hooks/register.ts` | 55 |
-| `deliver()`: copies the text and clears the offer | `hooks/register.ts` | 70 |
-| `register()`: adds the hooks | `hooks/register.ts` | 79 |
-| Hook `session.start`: adds the command | `hooks/register.ts` | 80 |
-| Hook `command.run`: the `/handover` command | `hooks/register.ts` | 89 |
-| Hook `tool.call`: records the inventory | `hooks/register.ts` | 95 |
-| Hook `session.measure`: the 250k token offer | `hooks/register.ts` | 111 |
-| Hook `turn.complete`: stores the end time | `hooks/register.ts` | 122 |
-| Hook `prompt.submit`: the decision | `hooks/register.ts` | 131 |
-| The question to you | `hooks/register.ts` | 151 |
+| `addUnique()`: adds an item to a list and keeps the last 50 | `hooks/register.ts` | 33–34 |
+| `sameFile()`: compares two paths for the file lists | `hooks/register.ts` | 36–42 |
+| `describe()`: turns the inventory into text | `hooks/register.ts` | 44–59 |
+| `buildHandoff()`: asks the model and builds the handoff text | `hooks/register.ts` | 63–76 |
+| `deliver()`: copies the text and clears `pending` | `hooks/register.ts` | 78–85 |
+| `register()`: adds the hooks | `hooks/register.ts` | 87 |
+| Hook `session.start`: adds the command | `hooks/register.ts` | 88–95 |
+| Hook `command.run`: the `/handover` command | `hooks/register.ts` | 97–101 |
+| Hook `tool.call`: records the inventory | `hooks/register.ts` | 103–117 |
+| Hook `session.measure`: the 250k token offer | `hooks/register.ts` | 119–128 |
+| Hook `turn.complete`: stores the end time | `hooks/register.ts` | 130–137 |
+| Hook `prompt.submit`: the decision | `hooks/register.ts` | 139–176 |
+| The question to you: `$.ui.ask` | `hooks/register.ts` | 159–165 |
 | Type of the stored values | `types/index.d.ts` | all |
-| Tests | `hooks/register.test.ts` | 63–176 |
+| Tests | `hooks/register.test.ts` | 63–190 |
 
 Other files: `hooks/hooks.json` names the module. `tsconfig.json` is for the type check. `.claude-plugin/plugin.json` has the name and the version. The mod has no settings.
 
@@ -65,7 +68,7 @@ Other files: `hooks/hooks.json` names the module. `tsconfig.json` is for the typ
 |-----|----------------|--------------|
 | Command `/handover` | You run the command. | The handoff is copied at once. |
 | Token offer | The context passes 250k tokens. | A toast shows at once. The question shows at your next prompt. |
-| Cold-cache offer | You send a prompt more than 5 minutes after the last reply ended. | The question shows before the prompt is sent. |
+| Cold-cache offer | You send a prompt more than 5 minutes after the last main reply ended. | The question shows before the prompt is sent. |
 
 All three ways use the same two functions. `buildHandoff()` makes the text. `deliver()` copies the text.
 
@@ -81,32 +84,36 @@ flowchart LR
     D -.->|"if copy fails"| X["Text in chat"]
 ```
 
+Figure 1. Three starts lead to one path. The model summary returns to `buildHandoff()`. `deliver()` copies the text. If the copy fails, the text shows in the chat.
+
 ### 3.2 What happens at each prompt
 
 The hook `prompt.submit` runs each time you send a prompt. It makes these decisions in order.
 
 ```mermaid
 flowchart TD
-    Q1{"Is it your own typed prompt?"} -->|yes| Q2
+    Q1{"Your own typed prompt?"} -->|yes| Q2
     Q1 -->|no| S["Send the prompt as typed"]
-    Q2{"Is it your first prompt?"} -->|"yes: save as goal"| S
+    Q2{"First prompt?"} -->|"yes: save as goal"| S
     Q2 -->|no| Q3
-    Q3{"Is an offer due?"} -->|no| S
+    Q3{"Offer due?"} -->|no| S
     Q3 -->|yes| Q4
-    Q4{"Do you choose Make a handoff?"} -->|"no or dismissed"| S
-    Q4 -->|yes| E["Copy the handoff. Do not send the prompt."]
+    Q4{"Choose Make a handoff?"} -->|"no or dismissed"| S
+    Q4 -->|yes| E["Copy the handoff.<br/>Do not send the prompt."]
 ```
+
+Figure 2. The four decisions of `prompt.submit`. Most paths send the prompt as typed. Only the path to `Copy the handoff` stops the prompt.
 
 These are the rules for each decision:
 
-- **Your own prompt.** The prompt comes from the composer. It is not a slash command. It is not a hidden (meta) prompt. The mod sends prompts from peers, commands and hidden prompts unchanged.
+- **Your own prompt.** The prompt comes from the composer. It is not a slash command. It is not a hidden (meta) prompt. The mod sends peer prompts, commands and hidden prompts unchanged.
 - **First prompt.** The mod saves the first 2000 characters as the goal. It sends the prompt unchanged. It does not ask a question at the first prompt.
 - **Offer due.** One reason must be true. Either the token offer is waiting, or the idle time is more than 5 minutes. The token reason has priority.
 - **Idle time.** Idle time is the current time minus the time the last main reply ended. A subagent reply does not count. If no main reply has ended, the idle time is 0.
 - **Your choice.** If you close the question without an answer, the mod uses `Continue here`.
-- **After the question.** The mod clears the token offer. This happens for every answer.
+- **After the question.** The mod clears `pending` for every answer. This includes a dismissed question.
 - **Choice `Make a handoff`.** The mod adds your prompt to the handoff as the next request. The mod does not send your prompt to the model.
-- **Build fails.** The mod shows the toast `Handoff failed; your prompt was sent here instead.` It sends your prompt in this session.
+- **Build fails.** The mod shows the toast `Handoff failed; your prompt was sent here instead.` It sends your prompt in this session. The `try` block covers `buildHandoff()` and `deliver()`, so either call that throws leads here.
 
 ### 3.3 The token offer
 
@@ -114,12 +121,15 @@ The token offer has three states. The mod shows the toast one time only.
 
 ```mermaid
 stateDiagram-v2
+    state "Not offered" as NotOffered
     [*] --> NotOffered
-    NotOffered --> Waiting: context reaches 250k (toast)
-    Waiting --> Done: your next prompt (question)
+    NotOffered --> Waiting: context reaches 250k, toast shows
+    Waiting --> Done: your next prompt, question shows
     Waiting --> Done: /handover
     Done --> [*]
 ```
+
+Figure 3. The token offer. The toast shows one time. Both ways out of Waiting lead to Done.
 
 | State | Meaning | `hasOfferedTokens` | `pending` |
 |-------|---------|--------------------|-----------|
@@ -127,7 +137,7 @@ stateDiagram-v2
 | Waiting | The toast was shown. The question waits for your next prompt. | true | `tokens` |
 | Done | The question was answered, or you ran `/handover`. | true | none |
 
-The toast text is: `Context passed 260k tokens. Run /handover, or you'll be asked at your next prompt.` The number is the token count in thousands.
+The toast text is: `Context passed 260k tokens. Run /handover, or you'll be asked at your next prompt.` The number is the token count in thousands, rounded.
 
 ### 3.4 What each hook does
 
@@ -137,16 +147,16 @@ The toast text is: `Context passed 260k tokens. Run /handover, or you'll be aske
 | `command.run` | The command is `handover` | Build the handoff. Copy it. Show the result as the reply. |
 | `tool.call` | Always | Count the tool. Record the file, link or skill. Pass the call on. |
 | `session.measure` | Tokens are 250k or more, and no offer was made | Set `hasOfferedTokens`. Set `pending` to `tokens`. Show the toast. |
-| `turn.complete` | Main loop only | Store the current time in `lastTurnEnd`. |
-| `prompt.submit` | Any prompt | Make the decisions in 3.2. |
+| `turn.complete` | No `agentId`, so the main loop only | Store the current time in `lastTurnEnd`. |
+| `prompt.submit` | Any prompt | Pass prompts that are not your own on. Make the decisions in 3.2 for your own prompts. |
 
 Subagent turns do not change `lastTurnEnd`. The hook checks `e.agentId`.
 
-The hooks `tool.call` and `prompt.submit` have a `.catch`. If one of these hooks fails, the engine passes the event to the next hook. The engine does not stop.
+The hooks `tool.call` and `prompt.submit` have a `.catch` handler. The handler calls `next(e)`. The event goes on to the next hook. The other hooks have no `.catch` handler.
 
 ### 3.5 What the mod records
 
-The hook `tool.call` records one fact for each tool call.
+The hook `tool.call` runs for each tool call. It records these facts.
 
 | Tool | List | What it holds |
 |------|------|---------------|
@@ -156,32 +166,39 @@ The hook `tool.call` records one fact for each tool call.
 | `Skill` | `skills` | The skill name. |
 | Any tool | `tools` | The number of calls for each tool name. |
 
-Each list holds the last 50 items. The mod does not add an item that is already in the list.
+Each list holds the last 50 items. An item that is already in a list is not added again.
 
-The goal is a separate value. The mod sets it one time, at the first prompt.
+**Counted calls.** The hook does not check `agentId`. A subagent tool call adds to the lists and the counts. In the test harness, the mod's own question is a tool call named `AskUserQuestion`, and it is counted in `tools`. This review did not check whether the live engine sends the question through `tool.call`.
+
+The goal is a field of `inventory`. The mod sets it one time, at the first own prompt.
 
 When the mod writes the handoff, it does not list an edited file as read. An edited file is shown one time, as edited.
 
+**Path comparison.** The mod uses `sameFile()` only for the check above. A path is a Windows path when it starts with a drive letter, such as `C:\` or `c:/`. A path is also a Windows path when it starts with two backslashes. For a Windows path, `sameFile()` treats either slash as the same and ignores letter case. Other paths compare exactly. The hook code reads no platform value. So the mod decides by the shape of each path. `addUnique()` does not use `sameFile()`.
+
 ### 3.6 The handoff text
 
-`buildHandoff()` sends the facts and `HANDOFF_PROMPT` to the model with `$.model.fork`. The model writes a summary of fewer than 400 words. The summary has five labels: Goal, Progress, Current state, Next steps and Context.
+`buildHandoff()` sends the facts and `HANDOFF_PROMPT` to the model with `$.model.fork`. The prompt asks for a summary of under 400 words. The code does not check the length. The summary has five labels: Goal, Progress, Current state, Next steps and Context.
 
 ```mermaid
 flowchart LR
-    I["Facts from the inventory<br/>first request, files edited, files read,<br/>skills, links, tools"] -->|"with the handoff prompt"| F["$.model.fork<br/>under 400 words"]
+    I["Facts from the inventory<br/>first request, files edited, files read,<br/>skills, links, tools"] -->|"+ prompt"| F["$.model.fork<br/>under 400 words"]
     F -->|"summary"| B["Body"]
-    I -.->|"if no reply: goal + facts"| B
-    L1["Line 1: fixed sentence"] --> H["Handoff text"]
-    B --> H
-    N["Next request: your typed prompt<br/>(offers only)"] -.-> H
+    I -.->|"if no reply: the goal and the facts"| B
+    B -->|"body"| H["Handoff text"]
+    L1["Line 1: fixed sentence"] --> H
+    N["Next request: your prompt<br/>offers only"] -.-> H
 ```
+
+Figure 4. How the handoff text is built. The model summary becomes the body. If there is no reply, the body is the goal and the facts. An offer adds your prompt as the next request.
 
 Line 1 is always: `Continue the work described in this handoff from a previous session.`
 
 | Result | Action |
 |--------|--------|
-| The model replies | The body is the reply text. |
-| The model gives no reply, or the request fails | The body is the goal and the facts. The body has no summary. |
+| The model answers (`isAnswered` is true) | The body is the reply text. |
+| The model does not answer (`isAnswered` is false) | The body is the goal and the facts. The body has no summary. |
+| The model request throws an error | `/handover` fails, and no copy is made. In the test harness the call raised a `HooksError`. The live engine was not checked. An offer shows the toast in 3.2 and sends your prompt. |
 | The copy works | The message is `Handoff copied to the clipboard. Start a fresh chat (/clear or a new session) and paste it.` |
 | The copy fails | The message is `Could not copy the handoff.` The full text follows. Copy the text by hand. |
 
@@ -192,11 +209,11 @@ For an offer, this message replaces your prompt. For `/handover`, this message i
 | Name | Type | Meaning | Set by | Cleared by |
 |------|------|---------|--------|------------|
 | `inventory` | object | The goal, the lists and the tool counts. | `tool.call`, `prompt.submit` | Nothing in this mod |
-| `pending` | `tokens` or none | The token question is waiting. | `session.measure` | `prompt.submit`, `deliver()` |
+| `pending` | `tokens` or none | The token question is waiting. | `session.measure` | `prompt.submit` (when a question was due), `deliver()` |
 | `lastTurnEnd` | number or none | The time the last main reply ended, in milliseconds. | `turn.complete` | Nothing |
 | `hasOfferedTokens` | boolean | The token offer was made. | `session.measure` | Nothing |
 
-The engine keeps these values for the session. They stay after a reload. The value `inventory` has the tag `inventory-1`. If the fields of `inventory` change, change the tag. The engine then does not load older values.
+The engine stores these values for the session. The code gives `inventory` the shape tag `inventory-1`. The code comment says that a changed tag makes the engine decline older values. This review did not check how the values survive a reload.
 
 ## 4. Settings
 
@@ -212,7 +229,7 @@ The engine does not report if the cache is warm. The mod uses idle time instead.
 
 ## 5. Install
 
-You install this mod by giving Claude Code the path to its folder. The mod is not in a marketplace yet.
+You install this mod in one of three ways. Method A and method B load the mod from a folder on your computer. Method C installs it through the repository's marketplace.
 
 ### 5.1 Before you start
 
@@ -220,7 +237,7 @@ You need:
 
 - Claude Code. The version used to write and test this mod is 2.1.310. To see your version, run `claude --version`.
 - A copy of this repository on your computer.
-- A terminal. A terminal is a window where you type commands. On macOS, open the app named Terminal.
+- A terminal. A terminal is a window where you type commands. On macOS, open the app named Terminal. On Windows, open PowerShell or Windows Terminal.
 
 In this document, the **repository root** is the top folder of the repository. The folder is named `claude-mods`. All commands in this document start from this folder. To go to this folder, type `cd` and the path. Example:
 
@@ -228,13 +245,21 @@ In this document, the **repository root** is the top folder of the repository. T
 cd ~/Developer/claude-mods
 ```
 
+On Windows PowerShell, the same step is:
+
+```powershell
+cd $HOME\Developer\claude-mods
+```
+
+On Windows, `scripts\install-mods.ps1` installs the mods through the marketplace. It needs none of the steps in 5.3 or 5.4. See the root `README.md`. This review did not run any Windows step in this document.
+
 ### 5.2 Choose a method
 
 | Method | Use it when | Duration |
 |--------|-------------|----------|
 | A. Flag `--plugin-dir` | You want to try the mod. | One session |
-| B. Setting `CLAUDE_CODE_PLUGIN_DIRS` | You want the mod in every session. | Until you remove the setting |
-| C. Marketplace | You want to share the mod with other people. | **Not available yet.** See 5.5. |
+| B. Setting `CLAUDE_CODE_PLUGIN_DIRS` | You want the mod in every session, from your clone. | Until you remove the setting |
+| C. Marketplace | You want a standard install, from GitHub or from your clone. | Until you uninstall the mod |
 
 ### 5.3 Method A: try the mod for one session
 
@@ -247,12 +272,12 @@ cd ~/Developer/claude-mods
 
 3. Do the check in 5.6.
 
-If you change a file of the mod while the session is open, Claude Code reloads the mod.
+This review did not check whether a change to a file of the mod reloads the mod in an open session. Start a new session after a change.
 
 ### 5.4 Method B: load the mod in every session
 
 1. Open the file `~/.claude/settings.json` in a text editor.
-2. Add an `env` block with the full path of the mod folder. If the file has an `env` block, add only the line inside it.
+2. Add the full path of the mod folder to an `env` block. If the file has an `env` block, add only the line inside it. Use this shape:
 
    ```json
    {
@@ -268,18 +293,41 @@ If you change a file of the mod while the session is open, Claude Code reloads t
 
 To remove the mod, delete the line. Start a new session.
 
-### 5.5 Method C: marketplace (not available yet)
+On Windows, the settings file is `%USERPROFILE%\.claude\settings.json`. Write the path with forward slashes, for example `C:/Users/your-name/Developer/claude-mods/mods/handoff`. Or double each backslash in the JSON. In PowerShell, `(Get-Location).Path` prints the current folder. Run it in the repository root. This review did not test these Windows values.
 
-A marketplace install needs two things that this repository does not have:
+### 5.5 Method C: marketplace
 
-- A marketplace file, `.claude-plugin/marketplace.json`, at the repository root.
-- At least one commit that you pushed to GitHub.
+The repository has a marketplace file, `.claude-plugin/marketplace.json`. The file lists `handoff`. The `main` branch on GitHub has this file.
 
-When both exist, other people can install the mod with `/plugin install handoff --marketplace <owner>/<repo>`. Replace `<owner>/<repo>` with the GitHub name of the repository.
+1. Add the marketplace once. Run this command:
+
+   ```bash
+   claude plugin marketplace add plaktoz/claude-mods
+   ```
+
+2. Install the mod. Run this command:
+
+   ```bash
+   claude plugin install handoff@claude-mods
+   ```
+
+3. Restart Claude Code to load the mod.
+
+Add `--scope project` or `--scope local` to the install command to change where the mod applies. The default is `user`, which applies the mod to every project for you. `project` saves the setting in `.claude/settings.json` for everyone who opens the project. Run the command in the project folder.
+
+To use your clone, add the marketplace from its path. Use this when your branch is not merged yet:
+
+```bash
+claude plugin marketplace add /path/to/claude-mods
+```
+
+The scripts in `scripts/` run these steps for you. Run `scripts/install-mods.sh handoff` on Linux, macOS or Git Bash. Run `powershell -ExecutionPolicy Bypass -File scripts\install-mods.ps1 handoff` in PowerShell. See the root `README.md`.
+
+This review did not run method C. It needs network access to GitHub and it changes your Claude Code setup.
 
 ### 5.6 Check that the install worked
 
-1. Start a session with method A or method B.
+1. Start a session with method A, B or C.
 2. Send a prompt, for example `hello`. Wait for the full answer.
 3. Type `/handover`. Press Enter.
 4. **Expected:** the reply starts with `Handoff copied to the clipboard.`
@@ -296,8 +344,8 @@ To validate means to prove that the mod works as this document says. There are t
 
 | Level | What it proves | Time | Needs an API request |
 |-------|----------------|------|----------------------|
-| 1. Validate | The files are correct. The engine can read the mod. | 2 seconds | No |
-| 2. Test | The logic is correct (goal, offers, handoff, copy). | 2 seconds | No |
+| 1. Validate | The files are correct. The engine can read the mod. | Under 1 second | No |
+| 2. Test | The logic is correct (goal, offers, handoff, copy). | Under 1 second | No |
 | 3. Live check | The mod works in a real session. | 15 minutes or more | Yes (small ones) |
 
 ### 6.1 Level 1: validate the files
@@ -315,16 +363,18 @@ To validate means to prove that the mod works as this document says. There are t
 |-----------|---------|--------|
 | `✔ Validation passed with warnings` | The mod is correct. | None. This is the expected result. |
 | `✔ Validation passed` | The mod is correct. | None. |
-| `✘ Validation failed` | The engine refuses the mod. | Read the lines that start with `✘`. Fix the file that each line names. Run the command again. |
+| `✘ Validation failed` | The engine refuses the mod. | Read the lines that start with `✘` above the last line. Fix the file that each line names. Run the command again. |
 
-The expected output contains messages that look like problems. These messages are not problems:
+The output can show a `✘` line and still pass. The plugin directory section can report a problem with `✘`. Only the last line gives the verdict.
+
+The expected output contains messages that look like problems. These messages do not block the mod:
 
 | Message | Why you can ignore it |
 |---------|----------------------|
 | `author: No author information provided` | This message is a note. The mod works without an author. |
-| `LICENSE: License missing` | This check applies to a public plugin directory. It does not change the result. |
-| `ICON_MISSING` | Same reason. |
-| `types … declares on $: nothing` | This result is correct. The mod adds nothing to `$`. |
+| `LICENSE: License missing (LICENSE_MISSING)` | This check applies to the plugin directory. It does not change the verdict. |
+| `icon: No icon (ICON_MISSING)` | Same reason. |
+| `types ./types/index.d.ts declares on $: nothing (no EngineInterface member)` | This result is correct. The mod adds nothing to `$`. |
 
 The output also lists what the mod uses. Compare the output with this list:
 
@@ -343,7 +393,13 @@ If the output lists a hook or a call that is not in this list, the code and this
    claude plugin test mods/handoff
    ```
 
-3. **Expected result:** the last lines are `9 pass` and `0 fail`.
+3. **Expected result:** the last lines are `9 pass` and `0 fail`. The time in brackets varies.
+
+   ```text
+    9 pass
+    0 fail
+   Ran 9 tests across 1 file. [0.53s]
+   ```
 
 The tests use a fake clock, a fake clipboard and a fake model request. They do not call the API. They do not cost money. Section 6.4 describes each test.
 
@@ -364,6 +420,8 @@ Do this check one time after you install. It uses the fixed 5-minute cache time.
 | 7 | Paste the clipboard into a text editor. | The text ends with `Next request:` and your third prompt. |
 | 8 | (Optional) Use one session until the context passes 250k tokens. | One toast shows: `Context passed …k tokens. Run /handover, or you'll be asked at your next prompt.` |
 
+In step 4, the idle time counts from the end of the last main reply. This review did not check whether a `/handover` run ends a main reply.
+
 No person has done this check yet.
 
 ### 6.4 What each test proves
@@ -372,7 +430,7 @@ No person has done this check yet.
 |-------------------------------------|------|----------------|
 | the first prompt is recorded as the goal and sent untouched | 63 | The first prompt is sent unchanged. The request to the model contains `First request: fix the login flow`. |
 | /handover copies a handoff built from the session, tools included | 73 | One copy is made. The copy has the summary and no `Next request`. An edited file is shown one time, as edited. The reply says `copied to the clipboard`. |
-| /handover falls back to the facts when the fork fails, and prints the text if the copy fails | 90 | With no model reply, the text has the `Goal:` line. With a failed copy, the reply says `Could not copy` and shows the full text. |
+| /handover falls back to the facts when the fork fails, and prints the text if the copy fails | 90 | With no model answer, the text has the `Goal:` line. With a failed copy, the reply says `Could not copy` and shows the full text. |
 | crossing 250k tokens toasts once and asks at the next prompt | 101 | No toast at 100k. One toast at 260k. No second toast at 270k. One question at the next prompt. No second question after you decline. |
 | accepting the offer copies a handoff that carries the prompt, and drops it here | 123 | Your prompt is not sent. The copy has the summary and `Next request:` with your prompt. |
 | a dismissed question sends the prompt on as typed | 136 | A dismissed question makes no copy. Your prompt is sent unchanged. |
@@ -380,38 +438,55 @@ No person has done this check yet.
 | a subagent finishing does not reset the idle clock | 164 | A subagent reply after 7 minutes does not stop the question. |
 | prompts that are not the person's own are never asked about | 176 | A peer prompt, a hidden prompt and `/compact` get no question. All three are sent unchanged. |
 
+The tests do not cover these cases:
+
+- The model request throws an error. The test at line 90 covers a model request that gives no answer.
+- An offer when the model request fails.
+- The Windows path comparison in `sameFile()`.
+- A second prompt after a handoff is made. Section 7 describes this case.
+
 ### 6.5 Problems and solutions
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
 | `claude: command not found` | Claude Code is not installed. Or the terminal cannot find it. | Install Claude Code. Open a new terminal. |
-| `claude plugin validate` says the path does not exist | You are not in the repository root. | Run `pwd`. Go to the repository root with `cd`. Try again. |
-| Validation fails | A file of the mod has an error. | Read the lines that start with `✘`. Fix the file that each line names. |
-| `/handover` does not exist | The mod did not load. The command is added at session start. | Check that the path in the flag or the setting is correct. Start a new session. |
-| No question after a long wait | The prompt is your first prompt, or a command, or you did not wait for the full answer first. | Send a normal prompt. Wait for the full answer. Wait more than 5 minutes. Send another prompt. |
-| No question after the toast | The question was already answered. The token offer is made one time for each session. | Run `/handover`. |
+| `claude plugin validate` prints `File not found` | The path is wrong. You are not in the repository root. | Run `pwd`. Go to the repository root with `cd`. Run the command again. |
+| `claude plugin validate` ends with `✘ Validation failed` | A file of the mod has an error. | Read the lines that start with `✘` above the last line. Fix the file that each line names. |
+| `/handover` does not exist | The mod did not load. The command is added at session start. | Check that the path in the flag or setting is correct. Start a new session. |
+| No question at a prompt you expect | The prompt is your first prompt, a slash command, or a prompt that is not typed by you. Or you did not wait for the full answer first. Or the idle time is 5 minutes or less. | Send a normal typed prompt. Wait for the full answer. Wait more than 5 minutes. Send another prompt. |
+| No question after the toast | The question shows at your next typed prompt that is not the first. Or the question was already answered. | Send a normal typed prompt. Or run `/handover`. |
 | The reply says `Could not copy the handoff.` | The clipboard is not available. | Select the text in the reply. Copy it by hand. |
-| The toast says `Handoff failed` | The model request or the copy failed. | Your prompt was sent in this session. Run `/handover` again. |
+| The toast says `Handoff failed; your prompt was sent here instead.` | The model request or the copy step threw an error. | Your prompt was sent in this session. Run `/handover` to try again. |
+| `/handover` fails with an error and no copy is made | The model request threw an error. The mod has no fallback on this path. | Run `/handover` again. Tell the owner of the mod if it fails again. |
 
 ### 6.6 Type check (optional)
 
-A type check finds mistakes in the code types. It needs `tsc`, the TypeScript program. This check was **not run** when this document was written.
+A type check finds mistakes in the code types. It needs `tsc`, the TypeScript program. This check was **not run** when this document was written. The review machine has no `tsc` on its path.
 
-To run the check, install TypeScript. Load the mod in a session one time. The engine then writes the folder `.claude-plugin/types/`. Run `tsc -p mods/handoff`.
+`tsconfig.json` extends `./.claude-plugin/types/tsconfig.json`. That folder does not exist in this clone. The commands `claude plugin validate` and `claude plugin test` did not create it during this review.
 
-**Expected result:** no output and no errors.
+To run the check, install TypeScript. Load the mod in a session one time. The engine should write the folder `.claude-plugin/types/`. Run `tsc -p mods/handoff`.
+
+**Expected result:** no output and no errors. This result is not verified.
 
 ## 7. Known limits
 
 - **Fixed values.** The token limit and the cache time are in the code. They are not settings.
 - **Cache time is an estimate.** The mod uses 5 minutes of idle time as the sign of a cold cache. For a 1-hour cache, the question appears too early.
-- **One token offer.** `hasOfferedTokens` is never cleared. After you answer the token question, only `/handover` and the cold-cache offer remain.
-- **No clean-up.** The mod has no `session.end` hook. The mod does not clear its stored values. This behavior was not tested with `/clear`. If the values remain, a new chat can start with the old goal and the old lists.
-- **Five tools are recorded.** The mod records `Read`, `Edit`, `Write`, `WebFetch` and `Skill`. Other tools only add to the count. A file that changes through `Bash` is not listed.
-- **List size.** Each list holds the last 50 items. Older items are removed.
+- **One token offer.** `hasOfferedTokens` is never cleared. After you answer the token question, only `/handover` and the cold-cache question remain.
+- **A dropped handoff does not reset the idle clock.** After `Make a handoff`, no turn runs, so `lastTurnEnd` keeps its old value. If the next typed prompt also comes more than 5 minutes after that value, the question appears again. A probe in a copy of the mod showed the second question. The repository tests do not cover it.
+- **No clean-up.** The mod has no `session.end` hook. The mod does not clear its stored values. This review did not test whether `/clear` or a new session clears them. If they remain, the mod keeps the old goal and the old lists. It saves a goal only when the goal is empty.
+- **Persistence is not checked.** This review did not run a live session. It did not check how the stored values survive a reload.
+- **Five tools have their own lists.** The mod records `Read`, `Edit`, `Write`, `WebFetch` and `Skill`. Other tools only add to the count. A file that changes through `Bash` is not listed.
+- **Tool counts include every call the hook gets.** The `tool.call` hook does not check `agentId`. A subagent tool call is counted if the engine sends it to the hook. The test harness models the question as an `AskUserQuestion` call, so the mod's own question is counted there. A live session did not confirm either case.
+- **Windows paths.** The hook runtime has no platform flag, so `sameFile()` keys on path shape. `sameFile()` is used only to remove edited files from `Files read`. `addUnique()` does not fold paths. So one Windows file written in two spellings appears twice in `Files read`. POSIX paths compare exactly, so `/Repo/x.ts` and `/repo/x.ts` are two entries. A probe in a `/tmp` copy of the mod confirmed both results. No repository test covers the Windows case. This review did not run on Windows.
+- **Model request errors.** `buildHandoff()` has no `catch`. If `$.model.fork` throws, `/handover` fails and no copy is made. In a probe with a fake error, the test harness raised a `HooksError`. The live engine was not checked. The repository tests do not cover this path.
+- **Summary length.** The prompt asks for under 400 words. The code does not check the length.
+- **List size.** Each list holds the last 50 items. Older items are removed. The tool counts have no limit.
 - **Cost of the summary.** The model request uses the conversation as the main thread last sent it. If the cache is cold, this request costs full price one time.
 - **Summary quality.** The model writes the summary from the conversation and the facts. The summary can miss a detail. Read the handoff before you use it.
-- **Dismiss counts as a choice.** If you close the token question without an answer, the mod uses `Continue here`. The mod does not ask again.
+- **Dismiss counts as a choice.** If you close the question without an answer, the mod uses `Continue here`. The token offer does not ask again. A sent prompt starts a turn, and that turn sets `lastTurnEnd` again. So a dismissed cold-cache question does not repeat in normal use.
+- **Plugin directory.** The plugin directory refuses a submission because the mod has no LICENSE file and no `license` field. `claude plugin validate` lists this under a separate `✘` heading, and the verdict still reads `passed with warnings`. The validator also warns that the mod has no icon. The repository's own validation does not change this.
 
 ## 8. Glossary
 
@@ -424,6 +499,12 @@ To run the check, install TypeScript. Load the mod in a session one time. The en
 | Cold cache | A cache that has expired. The next reply costs full price. |
 | Offer | The question "Move to a fresh chat with a handoff?". |
 | Inventory | The goal, the lists of files, links and skills, and the tool counts that the mod records. |
+| Goal | The first own prompt, saved as the first 2000 characters. |
+| Pending | The stored value that says a token question waits for your next prompt. |
+| Composer | The text box where you type a prompt. |
+| Peer prompt | A prompt from another source, not typed by you in the composer. |
+| Hidden prompt | A prompt the system marks as meta. It does not come from your typing. |
+| Subagent | A helper run by the model. Its turns carry an `agentId`. |
 | Toast | A short message that shows on the screen and then goes away. |
 | Turn | One model run, from your prompt to the final answer. |
 | Fork | A request that uses the conversation as the main thread last sent it. |

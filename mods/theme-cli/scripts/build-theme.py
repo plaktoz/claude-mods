@@ -12,6 +12,7 @@ than 8 bits a channel) is read with Pillow when that is installed.
 """
 
 import argparse
+import contextlib
 import json
 import math
 import os
@@ -26,7 +27,7 @@ CHANNELS = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}
 
 def resolve(text, home, base):
     """A path in theme.json: `~/` is the home folder, a relative path is the theme's."""
-    if text.startswith("~/"):
+    if text.startswith(("~/", "~\\")):
         return Path(home) / text[2:]
 
     path = Path(text)
@@ -246,7 +247,7 @@ def main():
     args = parser.parse_args()
 
     base = Path(args.theme)
-    spec = json.loads((base / "theme.json").read_text())
+    spec = json.loads((base / "theme.json").read_text(encoding="utf-8"))
     sheets = spec.get("sheets", {})
     images = {}
     frames = {}
@@ -266,8 +267,16 @@ def main():
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     tmp = out.with_suffix(".tmp")
-    tmp.write_text(json.dumps({"stamp": args.stamp, "frames": frames}, separators=(",", ":")) + "\n")
-    os.replace(tmp, out)
+    tmp.write_text(json.dumps({"stamp": args.stamp, "frames": frames}, separators=(",", ":")) + "\n", encoding="utf-8")
+    try:
+        os.replace(tmp, out)
+    except OSError as error:
+        # On Windows the cache can be held open; keep the previous one.
+        with contextlib.suppress(OSError):
+            tmp.unlink()
+        print(f"kept the previous cache, could not replace {out}: {error}", file=sys.stderr)
+
+        return 1
     print(f"built {len(frames)} frames to {out}")
     for line in problems:
         print(f"skipped {line}", file=sys.stderr)

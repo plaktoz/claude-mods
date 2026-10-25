@@ -105,8 +105,8 @@
 
 <h1>cache-warm</h1>
 <p class="lede">A Claude Code mod. It keeps the prompt cache warm while you are away from the session.</p>
-<p>A Markdown version of this document is in <code>README.md</code>. It has the same content.</p>
-<p>To install the mod, go to <a href="#install">section 5</a>. To prove that it works, go to <a href="#validate">section 6</a>.</p>
+<p>An HTML version of this document is in <code>README.html</code>. It has the same content and the same diagrams.</p>
+<p>To install the mod, go to <a href="#install">section 5</a>. To check that it works, go to <a href="#validate">section 6</a>.</p>
 
 <nav class="toc" aria-label="Contents">
   <ol>
@@ -123,12 +123,12 @@
 
 <!-- 1 -->
 <h2 id="purpose">1. Purpose</h2>
-<p>Claude keeps the conversation in a prompt cache after each reply. The cache lasts for a fixed time (the TTL). When the cache expires, the next reply must write the whole conversation again at full price.</p>
+<p>Claude keeps the conversation in a prompt cache after each reply. The cache lasts for a fixed time, the TTL. When the cache expires, the next reply writes the whole conversation again at full price.</p>
 <p>This mod prevents that. It does the following:</p>
 <ol>
   <li>It shows a band above the prompt with a countdown to cache expiry.</li>
-  <li>It sends a small request (a ping) shortly before the cache expires.</li>
-  <li>The ping reads the conversation from the cache. This resets the TTL at 5 to 10 percent of the full price.</li>
+  <li>It sends a small request, a ping, shortly before the cache expires.</li>
+  <li>The ping reads the conversation from the cache. This resets the TTL. The ping costs 5 to 10 percent of the full price.</li>
 </ol>
 <p>The band has three lines of text and one button:</p>
 <div class="band" role="img" aria-label="The band: Cache warm 4:58, a progress bar, a Stop keeping warm button, and two lines of status text"><span class="w">◔ Cache warm 4:58 ████████████████</span>                    [Stop keeping warm]
@@ -137,13 +137,13 @@
 
 <!-- 2 -->
 <h2 id="code">2. Where to find the code</h2>
-<p>All logic is in one file: <code>hooks/register.tsx</code>. Search for the function name if a line number is different.</p>
+<p>All logic is in one file: <code>hooks/register.tsx</code>. The line numbers apply to this version of the file. If a line number is different, search for the function name.</p>
 <div class="table-wrap"><table>
   <thead><tr><th>Item</th><th>File</th><th>Line</th></tr></thead>
   <tbody>
     <tr><td>Constants (ping lead time, tick, bar width, ping text)</td><td><code>hooks/register.tsx</code></td><td>6–10</td></tr>
     <tr><td>Stored values <code>cache</code>, <code>isOn</code>, <code>now</code></td><td><code>hooks/register.tsx</code></td><td>15–17</td></tr>
-    <tr><td>Module variables (timers, turn flag)</td><td><code>hooks/register.tsx</code></td><td>30–34</td></tr>
+    <tr><td>Module variables (TTL, ping limit, timers, turn flag)</td><td><code>hooks/register.tsx</code></td><td>30–34</td></tr>
     <tr><td><code>disarm()</code> – cancels both timers</td><td><code>hooks/register.tsx</code></td><td>36</td></tr>
     <tr><td><code>tick()</code> – redraws the countdown, detects expiry</td><td><code>hooks/register.tsx</code></td><td>43</td></tr>
     <tr><td><code>ping()</code> – sends the ping, handles the reply</td><td><code>hooks/register.tsx</code></td><td>54</td></tr>
@@ -155,21 +155,22 @@
     <tr><td>Hook <code>turn.complete</code></td><td><code>hooks/register.tsx</code></td><td>128</td></tr>
     <tr><td>Hook <code>ui.render</code> (the band)</td><td><code>hooks/register.tsx</code></td><td>144</td></tr>
     <tr><td>Button "Stop keeping warm" / "Keep warm"</td><td><code>hooks/register.tsx</code></td><td>172</td></tr>
-    <tr><td>Type of the stored values</td><td><code>types/index.d.ts</code></td><td>all</td></tr>
-    <tr><td>Settings <code>ttl</code> and <code>maxPings</code></td><td><code>.claude-plugin/plugin.json</code></td><td><code>userConfig</code></td></tr>
-    <tr><td>Tests</td><td><code>hooks/register.test.tsx</code></td><td>58–102</td></tr>
+    <tr><td>Type of the stored values</td><td><code>types/index.d.ts</code></td><td>1–22</td></tr>
+    <tr><td>Setting <code>ttl</code></td><td><code>.claude-plugin/plugin.json</code></td><td>7</td></tr>
+    <tr><td>Setting <code>maxPings</code></td><td><code>.claude-plugin/plugin.json</code></td><td>15</td></tr>
+    <tr><td>Tests, one line for each of the 5 tests (see 6.4)</td><td><code>hooks/register.test.tsx</code></td><td>58, 70, 82, 92, 102</td></tr>
   </tbody>
 </table></div>
-<p>Other files: <code>hooks/hooks.json</code> names the module. <code>tsconfig.json</code> is for the type-check.</p>
+<p>Other files: <code>hooks/hooks.json</code> names the module on line 2. <code>tsconfig.json</code> is for the type-check. See 6.6.</p>
 
 <!-- 3 -->
 <h2 id="how">3. How it works</h2>
 
-<h3>3.1 States</h3>
-<p>The mod is always in one of four states.</p>
+<h3 id="h-3-1">3.1 States</h3>
+<p>The mod is in 1 of 4 states.</p>
 
 <figure>
-  <svg viewBox="0 0 680 320" role="img" aria-label="State diagram. The mod moves between No cache, Running, Warm and Pinging. A turn start always leads to Running. A turn complete leads from Running to Warm. Warm moves to Pinging 45 seconds before expiry, and back when the ping is answered. A timer at zero or a ping with no reply leads to No cache.">
+<svg viewBox="0 0 680 320" role="img" aria-label="State diagram. The mod moves between No cache, Running, Warm and Pinging. A turn start always leads to Running. A turn complete leads from Running to Warm. Warm moves to Pinging 45 seconds before expiry, and back when the ping is answered. A timer at zero or a ping with no reply leads to No cache.">
     <defs>
       <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-fill"/></marker>
       <marker id="a1h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-hot"/></marker>
@@ -208,7 +209,7 @@
     <path class="edge" d="M510 270 L510 296 L90 296 L90 162" marker-end="url(#a1)"/>
     <text class="lbl" x="300" y="289" text-anchor="middle">no reply</text>
   </svg>
-  <figcaption>Figure 1. The four states. A new turn always moves the mod to Running. The band is shown in Warm and Pinging (orange).</figcaption>
+  <figcaption>Figure 1. The four states. A turn start moves the mod to Running. The band is shown in Warm and Pinging. The thick lines show the ping cycle.</figcaption>
 </figure>
 
 <div class="table-wrap"><table>
@@ -222,51 +223,14 @@
 </table></div>
 <p>In the Warm state, the mod sends a ping only when both conditions are true:</p>
 <ul>
-  <li><code>isOn</code> is true (you did not press "Stop keeping warm").</li>
+  <li><code>isOn</code> is true. You did not press "Stop keeping warm".</li>
   <li>The ping count is less than <code>maxPings</code>.</li>
 </ul>
-<p>If a condition is false, the countdown runs and no ping is sent. The band then shows "Not keeping warm".</p>
+<p>If a condition is false, the countdown runs and no ping is sent. The band then shows "Not keeping warm · the cache goes cold when the timer ends".</p>
 
-<h3>3.2 Timeline of one cache lifetime</h3>
-<p>The mod pings 45 seconds before expiry. For a 5-minute cache, the first ping is at 4:15 after the reply. Each ping resets the timer to the full TTL. After <code>maxPings</code> pings, the timer runs to 0:00 and the cache expires.</p>
+<h3 id="h-3-2">3.2 Timeline of one cache lifetime</h3>
+<p>The mod pings 45 seconds before expiry. For a 5-minute cache, the first ping is at 4:15 after the reply. Each ping resets the timer to the full TTL. After the ping count reaches <code>maxPings</code>, the mod stops pinging. The timer then runs to 0:00 and the cache expires.</p>
 <p>This example uses <code>maxPings</code> = 2 and <code>ttl</code> = <code>5m</code>. The default for <code>maxPings</code> is 6. Times are minutes:seconds after the end of your last reply.</p>
-
-<figure>
-  <svg viewBox="0 0 780 230" role="img" aria-label="Graph of the time left on the cache timer. It falls from 5:00. At 4:15 ping 1 resets it to 5:00. At 8:30 ping 2 resets it to 5:00. After ping 2 it falls to 0:00 at 13:30 and the cache is cold.">
-    <defs>
-      <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-fill"/></marker>
-    </defs>
-    <!-- axes -->
-    <line class="edge" x1="60" y1="150" x2="740" y2="150" marker-end="url(#a2)"/>
-    <line class="edge" x1="60" y1="150" x2="60" y2="30"/>
-    <text class="lbl-m" x="52" y="54" text-anchor="end">5:00</text>
-    <text class="lbl-m" x="52" y="154" text-anchor="end">0:00</text>
-    <text class="lbl-m" x="20" y="100" text-anchor="middle" transform="rotate(-90 20 100)">time left on timer</text>
-    <!-- ping threshold -->
-    <line class="edge-dash" x1="60" y1="135" x2="476" y2="135"/>
-    <text class="lbl-m" x="66" y="129">0:45 left: ping is sent</text>
-    <!-- sawtooth -->
-    <polyline class="edge-hot" points="60,50 268,135 268,50 476,135 476,50 720,150"/>
-    <!-- ticks -->
-    <line class="edge" x1="60" y1="150" x2="60" y2="156"/>
-    <line class="edge" x1="268" y1="150" x2="268" y2="156"/>
-    <line class="edge" x1="476" y1="150" x2="476" y2="156"/>
-    <line class="edge" x1="720" y1="150" x2="720" y2="156"/>
-    <text class="lbl" x="60" y="172" text-anchor="middle">0:00</text>
-    <text class="lbl" x="268" y="172" text-anchor="middle">4:15</text>
-    <text class="lbl" x="476" y="172" text-anchor="middle">8:30</text>
-    <text class="lbl" x="720" y="172" text-anchor="middle">13:30</text>
-    <!-- events -->
-    <text class="lbl-b" x="64" y="38">Reply ends</text>
-    <text class="lbl-b" x="268" y="38" text-anchor="middle">Ping 1</text>
-    <text class="lbl-b" x="476" y="38" text-anchor="middle">Ping 2</text>
-    <text class="lbl-b" x="720" y="196" text-anchor="middle">Cache cold</text>
-    <text class="lbl-m" x="720" y="212" text-anchor="middle">band disappears</text>
-    <text class="lbl-m" x="476" y="196" text-anchor="middle">limit reached</text>
-    <text class="lbl-m" x="400" y="226" text-anchor="middle">time after the end of the last reply</text>
-  </svg>
-  <figcaption>Figure 2. Time left on the timer, with <code>maxPings</code> = 2. Each ping brings the timer back to 5:00. After the last ping, the timer runs to 0:00.</figcaption>
-</figure>
 
 <div class="table-wrap"><table>
   <thead><tr><th>Time</th><th>Event</th><th>Time left on the timer after the event</th></tr></thead>
@@ -278,25 +242,26 @@
   </tbody>
 </table></div>
 
-<h3>3.3 What each hook does</h3>
+<h3 id="h-3-3">3.3 What each hook does</h3>
 <div class="table-wrap"><table>
   <thead><tr><th>Event</th><th>Condition</th><th>Action</th></tr></thead>
   <tbody>
     <tr><td><code>session.start</code></td><td>Always</td><td><code>arm()</code>: start the timers from the stored cache. This restores the mod after a reload.</td></tr>
     <tr><td><code>turn.start</code></td><td>Main loop only</td><td>Set <code>isTurnRunning</code>. Cancel both timers.</td></tr>
-    <tr><td><code>turn.complete</code></td><td>Main loop only, usage present</td><td>Set expiry to now plus TTL. Set the token count. Set the ping count to 0.</td></tr>
+    <tr><td><code>turn.complete</code></td><td>Main loop only, usage present</td><td>Set expiry to now plus TTL. Set the token count. Set the ping count to 0. Clear <code>isPinging</code>.</td></tr>
     <tr><td><code>turn.complete</code></td><td>Main loop only</td><td>Clear <code>isTurnRunning</code>. Call <code>arm()</code>.</td></tr>
     <tr><td><code>ui.render</code> (<code>AbovePrompt</code>)</td><td>Not during a survey, not during a turn, cache not expired</td><td>Draw the band.</td></tr>
-    <tr><td><code>session.end</code></td><td>Always (includes <code>/clear</code>)</td><td>Cancel both timers. Clear the cache.</td></tr>
+    <tr><td><code>session.end</code></td><td>Always</td><td>Cancel both timers. Clear the cache.</td></tr>
   </tbody>
 </table></div>
-<p>Subagent turns do not change the mod. The hooks check <code>e.agentId</code>.</p>
+<p><code>arm()</code> sets two timers. The tick timer (line 95) calls <code>tick()</code> every 1 second. The ping timer (line 97) calls <code>ping()</code> 45 seconds before expiry.</p>
+<p>Subagent turns do not change the timers or the cache. <code>turn.start</code> and <code>turn.complete</code> act only when <code>e.agentId</code> is undefined (lines 120 and 129).</p>
 
-<h3>3.4 The ping</h3>
-<p><code>ping()</code> sends one request with <code>$.model.fork</code>. The request uses the conversation as the main thread last sent it. The API serves that part from the cache.</p>
+<h3 id="h-3-4">3.4 The ping</h3>
+<p><code>ping()</code> sets <code>isPinging</code> to true (line 56). Then it sends one request with <code>$.model.fork</code> (line 60). The request uses the conversation as the main thread last sent it. The usage in the reply shows how much of the request the cache served (line 77).</p>
 
 <figure>
-  <svg viewBox="0 0 800 270" role="img" aria-label="Flow of one ping. The ping timer calls ping(). ping() asks a fork to reply ok. The fork sends the conversation to the API prompt cache. The reply and usage come back to ping(), which stores a new expiry and ping count. arm() reads the stored cache and sets the next ping timer.">
+<svg viewBox="0 0 800 270" role="img" aria-label="Flow of one ping. The ping timer calls ping(). ping() asks a fork to reply ok. The fork sends the conversation to the API prompt cache. The reply and usage come back to ping(), which stores a new expiry and ping count. arm() reads the stored cache and sets the next ping timer.">
     <defs>
       <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow-fill"/></marker>
     </defs>
@@ -334,80 +299,93 @@
     <line class="edge" x1="90" y1="170" x2="90" y2="82" marker-end="url(#a3)"/>
     <text class="lbl" x="98" y="130">sets the next timer</text>
   </svg>
-  <figcaption>Figure 3. One ping. The reply and its usage (orange) come back to <code>ping()</code>. It stores the new expiry. Then <code>arm()</code> sets the timer for the next ping.</figcaption>
+  <figcaption>Figure 2. One ping. The thick line is the reply and its usage. It returns to <code>ping()</code>, which stores the new expiry. Then <code>arm()</code> sets the timer for the next ping.</figcaption>
 </figure>
 
 <div class="table-wrap"><table>
   <thead><tr><th>Result</th><th>Action</th></tr></thead>
   <tbody>
-    <tr><td>The reply arrives and the cache served at least half of the tokens</td><td>Set expiry to now plus TTL. Add 1 to the ping count. Call <code>arm()</code>.</td></tr>
-    <tr><td>The reply arrives and the cache served less than half</td><td>Do the same, and show a toast: the ping rewrote the conversation at full price.</td></tr>
-    <tr><td>No reply, or the request failed</td><td>Cancel the timers. Clear the cache. Show a toast.</td></tr>
-    <tr><td>A turn started while the ping was in progress</td><td>Do nothing. The turn already refreshed the cache.</td></tr>
+    <tr><td>The reply is answered and the cache served at least half of the tokens</td><td>Set expiry to now plus TTL. Add 1 to the ping count. Clear <code>isPinging</code>. Call <code>arm()</code>.</td></tr>
+    <tr><td>The reply is answered and the cache served less than half</td><td>Do the same. Also show a toast: "The cache had already gone cold, so that ping rewrote the context at full price."</td></tr>
+    <tr><td>No reply, or the request failed</td><td>Cancel both timers. Clear the cache. Show a toast: "Cache keep-warm stopped: the ping got no reply."</td></tr>
+    <tr><td>A turn started during the ping</td><td>Return without changing the cache. <code>isPinging</code> stays true. See the limit "Stuck pinging status" in section 7.</td></tr>
   </tbody>
 </table></div>
 
-<h3>3.5 Stored values</h3>
+<h3 id="h-3-5">3.5 Stored values</h3>
 <div class="table-wrap"><table>
-  <thead><tr><th>Name</th><th>Type</th><th>Meaning</th><th>Reset by</th></tr></thead>
+  <thead><tr><th>Name</th><th>Type</th><th>Meaning</th><th>Changed by (line)</th></tr></thead>
   <tbody>
-    <tr><td><code>cache.expiresAt</code></td><td>number</td><td>Expiry time in milliseconds. 0 means no cache.</td><td><code>turn.complete</code>, <code>ping()</code>, expiry, <code>session.end</code></td></tr>
-    <tr><td><code>cache.tokens</code></td><td>number</td><td>Tokens in the cached conversation.</td><td><code>turn.complete</code>, <code>ping()</code></td></tr>
-    <tr><td><code>cache.pings</code></td><td>number</td><td>Pings sent since the last reply.</td><td><code>turn.complete</code></td></tr>
-    <tr><td><code>cache.isPinging</code></td><td>boolean</td><td>A ping is in progress.</td><td><code>ping()</code></td></tr>
-    <tr><td><code>isOn</code></td><td>boolean</td><td>Pinging is allowed.</td><td>The button only</td></tr>
-    <tr><td><code>now</code></td><td>number</td><td>Time at the last tick. The band redraws from it.</td><td><code>tick()</code></td></tr>
+    <tr><td><code>cache.expiresAt</code></td><td>number</td><td>Time when the cache expires, in milliseconds. 0 means no cache.</td><td>Set by <code>turn.complete</code> (136) and <code>ping()</code> (81). Cleared at 48, 69, 90 and 114.</td></tr>
+    <tr><td><code>cache.tokens</code></td><td>number</td><td>Tokens in the cached conversation.</td><td>Set by 136 and 81. Cleared with the cache.</td></tr>
+    <tr><td><code>cache.pings</code></td><td>number</td><td>Pings sent since the last reply.</td><td>Set to 0 by 136 and by the Keep warm button (177). Increased by 81.</td></tr>
+    <tr><td><code>cache.isPinging</code></td><td>boolean</td><td>A ping is in progress.</td><td>Set to true at 56. Set to false at 81 and 136. Cleared with the cache.</td></tr>
+    <tr><td><code>isOn</code></td><td>boolean</td><td>Pinging is allowed.</td><td>Toggled by the button (176).</td></tr>
+    <tr><td><code>now</code></td><td>number</td><td>Time at the last update. The band redraws from it.</td><td>Set at 51, 80, 94 and 135.</td></tr>
   </tbody>
 </table></div>
-<p>The engine keeps these values for the session. They stay through a reload. The timers and <code>isTurnRunning</code> are plain variables. A reload resets them, and <code>session.start</code> starts the timers again.</p>
+<p>"Cleared with the cache" means the mod sets the whole <code>cache</code> value to <code>EMPTY</code> (line 12).</p>
+<p>The code comments say the stored cache survives a reload. The timers and <code>isTurnRunning</code> are module variables. A reload resets them. <code>session.start</code> then arms the timers again (lines 27–29).</p>
 
 <!-- 4 -->
 <h2 id="settings">4. Settings</h2>
-<p>Change the settings in <code>/config</code>. A change reloads the mod.</p>
+<p>Change the settings in <code>/config</code>. This review did not run the <code>/config</code> steps. No person has done this check yet.</p>
 <div class="table-wrap"><table>
-  <thead><tr><th>Setting</th><th>Values</th><th>Default</th><th>Effect</th></tr></thead>
+  <thead><tr><th>Setting</th><th>Values</th><th>Default</th><th>Effect</th><th>Line</th></tr></thead>
   <tbody>
-    <tr><td><code>ttl</code></td><td><code>5m</code>, <code>1h</code></td><td><code>5m</code></td><td>The cache lifetime. Set it to the real lifetime of your cache.</td></tr>
-    <tr><td><code>maxPings</code></td><td>number</td><td>6</td><td>The maximum pings after one reply. Set 0 to turn pinging off.</td></tr>
+    <tr><td><code>ttl</code></td><td><code>5m</code> or <code>1h</code></td><td><code>5m</code></td><td>The cache lifetime. Any other value counts as <code>5m</code>. Set it to the real lifetime of your cache.</td><td>102</td></tr>
+    <tr><td><code>maxPings</code></td><td>a number</td><td>6</td><td>The most pings after one reply. Set 0 to turn pinging off. A negative number counts as 0.</td><td>103</td></tr>
+  </tbody>
+</table></div>
+<p>The fixed constants are these:</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Constant</th><th>Value</th><th>Line</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr><td><code>LEAD_MS</code></td><td>45,000 ms (45 seconds)</td><td>7</td><td>The ping starts this long before expiry.</td></tr>
+    <tr><td><code>TICK_MS</code></td><td>1,000 ms (1 second)</td><td>8</td><td>The countdown redraws this often.</td></tr>
+    <tr><td><code>BAR_CELLS</code></td><td>16</td><td>9</td><td>The number of cells in the bar.</td></tr>
+    <tr><td><code>PING_PROMPT</code></td><td>Text</td><td>10</td><td>The text sent with each ping: <code>Cache keep-alive ping. Reply with the single word "ok" and nothing else.</code></td></tr>
   </tbody>
 </table></div>
 <p>The engine does not report the real cache lifetime. If <code>ttl</code> is wrong, the pings arrive too late or too early.</p>
 
 <!-- 5 -->
 <h2 id="install">5. Install</h2>
-<p>You install this mod by telling Claude Code where its folder is. The mod is not in a marketplace yet.</p>
+<p>You install this mod for one session, for every session, or from the marketplace. Section 5.2 helps you choose.</p>
 
-<h3>5.1 Before you start</h3>
+<h3 id="h-5-1">5.1 Before you start</h3>
 <p>You need:</p>
 <ul>
   <li>Claude Code. The version used to write and test this mod is 2.1.310. To see your version, run <code>claude --version</code>.</li>
   <li>A copy of this repository on your computer.</li>
-  <li>A terminal. A terminal is a window where you type commands. On macOS, open the app named Terminal.</li>
+  <li>A terminal. A terminal is a window where you type commands. On macOS, open the app named Terminal. On Windows, open PowerShell or Windows Terminal.</li>
 </ul>
-<p>In this document, the <strong>repository root</strong> is the top folder of the repository (the folder named <code>claude-mods</code>). All commands in this document start from that folder. To go there, type <code>cd</code> and the path to the folder. Example:</p>
+<p>In this document, the <strong>repository root</strong> is the top folder of the repository, named <code>claude-mods</code>. All commands in this document start from that folder. To go there, run <code>cd</code> and the path to the folder:</p>
 <pre><code>cd ~/Developer/claude-mods</code></pre>
+<p>On Windows PowerShell, run this command:</p>
+<pre><code>cd $HOME\Developer\claude-mods</code></pre>
+<p>On Windows, <code>scripts\install-mods.ps1</code> does the marketplace steps in 5.5 for you. See the root <code>README.md</code>. The Windows steps in this document are not tested.</p>
 
-<h3>5.2 Choose a method</h3>
+<h3 id="h-5-2">5.2 Choose a method</h3>
 <div class="table-wrap"><table>
   <thead><tr><th>Method</th><th>Use it when</th><th>Lasts for</th></tr></thead>
   <tbody>
-    <tr><td>A. Flag <code>--plugin-dir</code></td><td>You want to try the mod.</td><td>One session</td></tr>
-    <tr><td>B. Setting <code>CLAUDE_CODE_PLUGIN_DIRS</code></td><td>You want the mod in every session.</td><td>All sessions, until you remove the setting</td></tr>
-    <tr><td>C. Marketplace</td><td>You want to share the mod with other people.</td><td><strong>Not available yet.</strong> See 5.5.</td></tr>
+    <tr><td>A. Flag <code>--plugin-dir</code></td><td>You want to try the mod.</td><td>1 session</td></tr>
+    <tr><td>B. Setting <code>CLAUDE_CODE_PLUGIN_DIRS</code></td><td>You want the mod in every session, from your copy of the repository.</td><td>Until you remove the setting</td></tr>
+    <tr><td>C. Marketplace</td><td>You want to install the mod as you install other plugins.</td><td>Until you uninstall it</td></tr>
   </tbody>
 </table></div>
 
-<h3>5.3 Method A: try it for one session</h3>
+<h3 id="h-5-3">5.3 Method A: try it for one session</h3>
 <ol>
-  <li>Open a terminal and go to the repository root (see 5.1).</li>
+  <li>Open a terminal. Go to the repository root (see 5.1).</li>
   <li>Start Claude Code with the flag:
     <pre><code>claude --plugin-dir mods/cache-warm</code></pre>
   </li>
   <li>Do the check in 5.6.</li>
 </ol>
-<p>If you edit a file of the mod while the session is open, Claude Code reloads the mod.</p>
 
-<h3>5.4 Method B: load the mod in every session</h3>
+<h3 id="h-5-4">5.4 Method B: load the mod in every session</h3>
 <ol>
   <li>Open the file <code>~/.claude/settings.json</code> in a text editor.</li>
   <li>Add an <code>env</code> block that names the full path of the mod folder. If the file already has an <code>env</code> block, add only the line inside it.
@@ -421,47 +399,59 @@
   <li>Save the file. Start a new Claude Code session.</li>
   <li>Do the check in 5.6.</li>
 </ol>
-<p>To uninstall, delete the line and start a new session.</p>
+<p>On Windows, the settings file is <code>%USERPROFILE%\.claude\settings.json</code>. Use forward slashes in the path, for example <code>C:/Users/your-name/Developer/claude-mods/mods/cache-warm</code>. Or double each backslash in the JSON. In PowerShell, run <code>(Get-Location).Path</code> in the repository root to print the path. This Windows step is not tested.</p>
+<p>To remove the mod from every session, delete the line and start a new session.</p>
 
-<h3>5.5 Method C: marketplace (not available yet)</h3>
-<p>A marketplace install needs two things that this repository does not have:</p>
-<ul>
-  <li>A marketplace file, <code>.claude-plugin/marketplace.json</code>, at the repository root.</li>
-  <li>At least one commit that you pushed to GitHub.</li>
-</ul>
-<p>When both exist, other people can install the mod with <code>/plugin install cache-warm --marketplace &lt;owner&gt;/&lt;repo&gt;</code>. Replace <code>&lt;owner&gt;/&lt;repo&gt;</code> with the GitHub name of the repository.</p>
-
-<h3>5.6 Check that the install worked</h3>
+<h3 id="h-5-5">5.5 Method C: marketplace</h3>
+<p>The file <code>.claude-plugin/marketplace.json</code> at the repository root lists <code>cache-warm</code>. The marketplace is named <code>claude-mods</code>. This review did not run the <code>marketplace add</code> and <code>install</code> commands below. No person has done this check yet.</p>
 <ol>
-  <li>Start a session with method A or method B.</li>
+  <li>Add the marketplace once. Run:
+    <pre><code>claude plugin marketplace add plaktoz/claude-mods</code></pre>
+  </li>
+  <li>Install the mod. Run:
+    <pre><code>claude plugin install cache-warm@claude-mods</code></pre>
+    <p>The default scope is <code>user</code>, which applies the mod to every project. To change the scope, add <code>--scope project</code> or <code>--scope local</code>. See the root <code>README.md</code>.</p>
+  </li>
+  <li>Restart Claude Code. Do the check in 5.6.</li>
+</ol>
+<p>To use your copy of the repository instead, run the install script from the repository root. The script points the marketplace at your copy. Run one of these commands:</p>
+<ul>
+  <li>Linux, macOS, or Git Bash: <code>bash scripts/install-mods.sh cache-warm</code></li>
+  <li>Windows PowerShell: <code>powershell -ExecutionPolicy Bypass -File scripts\install-mods.ps1 cache-warm</code></li>
+</ul>
+<p>To remove the mod, run <code>bash scripts/install-mods.sh --uninstall cache-warm</code>. The Windows PowerShell script uses <code>-Uninstall</code>. These Windows commands are not tested.</p>
+
+<h3 id="h-5-6">5.6 Check that the install worked</h3>
+<ol>
+  <li>Start a session after method A, B or C.</li>
   <li>Send any prompt, for example <code>hello</code>.</li>
   <li>Wait for the answer to finish.</li>
   <li>Look above the prompt box.</li>
 </ol>
-<div class="expected"><strong>Expected:</strong> the band appears with <code>Cache warm</code> and a countdown.</div>
+<p><strong>Expected:</strong> the band appears with <code>Cache warm</code> and a countdown.</p>
 <p>If the band does not appear, see the table in 6.5.</p>
 
-<h3>5.7 Change the settings</h3>
+<h3 id="h-5-7">5.7 Change the settings</h3>
 <ol>
   <li>In a session, type <code>/config</code>.</li>
   <li>Find the rows for <code>cache-warm</code>: <code>ttl</code> and <code>maxPings</code>.</li>
   <li>Change a value. The mod reloads with the new value.</li>
 </ol>
-<p>See <a href="#settings">section 4</a> for the meaning of each setting.</p>
+<p>This review did not run these steps. No person has done this check yet. See section 4 for the meaning of each setting.</p>
 
 <!-- 6 -->
 <h2 id="validate">6. Validate</h2>
-<p>To validate means to prove that the mod works as this document says. There are three levels. Do level 1 and level 2 each time you change the code. Do level 3 once after you install.</p>
+<p>To validate means to check that the mod works as this document says. There are three levels. Run levels 1 and 2 after each change to the code. Run level 3 once after you install the mod.</p>
 <div class="table-wrap"><table>
   <thead><tr><th>Level</th><th>What it proves</th><th>Time</th><th>Needs an API request</th></tr></thead>
   <tbody>
-    <tr><td>1. Validate</td><td>The files are correct, and the engine can read the mod.</td><td>2 seconds</td><td>No</td></tr>
-    <tr><td>2. Test</td><td>The logic is correct (countdown, ping, stop, limit).</td><td>2 seconds</td><td>No</td></tr>
-    <tr><td>3. Live check</td><td>The mod works in a real session.</td><td>5 minutes or more</td><td>Yes (a small one)</td></tr>
+    <tr><td>1. Validate</td><td>The files are correct, and the engine can read the mod.</td><td>Under 1 second</td><td>No</td></tr>
+    <tr><td>2. Test</td><td>The logic is correct: countdown, ping, stop and limit.</td><td>1 to 2 seconds</td><td>No</td></tr>
+    <tr><td>3. Live check</td><td>The mod works in a real session.</td><td>5 minutes or more</td><td>Yes, a small one</td></tr>
   </tbody>
 </table></div>
 
-<h3>6.1 Level 1: validate the files</h3>
+<h3 id="h-6-1">6.1 Level 1: validate the files</h3>
 <ol>
   <li>Go to the repository root (see 5.1).</li>
   <li>Run:
@@ -473,18 +463,17 @@
   <thead><tr><th>Last line</th><th>Meaning</th><th>Action</th></tr></thead>
   <tbody>
     <tr><td><code>✔ Validation passed with warnings</code></td><td>The mod is correct.</td><td>None. This is the expected result.</td></tr>
-    <tr><td><code>✔ Validation passed</code></td><td>The mod is correct.</td><td>None.</td></tr>
-    <tr><td><code>✘ Validation failed</code></td><td>The engine refuses the mod.</td><td>Read the lines that start with <code>✘</code>. Fix the file they name. Run the command again.</td></tr>
+    <tr><td><code>✘ Validation failed</code></td><td>The engine refuses the mod.</td><td>Read the lines under the <code>✘ Found</code> heading. Fix the file they name. Run the command again.</td></tr>
   </tbody>
 </table></div>
-<p>The expected output contains messages that look like problems. They are not problems:</p>
+<p>The output can contain lines that look like problems. The last line decides the result. These messages do not change it:</p>
 <div class="table-wrap"><table>
   <thead><tr><th>Message</th><th>Why you can ignore it</th></tr></thead>
   <tbody>
     <tr><td><code>author: No author information provided</code></td><td>Only a note. The mod works without an author.</td></tr>
-    <tr><td><code>LICENSE: License missing</code></td><td>This check is for sending a mod to the public plugin directory. It does not change the result.</td></tr>
+    <tr><td><code>✘ Found 1 problem the plugin directory refuses a submission for</code>, with <code>LICENSE: License missing (LICENSE_MISSING)</code></td><td>This check is for submitting the mod to the plugin directory. The last line still reads <code>✔ Validation passed with warnings</code>.</td></tr>
     <tr><td><code>ICON_MISSING</code></td><td>Same reason.</td></tr>
-    <tr><td><code>types … declares on $: nothing</code></td><td>Correct. The mod adds nothing to <code>$</code>.</td></tr>
+    <tr><td><code>types ./types/index.d.ts declares on $: nothing</code></td><td>Correct. The mod adds nothing to <code>$</code>.</td></tr>
   </tbody>
 </table></div>
 <p>The output also lists what the mod uses. Compare it with this list:</p>
@@ -493,9 +482,9 @@
   <li>Stored values: <code>cache-warm.cache</code>, <code>cache-warm.isOn</code>, <code>cache-warm.now</code></li>
   <li>Engine calls: <code>$.clock.after</code>, <code>$.clock.every</code>, <code>$.clock.now</code>, <code>$.model.fork</code>, <code>$.state.get</code>, <code>$.state.set</code>, <code>$.ui.resolve</code>, <code>$.ui.toast</code></li>
 </ul>
-<p>If the output lists a hook or a call that is not in this list, the code and this document are different. Tell the owner of the mod.</p>
+<p>If the output lists a hook or a call that is not in this list, the code and this document differ. Tell the owner of the mod.</p>
 
-<h3>6.2 Level 2: run the tests</h3>
+<h3 id="h-6-2">6.2 Level 2: run the tests</h3>
 <ol>
   <li>Go to the repository root.</li>
   <li>Run:
@@ -503,26 +492,30 @@
   </li>
   <li>Check the last lines.</li>
 </ol>
-<div class="expected"><strong>Expected result:</strong> the last lines are <code>5 pass</code> and <code>0 fail</code>.</div>
+<p><strong>Expected result:</strong> the last lines are <code>5 pass</code> and <code>0 fail</code>. This review printed:</p>
+<pre><code> 5 pass
+ 0 fail
+Ran 5 tests across 1 file. [1.34s]</code></pre>
+<p>The time in brackets changes from run to run.</p>
 <p>The tests use a fake clock and a fake model request. They do not call the API and they cost nothing. Section 6.4 explains each test.</p>
 <p>If a test fails, the output shows the test name and the reason. Find the test name in the table in 6.4. It shows which rule is broken.</p>
 
-<h3>6.3 Level 3: live check in a session</h3>
-<p>Do this once after you install. Use <code>ttl</code> = <code>5m</code>, the default, so you wait less.</p>
+<h3 id="h-6-3">6.3 Level 3: live check in a session</h3>
+<p>Do this once after you install. Use <code>ttl</code> = <code>5m</code>, the default, so that you wait less.</p>
 <div class="table-wrap"><table>
   <thead><tr><th>Step</th><th>Action</th><th>Expected result</th></tr></thead>
   <tbody>
     <tr><td>1</td><td>Send a prompt. Wait for the answer.</td><td>The band shows <code>Cache warm 5:00</code> and counts down.</td></tr>
-    <tr><td>2</td><td>Read the third line of the band.</td><td><code>Keeping warm · first ping in 4:15</code> (the time counts down)</td></tr>
-    <tr><td>3</td><td>Wait until the ping time is <code>0:00</code>.</td><td>The status shows <code>Pinging to keep the cache warm…</code> for a short time. Then the countdown goes back to about <code>5:00</code>. The status shows <code>next ping in</code>.</td></tr>
+    <tr><td>2</td><td>Read the third line of the band.</td><td><code>Keeping warm · first ping in 4:15</code>. The time counts down.</td></tr>
+    <tr><td>3</td><td>Wait until the ping time is <code>0:00</code>.</td><td>The status shows <code>Pinging to keep the cache warm…</code> for a short time. Then the countdown returns to about <code>5:00</code>. The status shows <code>next ping in</code>.</td></tr>
     <tr><td>4</td><td>Press the button <code>Stop keeping warm</code>.</td><td>The button changes to <code>Keep warm</code>. The status shows <code>Not keeping warm</code>. The countdown continues.</td></tr>
     <tr><td>5</td><td>Press the button <code>Keep warm</code>.</td><td>The status shows <code>Keeping warm</code> and a ping time.</td></tr>
-    <tr><td>6</td><td>Send a prompt.</td><td>The band is hidden while the answer is written. It comes back at <code>5:00</code> when the answer is complete.</td></tr>
+    <tr><td>6</td><td>Send a prompt.</td><td>The band is hidden while the answer is written. It returns at <code>5:00</code> when the answer is complete.</td></tr>
   </tbody>
 </table></div>
-<div class="warn">No person has done this check yet.</div>
+<p><strong>No person has done this check yet.</strong></p>
 
-<h3>6.4 What each test proves</h3>
+<h3 id="h-6-4">6.4 What each test proves</h3>
 <div class="table-wrap"><table>
   <thead><tr><th>Test (in <code>hooks/register.test.tsx</code>)</th><th>Line</th><th>Rule it proves</th></tr></thead>
   <tbody>
@@ -534,35 +527,41 @@
   </tbody>
 </table></div>
 
-<h3>6.5 Problems and solutions</h3>
+<h3 id="h-6-5">6.5 Problems and solutions</h3>
 <div class="table-wrap"><table>
   <thead><tr><th>Problem</th><th>Cause</th><th>Solution</th></tr></thead>
   <tbody>
     <tr><td><code>claude: command not found</code></td><td>Claude Code is not installed, or the terminal cannot find it.</td><td>Install Claude Code. Open a new terminal.</td></tr>
-    <tr><td><code>claude plugin validate</code> says the path does not exist</td><td>You are not in the repository root.</td><td>Run <code>pwd</code>. Run <code>cd</code> to the repository root. Try again.</td></tr>
-    <tr><td>Validation fails</td><td>A file of the mod has an error.</td><td>Read the lines that start with <code>✘</code>. Fix the file they name.</td></tr>
-    <tr><td>No band after you send a prompt</td><td>The mod did not load.</td><td>Check the transcript for a line with <code>cache-warm</code>. It names the error. Check that the path in the flag or the setting is correct.</td></tr>
-    <tr><td>No band after you send a prompt, but no error</td><td>The turn gave no usage data (for example, you interrupted it).</td><td>Send a new prompt and wait for the full answer.</td></tr>
-    <tr><td>The band appears but no ping is sent</td><td>Pinging is off or the limit is reached.</td><td>Read the status line. If it says <code>Not keeping warm</code>, press <code>Keep warm</code>, or check that <code>maxPings</code> is more than 0.</td></tr>
+    <tr><td><code>claude plugin validate</code> shows <code>File not found</code></td><td>You are not in the repository root.</td><td>Run <code>pwd</code>. Run <code>cd</code> to the repository root. Run the command again.</td></tr>
+    <tr><td><code>✘ Validation failed</code></td><td>A file of the mod has an error.</td><td>Read the lines under the <code>✘ Found</code> heading. Fix the file they name.</td></tr>
+    <tr><td>No band after you send a prompt</td><td>The mod did not load.</td><td>Run <code>claude plugin validate mods/cache-warm</code> from the repository root. Read any <code>✘</code> line. Check that the path in the flag or the setting is correct.</td></tr>
+    <tr><td>No band after you send a prompt, and no error</td><td>The last turn gave no usage data, for example because you interrupted it.</td><td>Send a new prompt. Wait for the full answer.</td></tr>
+    <tr><td>The band shows <code>Pinging to keep the cache warm…</code> for a long time</td><td>A ping did not finish, or a turn ended during a ping without usage. See "Stuck pinging status" in section 7.</td><td>Send a new prompt. Wait for the full answer. A turn that completes with usage clears the status.</td></tr>
+    <tr><td>The band appears but no ping is sent</td><td>Pinging is off, the limit is reached, or <code>maxPings</code> is not a number.</td><td>Read the status line. If it says <code>Not keeping warm</code>, press <code>Keep warm</code>. Check that <code>maxPings</code> is a number above 0.</td></tr>
     <tr><td>Pings arrive too late, or too early</td><td><code>ttl</code> does not match your real cache lifetime.</td><td>Set <code>ttl</code> in <code>/config</code> to the real value.</td></tr>
-    <tr><td>A toast says the ping rewrote the context at full price</td><td>The cache was already cold when the ping arrived.</td><td>Set a lower <code>maxPings</code>, or set <code>ttl</code> to the real value.</td></tr>
+    <tr><td>A toast says the cache had already gone cold</td><td>The cache had expired when the ping arrived. A likely cause is a <code>ttl</code> setting longer than the real lifetime.</td><td>Set <code>ttl</code> in <code>/config</code> to the real value.</td></tr>
   </tbody>
 </table></div>
 
-<h3>6.6 Type-check (optional)</h3>
-<p>A type-check finds mistakes in the code types. It needs <code>tsc</code>, the TypeScript program. <code>tsc</code> was not installed when this document was written, so this check was <strong>not run</strong>.</p>
-<p>To run it, install TypeScript. Load the mod in a session one time (the engine then writes the folder <code>.claude-plugin/types/</code>). Then run <code>tsc -p mods/cache-warm</code>.</p>
-<div class="expected"><strong>Expected result:</strong> no output and no errors.</div>
+<h3 id="h-6-6">6.6 Type-check (optional)</h3>
+<p>A type-check finds mistakes in the code types. It uses <code>tsc</code>, the TypeScript compiler. <code>tsc</code> was not installed when this review ran, so this check was <strong>not run</strong>.</p>
+<p>The file <code>tsconfig.json</code> extends <code>./.claude-plugin/types/tsconfig.json</code>. That folder did not exist in the repository when this review ran. This review did not check how the engine makes the folder. The check cannot run as written until that folder exists.</p>
 
 <!-- 7 -->
 <h2 id="limits">7. Known limits</h2>
 <ul>
-  <li><strong>Cost.</strong> Each ping reads the whole conversation from the cache. This costs about 5 to 10 percent of the full price. <code>maxPings</code> limits the total.</li>
-  <li><strong>TTL is a setting.</strong> The mod trusts <code>ttl</code>. It does not read the real lifetime.</li>
-  <li><strong>Button label.</strong> After the ping limit, the status shows "Not keeping warm", but the button still shows "Stop keeping warm". Pressing it turns <code>isOn</code> off.</li>
-  <li><strong>Stop persists.</strong> <code>isOn</code> is not reset by a new turn. After "Stop keeping warm", pinging stays off until you press "Keep warm".</li>
-  <li><strong>Turn without usage.</strong> If a turn ends with no usage data (for example, an interrupt), the mod keeps the old expiry.</li>
-  <li><strong>Ping time.</strong> The new expiry is the time the ping reply arrives plus the TTL. The real cache expiry can be a little earlier.</li>
+  <li><strong>Cost.</strong> Each ping reads the whole conversation from the cache. The band and the manifest state a cost of 5 to 10 percent of the full price. This review did not measure that price. <code>maxPings</code> limits the pings after one reply.</li>
+  <li><strong>TTL is a setting.</strong> The mod trusts <code>ttl</code>. It does not read the real lifetime. Any value other than <code>1h</code> counts as <code>5m</code> (line 102).</li>
+  <li><strong>Ping time.</strong> The new expiry is the time the reply arrives plus the TTL (lines 76 and 81). The mod does not know when the API set the cache. The real expiry can be a little earlier.</li>
+  <li><strong>Button label.</strong> After the ping limit, the status shows "Not keeping warm". The button still shows "Stop keeping warm" (line 174). Pressing it sets <code>isOn</code> to false.</li>
+  <li><strong>Stop persists.</strong> A new turn does not reset <code>isOn</code>. After "Stop keeping warm", pinging stays off until you press "Keep warm".</li>
+  <li><strong>Turn without usage.</strong> A turn that ends with no usage data keeps the old expiry (line 136 does not run). If the ping time has already passed, <code>arm()</code> sets the ping timer to 0 (line 97), so the ping runs at once. This was confirmed by a test run in a copy outside the repository.</li>
+  <li id="limit-stuck"><strong>Stuck pinging status.</strong> A turn that starts during a ping, or ends without usage, leaves <code>isPinging</code> true. The <code>turn.start</code> hook (line 119) does not clear it. <code>ping()</code> returns at line 65 without clearing it. The band then shows "Pinging to keep the cache warm…" until a turn completes with usage (line 136). This was confirmed by a test run in a copy outside the repository.</li>
+  <li><strong>No timeout on the ping.</strong> The request at line 60 has no time limit. A request that never returns leaves <code>isPinging</code> true. The band then hides at expiry. No further ping is sent. The stored cache stays until a turn completes with usage or the session ends. This was confirmed by a test run in a copy outside the repository.</li>
+  <li><strong>Late ping reply.</strong> A ping reply that arrives after a turn completes overwrites that turn's token count and sets a new expiry (lines 76–81). The band can then show the ping's token count instead of the turn's count. This was confirmed by a test run in a copy outside the repository.</li>
+  <li><strong>Invalid <code>maxPings</code>.</strong> <code>Number(...)</code> returns NaN for a value that is not a number (line 103). <code>Math.max</code> keeps NaN. The check at line 96 then fails, so no ping is sent. The status shows "Not keeping warm". This follows from the JavaScript rules. It was not run in the engine.</li>
+  <li><strong>Legacy Windows console.</strong> The characters <code>◔</code>, <code>█</code>, <code>░</code> and <code>…</code> (lines 156, 165, 169, 170) can display wrongly on a console that does not use UTF-8. Windows Terminal is expected to display them. This was not checked on Windows.</li>
+  <li><strong>Errors are not logged.</strong> The mod writes no log line. <code>ping()</code> catches an error from the fork request and treats it as no reply (lines 59–63). The <code>turn.complete</code> hook has a <code>.catch</code> handler (line 142) that calls <code>next(e)</code> and writes no log line. The timers call <code>void tick($)</code> (line 95) and <code>void ping($)</code> (line 97). These discard the promise, so the mod does not catch an error from them. <code>ui.render</code> (line 144) has no <code>.catch</code>. This review did not check what the engine does with these errors.</li>
 </ul>
 
 <!-- 8 -->
@@ -570,12 +569,22 @@
 <div class="table-wrap"><table>
   <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
   <tbody>
-    <tr><td>Cache</td><td>The stored copy of the conversation that the API reads at a lower price.</td></tr>
-    <tr><td>TTL</td><td>The time the API keeps the cache after a request.</td></tr>
-    <tr><td>Ping</td><td>A small request that reads the cache and resets the TTL.</td></tr>
     <tr><td>Band</td><td>The area above the prompt where the mod draws its text.</td></tr>
-    <tr><td>Turn</td><td>One model run, from your prompt to the final answer.</td></tr>
-    <tr><td>Fork</td><td>A request that uses the conversation as the main thread last sent it.</td></tr>
+    <tr><td>Cache</td><td>The stored copy of the conversation that the API reads at a lower price.</td></tr>
+    <tr><td>Engine</td><td>Claude Code. It loads the mod and calls its hooks.</td></tr>
+    <tr><td>Expiry</td><td>The time when the cache expires. Stored in <code>cache.expiresAt</code>.</td></tr>
+    <tr><td>Fork</td><td>A request that uses the conversation as the main thread last sent it. Called with <code>$.model.fork</code>.</td></tr>
+    <tr><td>Hook</td><td>A function that the engine calls when an event happens, such as <code>turn.complete</code>.</td></tr>
+    <tr><td>Main loop</td><td>The main conversation. A turn with no agent ID belongs to the main loop.</td></tr>
+    <tr><td>Ping</td><td>A small request that reads the cache and resets the TTL.</td></tr>
+    <tr><td>Reply</td><td>The answer that a request returns.</td></tr>
+    <tr><td>Stored value</td><td>A value that the engine keeps for the session. See 3.5.</td></tr>
+    <tr><td>Subagent</td><td>A helper run that the main conversation starts. Its turns have an agent ID.</td></tr>
+    <tr><td>Tick</td><td>The one-second timer that redraws the band and checks expiry.</td></tr>
+    <tr><td>Toast</td><td>A short message that the engine displays.</td></tr>
+    <tr><td>TTL</td><td>The time the API keeps the cache after a request. Set by the <code>ttl</code> setting.</td></tr>
+    <tr><td>Turn</td><td>One run of the main loop, from your prompt to the final answer.</td></tr>
+    <tr><td>Usage</td><td>The token counts that a reply reports: input, cache read and cache creation tokens.</td></tr>
   </tbody>
 </table></div>
 
