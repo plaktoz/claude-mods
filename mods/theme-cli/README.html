@@ -606,7 +606,7 @@ error.wav 1.44s</code></pre>
 <ol>
   <li>Open a terminal.</li>
   <li>Add the marketplace once:
-<pre><code>claude plugin marketplace add plaktoz/claude-mods</code></pre></li>
+<pre><code>claude plugin marketplace add https://github.com/plaktoz/claude-mods</code></pre></li>
   <li>Install the mod:
 <pre><code>claude plugin install theme-cli@claude-mods</code></pre></li>
   <li>Start a new session. Do the check in 5.6.</li>
@@ -620,7 +620,8 @@ error.wav 1.44s</code></pre>
     <tr><td><code>local</code></td><td>The current project, for you only. Not shared.</td></tr>
   </tbody>
 </table></div>
-<p>Inside a Claude Code session, the same steps are <code>/plugin marketplace add plaktoz/claude-mods</code> and <code>/plugin install theme-cli@claude-mods</code>.</p>
+<p>Inside a Claude Code session, the same steps are <code>/plugin marketplace add https://github.com/plaktoz/claude-mods</code> and <code>/plugin install theme-cli@claude-mods</code>. Then run <code>/reload-plugins</code>, or start a new session.</p>
+<p>Add the marketplace with the repository URL. Do not use the GitHub link to <code>.claude-plugin/marketplace.json</code>: the command treats a link as a git repository and fails with <code>repository ... not found</code>.</p>
 <p>To use your local copy of this repository, add the marketplace from its path:</p>
 <pre><code>claude plugin marketplace add /path/to/claude-mods</code></pre>
 <p>The install scripts do the same steps. They add this repository as the marketplace <code>claude-mods</code>, and then install the mod.</p>

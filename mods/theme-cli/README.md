@@ -514,7 +514,7 @@ The repository has a marketplace file, `.claude-plugin/marketplace.json`. The ma
 2. Add the marketplace once:
 
    ```bash
-   claude plugin marketplace add plaktoz/claude-mods
+   claude plugin marketplace add https://github.com/plaktoz/claude-mods
    ```
 
 3. Install the mod:
@@ -533,7 +533,9 @@ The `--scope` option sets where the mod applies:
 | `project` | The current project, for everyone who opens it. Saved in `.claude/settings.json`. |
 | `local` | The current project, for you only. Not shared. |
 
-Inside a Claude Code session, the same steps are `/plugin marketplace add plaktoz/claude-mods` and `/plugin install theme-cli@claude-mods`.
+Inside a Claude Code session, the same steps are `/plugin marketplace add https://github.com/plaktoz/claude-mods` and `/plugin install theme-cli@claude-mods`. Then run `/reload-plugins`, or start a new session.
+
+Add the marketplace with the repository URL. Do not use the GitHub link to `.claude-plugin/marketplace.json`: the command treats a link as a git repository and fails with `repository ... not found`.
 
 To use your local copy of this repository, add the marketplace from its path:
 

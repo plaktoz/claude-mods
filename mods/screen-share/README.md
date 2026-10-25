@@ -258,9 +258,13 @@ This review did not test method B.
 
 The repository marketplace file, `.claude-plugin/marketplace.json`, lists `screen-share` at line 28.
 
-1. Add the marketplace once. Run this command: `claude plugin marketplace add plaktoz/claude-mods`.
+1. Add the marketplace once. Run this command: `claude plugin marketplace add https://github.com/plaktoz/claude-mods`.
 2. Install the mod. Run this command: `claude plugin install screen-share@claude-mods`.
 3. Restart Claude Code to load the mod.
+
+Inside a Claude Code session, the same steps are `/plugin marketplace add https://github.com/plaktoz/claude-mods` and `/plugin install screen-share@claude-mods`. Then run `/reload-plugins`, or start a new session.
+
+Add the marketplace with the repository URL. Do not use the GitHub link to `.claude-plugin/marketplace.json`: the command treats a link as a git repository and fails with `repository ... not found`.
 
 This review did not run method C. It needs network access to GitHub and it changes your Claude Code setup. The install command was not run.
 

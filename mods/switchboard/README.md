@@ -223,7 +223,7 @@ To install from your clone, run `claude plugin marketplace add /path/to/claude-m
 2. Run the following command once:
 
    ```bash
-   claude plugin marketplace add plaktoz/claude-mods
+   claude plugin marketplace add https://github.com/plaktoz/claude-mods
    ```
 
 3. Run the following command. The default scope is `user`:
@@ -233,6 +233,10 @@ To install from your clone, run `claude plugin marketplace add /path/to/claude-m
    ```
 
 4. Start a new session. The `/mods` command is added at session start.
+
+Inside a Claude Code session, the same steps are `/plugin marketplace add https://github.com/plaktoz/claude-mods` and `/plugin install switchboard@claude-mods`. Then run `/reload-plugins`, or start a new session.
+
+Add the marketplace with the repository URL. Do not use the GitHub link to `.claude-plugin/marketplace.json`: the command treats a link as a git repository and fails with `repository ... not found`.
 
 ### 5.4 Method B: install for one project
 
@@ -245,7 +249,7 @@ To install from your clone, run `claude plugin marketplace add /path/to/claude-m
 2. If you did not run the marketplace command in 5.3, run it now:
 
    ```bash
-   claude plugin marketplace add plaktoz/claude-mods
+   claude plugin marketplace add https://github.com/plaktoz/claude-mods
    ```
 
 3. Run the following command. The `project` scope applies the mod to this project for everyone who opens it:
