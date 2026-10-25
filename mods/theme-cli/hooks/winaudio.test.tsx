@@ -171,8 +171,8 @@ test('theme-cli stopping its loop ends the Windows loop', { plugins: [CALLER] },
   expect(spawned.length).toBe(1)
   expect(done).toBe(false)
 
-  // /theme-mute ends the loop through theme-cli's own stopLoop(), in the plugin's copy of the module.
-  await $.command.run({ command: 'theme-mute', args: '', origin: { kind: 'composer' } } as never)
+  // /theme-sound off ends the loop through theme-cli's own stopLoop(), in the plugin's copy of the module.
+  await $.command.run({ command: 'theme-sound', args: 'off', origin: { kind: 'composer' } } as never)
   const out = await playing
 
   expect((out as { text?: string }).text).toBe('played')

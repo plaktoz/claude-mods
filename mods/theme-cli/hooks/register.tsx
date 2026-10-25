@@ -27,7 +27,9 @@ const turnEnd = atom({ plugin: 'theme-cli', key: 'turnEnd' } as const, 0)
 const finaleStart = atom({ plugin: 'theme-cli', key: 'finaleStart' } as const, 0)
 const cost = atom({ plugin: 'theme-cli', key: 'cost' } as const, 0)
 const isHidden = atom({ plugin: 'theme-cli', key: 'isHidden' } as const, false)
-const isMuted = atom({ plugin: 'theme-cli', key: 'isMuted' } as const, false)
+// `all` plays every cue and the loop; `cues` plays the start, success and error cues but no loop; `off` plays nothing.
+type SoundMode = 'all' | 'cues' | 'off'
+const soundMode = atom({ plugin: 'theme-cli', key: 'soundMode' } as const, 'all' as SoundMode)
 const band = atom({ plugin: 'theme-cli', key: 'band' } as const, null as Band | null)
 const themeName = atom({ plugin: 'theme-cli', key: 'themeName' } as const, DEFAULT_THEME)
 const log = atom({ plugin: 'theme-cli', key: 'log' } as const, [] as string[], { shape: 'log-1' })
@@ -87,7 +89,7 @@ async function useTheme($: EngineInterface, name: string, force = false) {
 // Plays a cue once. A clip that cannot play (no player, a bad file) is logged, never thrown.
 async function play($: EngineInterface, cue: Cue): Promise<void> {
   const sound = sounds[cue]
-  if (!sound || (await read($, isMuted))) return
+  if (!sound || (await read($, soundMode)) === 'off') return
 
   return $.audio
     .play({ base64: sound.base64, mime: sound.mime }, { gain: sound.gain })
@@ -97,7 +99,7 @@ async function play($: EngineInterface, cue: Cue): Promise<void> {
 // Loops the `working` clip until the turn leaves `working`.
 async function startLoop($: EngineInterface) {
   const sound = sounds.working
-  if (!sound || (await read($, isMuted)) || loop) return
+  if (!sound || loop || (await read($, soundMode)) !== 'all') return
 
   const stop = new AbortController()
   loop = stop
@@ -209,8 +211,11 @@ export const register: Register = on => {
     await $.command.register({ name: 'theme-dump', description: 'Write the theme-cli log to a file' })
     await $.command.register({ name: 'theme-hide', description: 'Hide the strip above the prompt' })
     await $.command.register({ name: 'theme-show', description: 'Show the strip above the prompt' })
-    await $.command.register({ name: 'theme-mute', description: 'Silence the theme sounds' })
-    await $.command.register({ name: 'theme-unmute', description: 'Play the theme sounds again' })
+    await $.command.register({
+      name: 'theme-sound',
+      description: 'Set the theme sounds: all, cues (no working loop), or off',
+      argumentHint: '[all|cues|off]',
+    })
     await $.command.register({ name: 'theme-list', description: 'List the themes in ~/.claude/theme-cli/themes' })
     await $.command.register({
       name: 'theme-use',
@@ -243,19 +248,17 @@ export const register: Register = on => {
     return { text: 'Strip shown.' }
   })
 
-  on('command.run', { command: 'theme-mute' }, async $ => {
-    await update($, isMuted, () => true)
-    stopLoop()
+  on('command.run', { command: 'theme-sound' }, async ($, e) => {
+    const mode = e.args.trim()
+    if (mode === '') return { text: `Sounds: ${await read($, soundMode)}. Set with /theme-sound all, cues or off.` }
+    if (mode !== 'all' && mode !== 'cues' && mode !== 'off') return { text: `Unknown mode "${mode}". Use all, cues or off.` }
 
-    return { text: 'Sounds muted. /theme-unmute plays them again.' }
-  })
+    await update($, soundMode, () => mode)
+    // Any mode but `all` ends the loop. Back to `all` during a turn gives the loop back.
+    if (mode !== 'all') stopLoop()
+    else if ((await read($, beat)) === 'working') await startLoop($)
 
-  on('command.run', { command: 'theme-unmute' }, async $ => {
-    await update($, isMuted, () => false)
-    // A turn already under way gets its loop back.
-    if ((await read($, beat)) === 'working') await startLoop($)
-
-    return { text: 'Sounds on.' }
+    return { text: `Sounds: ${mode}.` }
   })
 
   on('command.run', { command: 'theme-list' }, async $ => {
@@ -331,7 +334,7 @@ export const register: Register = on => {
       ...lines,
       '--- state ---',
       `theme=${scene.name} ${scene.height}px sprites, ${rowsOf(scene)} rows, companions=${scene.companions.length}, missing=[${scene.missing.join(' ')}]`,
-      `sounds=${Object.keys(sounds).join(' ') || 'none'} muted=${await read($, isMuted)} loop=${loop ? 'on' : 'off'}`,
+      `sounds=${Object.keys(sounds).join(' ') || 'none'} mode=${await read($, soundMode)} loop=${loop ? 'on' : 'off'}`,
       `session cost=$${usd.toFixed(4)} (engine's session.measure, all turns and agents)`,
       `beat=${view.beat} crew=${view.crew.length} [${view.crew.map(c => `${c.id}:${c.slot}`).join(' ')}] isActive=${isActive(view)} timer=${timer ? 'on' : 'off'}`,
       `band requestId=${where?.id ?? 'unknown'} mounted=${where ? `${where.columns}x${where.rows}` : 'none'}`,
