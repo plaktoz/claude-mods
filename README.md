@@ -41,8 +41,9 @@ Scaling happens once. When the session starts, the mod stamps `theme.json`, its 
 | `/theme-new <name>` | Write a `theme.json` template to fill in |
 | `/theme-build` | Rebuild the cache even if nothing changed |
 | `/theme-hide`, `/theme-show` | Turn the strip off and on |
-| `/theme-mute`, `/theme-unmute` | Silence the theme sounds, and play them again |
+| `/theme-sound [all\|cues\|off]` | Set the theme sounds: `all`, `cues` (start, success and error, no working loop), or `off`. No argument shows the mode |
 | `/theme-dump` | Write `theme-cli-log.txt` in the working directory, for debugging |
+| `/theme-sound-test` | Play a short test tone through the Windows player (on other systems it says the engine plays sound itself) |
 
 Images you use may be copyrighted. Keep them in your own folder, never in this repository.
 

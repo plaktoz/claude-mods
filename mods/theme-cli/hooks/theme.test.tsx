@@ -262,7 +262,7 @@ test('a bad "sounds" entry in theme.json falls back to placeholders and says why
   expect(dump(seen)).toContain('"sounds.start" needs a "file" path')
 })
 
-test('/theme-mute silences every cue and the loop, and /theme-unmute brings them back', async ($, on) => {
+test('/theme-sound off silences every cue and the loop, and all brings them back', async ($, on) => {
   const { seen, start, run, turnStart, turnEnd, clock } = library($, on, sounded)
   await start()
   await turnStart()
@@ -270,18 +270,51 @@ test('/theme-mute silences every cue and the loop, and /theme-unmute brings them
   expect(clipsOf(seen)).toEqual(['U1RBUlQ=', 'V09SSw=='])
 
   // Muting mid-turn aborts the loop; the finish then plays nothing.
-  const muted = await run('theme-mute')
-  expect(muted.text).toContain('muted')
+  const muted = await run('theme-sound', 'off')
+  expect(muted.text).toBe('Sounds: off.')
   await turnEnd()
   await turnStart()
   await clock.advance(100)
   expect(clipsOf(seen)).toEqual(['U1RBUlQ=', 'V09SSw=='])
 
-  // Unmuting during a turn restarts the loop.
-  await run('theme-unmute')
+  // Back to all during a turn restarts the loop.
+  await run('theme-sound', 'all')
   expect(clipsOf(seen).at(-1)).toBe('V09SSw==')
   await turnEnd()
   expect(clipsOf(seen).at(-1)).toBe('V0lO')
+})
+
+test('/theme-sound cues plays the start, success and error cues, but no working loop', async ($, on) => {
+  const { seen, start, run, turnStart, turnEnd, clock } = library($, on, sounded)
+  await start()
+  await run('theme-sound', 'cues')
+  await turnStart()
+  await clock.advance(100)
+  // The working loop does not start in cues mode.
+  expect(clipsOf(seen)).toEqual(['U1RBUlQ='])
+
+  await turnEnd()
+  expect(clipsOf(seen).at(-1)).toBe('V0lO')
+})
+
+test('/theme-sound cues stops a loop that is already playing', async ($, on) => {
+  const { seen, start, run, turnStart, turnEnd, clock } = library($, on, sounded)
+  await start()
+  await turnStart()
+  await clock.advance(100)
+  expect(clipsOf(seen)).toEqual(['U1RBUlQ=', 'V09SSw=='])
+
+  // Switching to cues mid-turn ends the loop; the finish still plays.
+  await run('theme-sound', 'cues')
+  await turnEnd()
+  expect(clipsOf(seen).at(-1)).toBe('V0lO')
+})
+
+test('/theme-sound with no argument shows the mode, and an unknown mode is refused', async ($, on) => {
+  const { start, run } = library($, on, sounded)
+  await start()
+  expect((await run('theme-sound')).text).toBe('Sounds: all. Set with /theme-sound all, cues or off.')
+  expect((await run('theme-sound', 'loud')).text).toBe('Unknown mode "loud". Use all, cues or off.')
 })
 
 test('the build runs under the first Python launcher that answers', async ($, on) => {

@@ -35,7 +35,8 @@ declare module 'claude-code' {
       finaleStart: number
       cost: number
       isHidden: boolean
-      isMuted: boolean
+      // `all`, `cues` (no working loop) or `off`. The mode holds for the session and a hot reload.
+      soundMode: 'all' | 'cues' | 'off'
       band: Band | null
       // The theme on show; the band redraws when a switch changes it.
       themeName: string
